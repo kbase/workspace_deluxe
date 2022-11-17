@@ -1,0 +1,144 @@
+name: KBase Workspace tests
+
+on:
+  pull_request:
+    types:
+    - opened
+    - reopened
+    - synchronize
+    - ready_for_review
+  push:
+    # run workflow when merging to main or develop
+    branches:
+      - main
+      - master
+      - develop
+
+# TODO find out what minio ver we're using in CI / appdev / prod and use that
+# TODO split tests into mongo related & non mongo related. Run the former once.
+jobs:
+
+  auth2_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - java: '8'
+            mongo: 'mongodb-linux-x86_64-3.6.23'
+            minio: '2019-05-23T00-29-34Z'
+            wired_tiger: 'false'
+            ant_test: 'test_quick_coverage'
+          - java: '11'
+            mongo: 'mongodb-linux-x86_64-3.6.23'
+            minio: '2019-05-23T00-29-34Z'
+            wired_tiger: 'true'
+            ant_test: 'test_quick_coverage'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{matrix.java}}
+
+      - name: Set up Python 3.7  # sample service is on 3.7, handle service is on sdkbase2.latest
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.7"
+
+      - name: Clone jars as sister repo
+        shell: bash
+        run: |
+          cd ..
+          git clone https://github.com/kbase/jars
+          export JARSDIR=`pwd`/jars/lib/jars/
+          cd -
+
+      - name: Install dependencies and set up test config
+        shell: bash
+        run: |
+          export HOMEDIR=`pwd`
+
+          # set up python dependencies
+          cd python_dependencies
+          pip install pipenv
+          pipenv sync --system
+          cd ..
+          
+          # move to parent dir of homedir to install binaries etc
+          cd ..
+
+          # set up arango
+          export ARANGODB_VER=3.9.1
+          export ARANGODB_V=39
+          curl -O https://download.arangodb.com/arangodb$ARANGODB_V/Community/Linux/arangodb3-linux-$ARANGODB_VER.tar.gz
+          tar -xf arangodb3-linux-$ARANGODB_VER.tar.gz 
+          export ARANGO_EXE=$(pwd)/arangodb3-$ARANGODB_VER/usr/sbin/arangod
+          export ARANGO_JS=$(pwd)/arangodb3-$ARANGODB_VER/usr/share/arangodb3/js/
+
+           # set up handle service
+          export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
+          export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
+          git clone https://github.com/kbase/handle_service2.git
+          cd handle_service2/
+          git checkout $HS_COMMIT
+          sudo chmod -R 777 .
+          cd lib/
+          mkdir biokbase
+          cd biokbase/
+          wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
+          cd ..
+          export HSDIR=`pwd`
+          cd ../..
+
+          # set up sample service
+          export SAMPLE_COMMIT=6813fb148e95db2b11db6eea04f4d1d45cbb7119
+          git clone https://github.com/kbase/sample_service.git
+          cd sample_service
+          git checkout $SAMPLE_COMMIT
+          cd lib
+          export SAMPLE_DIR=`pwd`
+          cd ../..
+
+          # set up blobstore
+          wget -O blobstore https://github.com/kbase/blobstore/releases/download/v0.1.2/blobstore_linux_amd64
+          chmod a+x blobstore
+          export BLOBEXE=$(pwd)/blobstore
+
+          # set up mongo
+          wget -q http://fastdl.mongodb.org/linux/${{matrix.mongo}}.tgz
+          tar xfz ${{matrix.mongo}}.tgz
+          export MONGOD=`pwd`/${{matrix.mongo}}/bin/mongod
+
+          # set up minio
+          wget https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
+          chmod a+x minio
+          export MINIOD=`pwd`/minio
+          
+          # set up test config
+          cd $HOMEDIR
+          cp -n test.cfg.example test.cfg
+          sed -i "s#^test.temp.dir =.*#test.temp.dir=temp_test_dir#" test.cfg
+          sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
+          sed -i "s#^test.minio.exe.*#test.minio.exe=$MINIOD#" test.cfg
+          sed -i "s#^test.mongo.wired_tiger.*#test.mongo.wired_tiger=${{matrix.wired_tiger}}#" test.cfg
+          sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
+          sed -i "s#^test.blobstore.exe.*#test.blobstore.exe=$BLOBEXE#" test.cfg
+          sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
+          sed -i "s#^test.sampleservice.dir.*#test.sampleservice.dir=$SAMPLE_DIR#" test.cfg
+          sed -i "s#^test.arango.exe.*#test.arango.exe=$ARANGO_EXE#" test.cfg
+          sed -i "s#^test.arango.js.*#test.arango.js=$ARANGO_JS#" test.cfg
+          cat test.cfg
+
+      - name: Run tests
+        shell: bash
+        run: |
+          ant javadoc
+          ant {{matrix.ant_test}}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: true
