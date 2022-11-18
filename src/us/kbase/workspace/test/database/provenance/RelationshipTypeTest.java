@@ -13,20 +13,26 @@ import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.W
 
 public class RelationshipTypeTest {
 
+	private static final String INCORRECT_PID = "incorrect PID";
+
 	@Test
 	public void testGetPid() throws Exception {
 		final RelationshipType rt1 = RelationshipType.OBSOLETES;
-		assertThat("incorrect PID",
+		assertThat(INCORRECT_PID,
 				rt1.getPid(),
 				is("DataCite:Obsoletes"));
 		final RelationshipType rt2 = RelationshipType.IS_PREVIOUS_VERSION_OF;
-		assertThat("incorrect PID",
+		assertThat(INCORRECT_PID,
 				rt2.getPid(),
 				is("DataCite:IsPreviousVersionOf"));
 		final RelationshipType rt3 = RelationshipType.IS_MANIFESTATION_OF;
-		assertThat("incorrect PID",
+		assertThat(INCORRECT_PID,
 				rt3.getPid(),
 				is("Crossref:IsManifestationOf"));
+		final RelationshipType rt4 = RelationshipType.HAS_TRANSLATION;
+		assertThat(INCORRECT_PID,
+				rt4.getPid(),
+				is("Crossref:HasTranslation"));
 	}
 
 	@Test

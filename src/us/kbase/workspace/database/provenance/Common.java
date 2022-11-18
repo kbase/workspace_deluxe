@@ -22,6 +22,9 @@ class Common {
 	static final Pattern VALID_PID_REGEX = Pattern.compile("^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$");
 	static final String VALID_PID_REPLACEMENT = "$1:$2";
 
+        static final String DATACITE = "DataCite";
+        static final String CROSSREF = "Crossref";
+
 	private Common() {}
 
 	static String processString(final String input) {

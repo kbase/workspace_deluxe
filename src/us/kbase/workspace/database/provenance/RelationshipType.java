@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.List;
 import java.util.Arrays;
 import us.kbase.workspace.database.Util;
+import static us.kbase.workspace.database.provenance.Common.DATACITE;
+import static us.kbase.workspace.database.provenance.Common.CROSSREF;
 
 /**
  * An enum representing relationship types.
@@ -12,72 +14,71 @@ import us.kbase.workspace.database.Util;
 public enum RelationshipType {
 
 	// from DataCite
-	IS_CITED_BY("DataCite", "IsCitedBy"),
-	CITES("DataCite", "Cites"),
-	IS_SUPPLEMENT_TO("DataCite", "IsSupplementTo"),
-	IS_SUPPLEMENTED_BY("DataCite", "IsSupplementedBy"),
-	IS_CONTINUED_BY("DataCite", "IsContinuedBy"),
-	CONTINUES("DataCite", "Continues"),
-	IS_DESCRIBED_BY("DataCite", "IsDescribedBy"),
-	DESCRIBES("DataCite", "Describes"),
-	HAS_METADATA("DataCite", "HasMetadata"),
-	IS_METADATA_FOR("DataCite", "IsMetadataFor"),
-	HAS_VERSION("DataCite", "HasVersion"),
-	IS_VERSION_OF("DataCite", "IsVersionOf"),
-	IS_NEW_VERSION_OF("DataCite", "IsNewVersionOf"),
-	IS_PREVIOUS_VERSION_OF("DataCite", "IsPreviousVersionOf"),
-	IS_PART_OF("DataCite", "IsPartOf"),
-	HAS_PART("DataCite", "HasPart"),
-	IS_PUBLISHED_IN("DataCite", "IsPublishedIn"),
-	IS_REFERENCED_BY("DataCite", "IsReferencedBy"),
-	REFERENCES("DataCite", "References"),
-	IS_DOCUMENTED_BY("DataCite", "IsDocumentedBy"),
-	DOCUMENTS("DataCite", "Documents"),
-	IS_COMPILED_BY("DataCite", "isCompiledBy"),
-	COMPILES("DataCite", "Compiles"),
-	IS_VARIANT_FORM_OF("DataCite", "IsVariantFormOf"),
-	IS_ORIGINAL_FORM_OF("DataCite", "IsOriginalFormOf"),
-	IS_IDENTICAL_TO("DataCite", "IsIdenticalTo"),
-	IS_REVIEWED_BY("DataCite", "IsReviewedBy"),
-	REVIEWS("DataCite", "Reviews"),
-	IS_DERIVED_FROM("DataCite", "IsDerivedFrom"),
-	IS_SOURCE_OF("DataCite", "IsSourceOf"),
-	IS_REQUIRED_BY("DataCite", "IsRequiredBy"),
-	REQUIRES("DataCite", "Requires"),
-	OBSOLETES("DataCite", "Obsoletes"),
+	CITES(DATACITE, "Cites"),
+	COMPILES(DATACITE, "Compiles"),
+	CONTINUES(DATACITE, "Continues"),
+	DESCRIBES(DATACITE, "Describes"),
+	DOCUMENTS(DATACITE, "Documents"),
+	HAS_METADATA(DATACITE, "HasMetadata"),
+	HAS_PART(DATACITE, "HasPart"),
+	HAS_VERSION(DATACITE, "HasVersion"),
+	IS_CITED_BY(DATACITE, "IsCitedBy"),
+	IS_COMPILED_BY(DATACITE, "isCompiledBy"),
+	IS_CONTINUED_BY(DATACITE, "IsContinuedBy"),
+	IS_DERIVED_FROM(DATACITE, "IsDerivedFrom"),
+	IS_DESCRIBED_BY(DATACITE, "IsDescribedBy"),
+	IS_DOCUMENTED_BY(DATACITE, "IsDocumentedBy"),
+	IS_IDENTICAL_TO(DATACITE, "IsIdenticalTo"),
+	IS_METADATA_FOR(DATACITE, "IsMetadataFor"),
+	IS_NEW_VERSION_OF(DATACITE, "IsNewVersionOf"),
+	IS_ORIGINAL_FORM_OF(DATACITE, "IsOriginalFormOf"),
+	IS_PART_OF(DATACITE, "IsPartOf"),
+	IS_PREVIOUS_VERSION_OF(DATACITE, "IsPreviousVersionOf"),
+	IS_PUBLISHED_IN(DATACITE, "IsPublishedIn"),
+	IS_REFERENCED_BY(DATACITE, "IsReferencedBy"),
+	IS_REQUIRED_BY(DATACITE, "IsRequiredBy"),
+	IS_REVIEWED_BY(DATACITE, "IsReviewedBy"),
+	IS_SOURCE_OF(DATACITE, "IsSourceOf"),
+	IS_SUPPLEMENT_TO(DATACITE, "IsSupplementTo"),
+	IS_SUPPLEMENTED_BY(DATACITE, "IsSupplementedBy"),
+	IS_VARIANT_FORM_OF(DATACITE, "IsVariantFormOf"),
+	IS_VERSION_OF(DATACITE, "IsVersionOf"),
+	OBSOLETES(DATACITE, "Obsoletes"),
+	REFERENCES(DATACITE, "References"),
+	REQUIRES(DATACITE, "Requires"),
+	REVIEWS(DATACITE, "Reviews"),
 
 	// from Crossref
-	BASED_ON_DATA("Crossref", "BasedOnData"),
-	FINANCES("Crossref", "Finances"),
-	HAS_COMMENT("Crossref", "HasComment"),
-	HAS_DERIVATION("Crossref", "HasDerivation"),
-	HAS_EXPRESSION("Crossref", "HasExpression"),
-	HAS_FORMAT("Crossref", "HasFormat"),
-	HAS_MANIFESTATION("Crossref", "HasManifestation"),
-	HAS_MANUSCRIPT("Crossref", "HasManuscript"),
-	HAS_PREPRINT("Crossref", "HasPreprint"),
-	HAS_RELATED_MATERIAL("Crossref", "HasRelatedMaterial"),
-	HAS_REPLY("Crossref", "HasReply"),
-	HAS_REVIEW("Crossref", "HasReview"),
-	HAS_TRANSLATION("Crossref", "HasTranslation"),
-	IS_BASED_ON("Crossref", "IsBasedOn"),
-	IS_BASIS_FOR("Crossref", "IsBasisFor"),
-	IS_COMMENT_ON("Crossref", "IsCommentOn"),
-	IS_DATA_BASIS_FOR("Crossref", "IsDataBasisFor"),
-	IS_EXPRESSION_OF("Crossref", "IsExpressionOf"),
-	IS_FINANCED_BY("Crossref", "IsFinancedBy"),
-	IS_FORMAT_OF("Crossref", "IsFormatOf"),
-	IS_MANIFESTATION_OF("Crossref", "IsManifestationOf"),
-	IS_MANUSCRIPT_OF("Crossref", "IsManuscriptOf"),
-	IS_PREPRINT_OF("Crossref", "IsPreprintOf"),
-	IS_RELATED_MATERIAL("Crossref", "IsRelatedMaterial"),
-	IS_REPLACED_BY("Crossref", "IsReplacedBy"),
-	IS_REPLY_TO("Crossref", "IsReplyTo"),
-	IS_REVIEW_OF("Crossref", "IsReviewOf"),
-	IS_SAME_AS("Crossref", "IsSameAs"),
-	IS_TRANSLATION_OF("Crossref", "IsTranslationOf"),
-	REPLACES("Crossref", "Replaces");
-
+	BASED_ON_DATA(CROSSREF, "BasedOnData"),
+	FINANCES(CROSSREF, "Finances"),
+	HAS_COMMENT(CROSSREF, "HasComment"),
+	HAS_DERIVATION(CROSSREF, "HasDerivation"),
+	HAS_EXPRESSION(CROSSREF, "HasExpression"),
+	HAS_FORMAT(CROSSREF, "HasFormat"),
+	HAS_MANIFESTATION(CROSSREF, "HasManifestation"),
+	HAS_MANUSCRIPT(CROSSREF, "HasManuscript"),
+	HAS_PREPRINT(CROSSREF, "HasPreprint"),
+	HAS_RELATED_MATERIAL(CROSSREF, "HasRelatedMaterial"),
+	HAS_REPLY(CROSSREF, "HasReply"),
+	HAS_REVIEW(CROSSREF, "HasReview"),
+	HAS_TRANSLATION(CROSSREF, "HasTranslation"),
+	IS_BASED_ON(CROSSREF, "IsBasedOn"),
+	IS_BASIS_FOR(CROSSREF, "IsBasisFor"),
+	IS_COMMENT_ON(CROSSREF, "IsCommentOn"),
+	IS_DATA_BASIS_FOR(CROSSREF, "IsDataBasisFor"),
+	IS_EXPRESSION_OF(CROSSREF, "IsExpressionOf"),
+	IS_FINANCED_BY(CROSSREF, "IsFinancedBy"),
+	IS_FORMAT_OF(CROSSREF, "IsFormatOf"),
+	IS_MANIFESTATION_OF(CROSSREF, "IsManifestationOf"),
+	IS_MANUSCRIPT_OF(CROSSREF, "IsManuscriptOf"),
+	IS_PREPRINT_OF(CROSSREF, "IsPreprintOf"),
+	IS_RELATED_MATERIAL(CROSSREF, "IsRelatedMaterial"),
+	IS_REPLACED_BY(CROSSREF, "IsReplacedBy"),
+	IS_REPLY_TO(CROSSREF, "IsReplyTo"),
+	IS_REVIEW_OF(CROSSREF, "IsReviewOf"),
+	IS_SAME_AS(CROSSREF, "IsSameAs"),
+	IS_TRANSLATION_OF(CROSSREF, "IsTranslationOf"),
+	REPLACES(CROSSREF, "Replaces");
 
 	private final String identifier;
 	private final String source;
@@ -116,17 +117,17 @@ public enum RelationshipType {
 			// is_original_form_of
 			STRING_TO_REL_TYPE_MAP.put(rt.name().toLowerCase(), rt);
 			// isoriginalformof
-			STRING_TO_REL_TYPE_MAP.put(rt.getIdentifier().toLowerCase(), rt);
+			STRING_TO_REL_TYPE_MAP.put(rt.identifier.toLowerCase(), rt);
 			// datacite:is_original_form_of
-			STRING_TO_REL_TYPE_MAP.put(rt.getSource().toLowerCase() + ":" + rt.name().toLowerCase(), rt);
+			STRING_TO_REL_TYPE_MAP.put((rt.source + ":" + rt.name()).toLowerCase(), rt);
 			// datacite:isoriginalformof
 			STRING_TO_REL_TYPE_MAP.put(rt.getPid().toLowerCase(), rt);
 			// add in the crossref equivalent (if applicable)
-			if (CROSSREF_DUPLICATES.contains(rt.getIdentifier())) {
+			if (CROSSREF_DUPLICATES.contains(rt.identifier)) {
 				// e.g. crossref:is_variant_form_of
-				STRING_TO_REL_TYPE_MAP.put("crossref:" + rt.name().toLowerCase(), rt);
+				STRING_TO_REL_TYPE_MAP.put((CROSSREF + ":" + rt.name()).toLowerCase(), rt);
 				// crossref:isvariantformof
-				STRING_TO_REL_TYPE_MAP.put("crossref:" + rt.getIdentifier().toLowerCase(), rt);
+				STRING_TO_REL_TYPE_MAP.put((CROSSREF + ":" + rt.identifier).toLowerCase(), rt);
 			}
 		}
 	}
@@ -135,25 +136,6 @@ public enum RelationshipType {
 		this.source = source;
 		this.identifier = identifier;
 	}
-
-	/**
-	 * Get the source (e.g. DataCite or Crossref) of this relationship type.
-	 *
-	 * @return the source.
-	 */
-	private String getSource() {
-		return source;
-	}
-
-	/**
-	 * Get the identifier for this relationship type.
-	 *
-	 * @return the identifier.
-	 */
-	private String getIdentifier() {
-		return identifier;
-	}
-
 
 	/**
 	 * Gets the fully-qualified ID of this relationship type.
