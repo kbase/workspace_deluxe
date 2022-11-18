@@ -23,24 +23,30 @@ public class RelationshipTypeTest {
 		assertThat("incorrect PID",
 				rt2.getPid(),
 				is("DataCite:IsPreviousVersionOf"));
+		final RelationshipType rt3 = RelationshipType.IS_MANIFESTATION_OF;
+		assertThat("incorrect PID",
+				rt3.getPid(),
+				is("Crossref:IsManifestationOf"));
 	}
 
 	@Test
 	public void testGetRelationshipType() throws Exception {
 		final String[] testDateciteInputs = {
-				"DataCite:isNewVersionOf",
-				"    DATACITE:ISNEWVERSIONOF\n\n",
-				"\tis_new_version_of\r",
-				"IS_NEW_VERSION_OF",
-				"isnewversionof",
-				"datacite:isnewversionof",
-				"  DataCite:is_new_version_of",
+				"DataCite:isOriginalFormOf",
+				"    DATACITE:ISOriginalFormOF\n\n",
+				"\tis_Original_Form_of\r",
+				"IS_Original_Form_OF",
+				"isOriginalFormof",
+				"datacite:isOriginalFormof",
+				"  DataCite:is_Original_Form_of",
+				"crossref:isoriginalformof",
+				"\t\tCROSSREF:IS_ORIGINAL_FORM_OF\n\n"
 			};
 
 		for (final String testInput : testDateciteInputs) {
 			assertThat("incorrect role",
 					RelationshipType.getRelationshipType(testInput),
-					is(RelationshipType.IS_NEW_VERSION_OF));
+					is(RelationshipType.IS_ORIGINAL_FORM_OF));
 		}
 	}
 
@@ -50,6 +56,8 @@ public class RelationshipTypeTest {
 		final String[] invalidTypes = {
 				"magical fairy princess",
 				"RelationshipType:IS_REVIEWED_BY",
+				"crossref:obsoletes",
+				"datacite:ismanifestationof"
 		};
 
 		for (final String invalidType : invalidTypes) {

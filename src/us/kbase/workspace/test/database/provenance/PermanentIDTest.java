@@ -90,6 +90,8 @@ public class PermanentIDTest {
 				"DATACITE:IS_VARIANT_FORM_OF",
 				"\t\tisvariantformof\r",
 				"DATACITE:ISVARIANTFORMOF",
+				"Crossref:IsVariantFormOf",
+				"crossref:is_variant_form_of"
 		};
 
 		for (final String relType : validRelTypeInputs) {
