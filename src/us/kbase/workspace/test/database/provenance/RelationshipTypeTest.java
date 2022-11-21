@@ -54,7 +54,21 @@ public class RelationshipTypeTest {
 					RelationshipType.getRelationshipType(testInput),
 					is(RelationshipType.IS_ORIGINAL_FORM_OF));
 		}
-	}
+
+		final String[] testCrossrefInputs = {
+                        "hasmanifestation",
+                        "   \n  has_manifestation   \t\t",
+                        "CROSSREF:HASMANIFESTATION",
+                        "  crossref:has_manifestation  "
+                };
+
+        for (final String testInput : testCrossrefInputs) {
+                assertThat("incorrect role",
+                                RelationshipType.getRelationshipType(testInput),
+                                is(RelationshipType.HAS_MANIFESTATION));
+        }
+
+        }
 
 	@Test
 	public void testGetRelationshipTypeFail() throws Exception {
