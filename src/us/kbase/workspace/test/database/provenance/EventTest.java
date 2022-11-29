@@ -36,12 +36,12 @@ public class EventTest {
 		}
 	}
 
-	private void getEventFail(final String input, final Exception output) {
+	private void getEventFail(final String input, final String error) {
 		try {
 			Event.getEvent(input);
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, output);
+			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(error));
 		}
 	}
 
@@ -54,16 +54,14 @@ public class EventTest {
 		};
 
 		for (final String invalidEvent : invalidEvents) {
-			getEventFail(invalidEvent, new IllegalArgumentException(
-				"Invalid event: " + invalidEvent));
+			getEventFail(invalidEvent, "Invalid event: " + invalidEvent);
 		}
 	}
 
 	@Test
 	public void testGetEventNullOrWs() throws Exception {
 		for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-			getEventFail(nullOrWs, new IllegalArgumentException(
-				"event cannot be null or whitespace only"));
+			getEventFail(nullOrWs, "event cannot be null or whitespace only");
 		}
 	}
 }

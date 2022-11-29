@@ -1,5 +1,7 @@
 package us.kbase.workspace.database.provenance;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 import us.kbase.workspace.database.Util;
 
@@ -36,7 +38,8 @@ public class EventDate {
 	}
 
 	/**
-	 * Gets the event that occurred on the date in question, for example {@link Event#UPDATED}.
+	 * Gets the event that occurred on the date in question, for example
+	 * {@link Event#UPDATED}.
 	 *
 	 * @return the event.
 	 */
@@ -62,34 +65,7 @@ public class EventDate {
 	}
 
 	/**
-	 * Builds an {@link EventDate}.
-	 *
-	 * @param date  the date when the event occurred,
-	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
-	 * @param event the event that occurred on that date, as a string.
-	 *              See the {@link Event} class for valid string values.
-	 * @return the new {@link EventDate}.
-	 */
-	public static EventDate build(final String date, final String event) {
-		final Event eventObject = Event.getEvent(Util.checkString(event, "event"));
-		return build(date, eventObject);
-	}
-
-	/**
-	 * Builds an {@link EventDate}.
-	 *
-	 * @param date  the date when the event occurred,
-	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
-	 * @param event the event that occurred on that date, as an Event
-	 * @return the new {@link EventDate}.
-	 */
-	public static EventDate build(final String date, final Event event) {
-		Objects.requireNonNull(event, "event cannot be null");
-		final String protoDate = checkDate(Util.checkString(date, "date"));
-		return new EventDate(protoDate, event);
-	}
-
-	/** Ensures that a string can be parsed as a valid date.throws
+	 * Ensures that a string can be parsed as a valid date.
 	 *
 	 * @param protoDate the string that may or may not be a date
 	 * @return the valid string
@@ -107,14 +83,78 @@ public class EventDate {
 						final YearMonth ym = YearMonth.parse(protoDate);
 						return ym.toString();
 					default:
-						final LocalDate ymd = LocalDate.parse(protoDate, DateTimeFormatter.ISO_LOCAL_DATE);
+						final LocalDate ymd = LocalDate.parse(protoDate,
+								DateTimeFormatter.ISO_LOCAL_DATE);
 						return ymd.toString();
 				}
-			}
-			catch (DateTimeParseException e) {
+			} catch (DateTimeParseException e) {
 				// report the error below as an IllegalArgumentException
 			}
 		}
-		throw new IllegalArgumentException("Invalid date: \"" + protoDate + "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd and be a valid combination of day, month, and year.");
+		throw new IllegalArgumentException(
+				"Invalid date: \"" + protoDate
+						+ "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd and be a valid combination of day, month, and year.");
+	}
+
+	/**
+	 * Builds an {@link EventDate}.
+	 *
+	 * @param date  the date when the event occurred,
+	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
+	 * @param event the event that occurred on that date, as an Event
+	 * @return the new {@link EventDate}.
+	 */
+	public static EventDate build(final String date, final Event event) {
+		return build(date, event, new ArrayList<>());
+	}
+
+	/**
+	 * Builds an {@link EventDate}.
+	 *
+	 * @param date  the date when the event occurred,
+	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
+	 * @param event the event that occurred on that date, as a string.
+	 *              See the {@link Event} class for valid string values.
+	 * @return the new {@link EventDate}.
+	 */
+	public static EventDate build(final String date, final String event) {
+		final List<String> errorList = new ArrayList<>();
+		Event eventObject = null;
+		try {
+			eventObject = Event.getEvent(event);
+		} catch (Exception e) {
+			errorList.add(e.getMessage());
+		}
+		return build(date, eventObject, errorList);
+	}
+
+	/**
+	 * Builds an {@link EventDate}.
+	 *
+	 * @param date      the date when the event occurred,
+	 *                  in the format yyyy-MM-dd, yyyy-MM, or yyyy.
+	 * @param event     the event that occurred on that date, as an Event
+	 * @param errorList list of error strings accumulated during the `build` method
+	 *
+	 * @return the new {@link EventDate}.
+	 */
+	private static EventDate build(final String date, final Event event, final List<String> errorList) {
+		if (event == null && errorList.isEmpty()) {
+			errorList.add("event cannot be null");
+		}
+
+		String protoDate = null;
+		try {
+			final String trimmedDate = Util.checkString(date, "date");
+			protoDate = checkDate(trimmedDate);
+		} catch (Exception e) {
+			errorList.add(e.getMessage());
+		}
+
+		if (errorList.isEmpty()) {
+			return new EventDate(protoDate, event);
+		}
+		throw new IllegalArgumentException(
+				"Errors in EventDate construction:\n" + String.join("\n", errorList));
 	}
 }
