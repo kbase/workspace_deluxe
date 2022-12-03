@@ -21,6 +21,10 @@ public class EventDateTest {
 	static final String INCORRECT_EVENT = "incorrect event";
 	static final String EXP_EXC = "expected exception";
 
+	static final String DATE_FORMAT_ERROR = "\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd and be a valid combination of day, month, and year.";
+	static final String DATE_NO_NULL_WS = "date cannot be null or whitespace only";
+	static final String EVENT_NO_NULL_WS = "event cannot be null or whitespace only";
+
 	static final String DATE_STRING = "2022-12-12";
 	static final String EVENT_STRING = "accepted";
 	static final String EVENT_STRING_UNTRIMMED = " \n\n\n accepted \r\n  ";
@@ -60,21 +64,23 @@ public class EventDateTest {
 		EqualsVerifier.forClass(EventDate.class).usingGetClass().verify();
 	}
 
-	private void buildEventDateFailWithError(final String dateInput, final String eventInput, final Exception error) {
+	private void buildEventDateFailWithError(final String dateInput, final String eventInput, final String error) {
 		try {
 			EventDate.build(dateInput, eventInput);
 			fail(EXP_EXC);
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, error);
+			TestCommon.assertExceptionCorrect(got,
+					new IllegalArgumentException("Errors in EventDate construction:\n" + error));
 		}
 	}
 
-	private void buildEventDateFailWithError(final String dateInput, final Event eventInput, final Exception error) {
+	private void buildEventDateFailWithError(final String dateInput, final Event eventInput, final String error) {
 		try {
 			EventDate.build(dateInput, eventInput);
 			fail(EXP_EXC);
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, error);
+			TestCommon.assertExceptionCorrect(got,
+					new IllegalArgumentException("Errors in EventDate construction:\n" + error));
 		}
 	}
 
@@ -97,18 +103,11 @@ public class EventDateTest {
 		}
 	}
 
-
 	@Test
 	public void buildEventDateFailDate() throws Exception {
 		for (String dateStr : invalidDateStrings) {
-			try {
-				EventDate.build(dateStr, SOME_EVENT);
-				fail(EXP_EXC);
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
- 					"Invalid date: \"" + dateStr + "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd and be a valid combination of day, month, and year."
- 				));
-			}
+			buildEventDateFailWithError(dateStr, SOME_EVENT, "Invalid date: \"" + dateStr
+					+ "\"" + DATE_FORMAT_ERROR);
 		}
 	}
 
@@ -122,27 +121,43 @@ public class EventDateTest {
 	@Test
 	public void buildEventDateFailEvent() throws Exception {
 		buildEventDateFailWithError(
-			DATE_STRING, "kookaburra", new IllegalArgumentException(
-				"Invalid event: kookaburra"
-			)
-		);
+				DATE_STRING, "kookaburra",
+				"Invalid event: kookaburra");
 	}
 
 	@Test
 	public void buildEventDateFailNullEvent() throws Exception {
-		buildEventDateFailWithError(DATE_STRING, (Event) null, new NullPointerException("event cannot be null"));
+		buildEventDateFailWithError(DATE_STRING, (Event) null, "event cannot be null");
 	}
 
+	@Test
+	public void buildFailNullOrWhitespaceDate() throws Exception {
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
+			buildEventDateFailWithError(nullOrWs, EVENT_STRING, DATE_NO_NULL_WS);
+		}
+	}
+
+	@Test
+	public void buildFailNullOrWhitespaceEvent() throws Exception {
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
+			buildEventDateFailWithError(DATE_STRING, nullOrWs, EVENT_NO_NULL_WS);
+		}
+	}
 
 	@Test
 	public void buildFailNullOrWhitespaceEventDate() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
+			buildEventDateFailWithError(nullOrWs, nullOrWs, EVENT_NO_NULL_WS + "\n" + DATE_NO_NULL_WS);
+		}
+	}
 
-			buildEventDateFailWithError(nullOrWs, EVENT_STRING, new IllegalArgumentException("date cannot be null or whitespace only"));
-
-			buildEventDateFailWithError(DATE_STRING, nullOrWs, new IllegalArgumentException("event cannot be null or whitespace only"));
-
-			buildEventDateFailWithError(nullOrWs, nullOrWs, new IllegalArgumentException("event cannot be null or whitespace only"));
+	@Test
+	public void buildEventDateFailDateEvent() throws Exception {
+		for (String dateStr : invalidDateStrings) {
+			buildEventDateFailWithError(dateStr, "kookaburra",
+					"Invalid event: kookaburra\n" +
+							"Invalid date: \"" + dateStr
+							+ "\"" + DATE_FORMAT_ERROR);
 		}
 	}
 }
