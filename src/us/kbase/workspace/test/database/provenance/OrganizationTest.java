@@ -48,11 +48,11 @@ public class OrganizationTest {
 
 	@Test
 	public void buildTrimOrgNameAndId() throws Exception {
-		for (Map.Entry<String, String> mapElement : VALID_PID_MAP.entrySet()) {
+		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 			final Organization org1 = Organization.getBuilder(ORG_NAME_WITH_WHITESPACE)
-					.withOrganizationID(mapElement.getKey()).build();
+					.withOrganizationID(entry.getKey()).build();
 			assertThat(INCORRECT_NAME, org1.getOrganizationName(), is(ORG_NAME));
-			assertThat(INCORRECT_ID, org1.getOrganizationID(), is(opt(mapElement.getValue())));
+			assertThat(INCORRECT_ID, org1.getOrganizationID(), is(opt(entry.getValue())));
 		}
 	}
 
@@ -79,32 +79,45 @@ public class OrganizationTest {
 		}
 	}
 
+	private void buildOrganizationFailWithError(final Organization.Builder builder, final String error) {
+		try {
+			builder.build();
+			fail(EXP_EXC);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got,
+					new IllegalArgumentException("Errors in Organization construction:\n" + error));
+		}
+	}
+
 	@Test
 	public void buildFailInvalidPID() throws Exception {
 		for (String invalidPid : INVALID_PID_LIST) {
-			try {
-				Organization.getBuilder(ORG_NAME)
-						.withOrganizationID(invalidPid)
-						.build();
-				fail(EXP_EXC);
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-						"Illegal format for organizationID: \"" + invalidPid + "\"\n" +
-								"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\""));
-			}
+			buildOrganizationFailWithError(Organization.getBuilder(ORG_NAME).withOrganizationID(invalidPid),
+					"Illegal format for organizationID: \"" + invalidPid + "\"\n" +
+							"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 		}
 	}
 
 	@Test
 	public void buildFailNullOrWhitespaceOrgName() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-			try {
-				Organization.getBuilder(nullOrWs).build();
-				fail(EXP_EXC);
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-					"organizationName cannot be null or whitespace only"));
+			buildOrganizationFailWithError(Organization.getBuilder(nullOrWs),
+					"organizationName cannot be null or whitespace only");
+		}
+	}
+
+	@Test
+	public void buildFailNullWsNameInvalidPid() throws Exception {
+		for (String invalidPid : INVALID_PID_LIST) {
+			for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
+				buildOrganizationFailWithError(
+						Organization.getBuilder(nullOrWs).withOrganizationID(invalidPid),
+						"organizationName cannot be null or whitespace only\n" +
+								"Illegal format for organizationID: \"" + invalidPid
+								+ "\"\n" +
+								"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 			}
 		}
+
 	}
 }
