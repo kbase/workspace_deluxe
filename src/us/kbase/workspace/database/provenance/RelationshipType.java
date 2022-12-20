@@ -154,11 +154,11 @@ public enum RelationshipType {
 	 * @throws IllegalArgumentException if there is no relationship type PID or
 	 *                                  relationship type name related to the input string.
 	 */
-	public static RelationshipType getRelationshipType(final String input) {
-		final String lowercaseInput = Util.checkString(input, "input").toLowerCase();
-		if (STRING_TO_REL_TYPE_MAP.containsKey(lowercaseInput)) {
-			return STRING_TO_REL_TYPE_MAP.get(lowercaseInput);
+	public static RelationshipType getRelationshipType(final String relationshipType) {
+		final String lowercaseInput = Util.checkString(relationshipType, "relationshipType").toLowerCase();
+		if (!STRING_TO_REL_TYPE_MAP.containsKey(lowercaseInput)) {
+			throw new IllegalArgumentException("Invalid relationshipType: " + relationshipType);
 		}
-		throw new IllegalArgumentException("Invalid relationship type: " + input);
+		return STRING_TO_REL_TYPE_MAP.get(lowercaseInput);
 	}
 }
