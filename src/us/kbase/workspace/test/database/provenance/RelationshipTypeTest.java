@@ -47,7 +47,7 @@ public class RelationshipTypeTest {
 				"  DataCite:is_Original_Form_of",
 				"crossref:isoriginalformof",
 				"\t\tCROSSREF:IS_ORIGINAL_FORM_OF\n\n"
-			};
+		};
 
 		for (final String testInput : testDateciteInputs) {
 			assertThat("incorrect role",
@@ -56,19 +56,28 @@ public class RelationshipTypeTest {
 		}
 
 		final String[] testCrossrefInputs = {
-                        "hasmanifestation",
-                        "   \n  has_manifestation   \t\t",
-                        "CROSSREF:HASMANIFESTATION",
-                        "  crossref:has_manifestation  "
-                };
+			"hasmanifestation",
+			"   \n  has_manifestation   \t\t",
+			"CROSSREF:HASMANIFESTATION",
+			"  crossref:has_manifestation  "
+		};
 
-        for (final String testInput : testCrossrefInputs) {
-                assertThat("incorrect role",
-                                RelationshipType.getRelationshipType(testInput),
-                                is(RelationshipType.HAS_MANIFESTATION));
-        }
+		for (final String testInput : testCrossrefInputs) {
+			assertThat("incorrect role",
+					RelationshipType.getRelationshipType(testInput),
+					is(RelationshipType.HAS_MANIFESTATION));
+		}
 
-        }
+	}
+
+	private void getRelationshipTypeFail(final String input, final String error) {
+		try {
+			RelationshipType.getRelationshipType(input);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(error));
+		}
+	}
 
 	@Test
 	public void testGetRelationshipTypeFail() throws Exception {
@@ -81,23 +90,11 @@ public class RelationshipTypeTest {
 		};
 
 		for (final String invalidType : invalidTypes) {
-			try {
-				RelationshipType.getRelationshipType(invalidType);
-				fail("expected exception");
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-						"Invalid relationship type: " + invalidType));
-			}
+			getRelationshipTypeFail(invalidType, "Invalid relationshipType: " + invalidType);
 		}
 
 		for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-			try {
-				RelationshipType.getRelationshipType(nullOrWs);
-				fail("expected exception");
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-						"input cannot be null or whitespace only"));
-			}
+			getRelationshipTypeFail(nullOrWs, "relationshipType cannot be null or whitespace only");
 		}
 	}
 }

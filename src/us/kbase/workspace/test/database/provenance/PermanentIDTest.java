@@ -48,20 +48,20 @@ public class PermanentIDTest {
 
 	@Test
 	public void buildMinimal() throws Exception {
-		for (Map.Entry<String, String> mapElement : VALID_PID_MAP.entrySet()) {
-			final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey()).build();
-			assertTitleStringAndOptionalNulls(pid1, mapElement.getValue());
+		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
+			final PermanentID pid1 = PermanentID.getBuilder(entry.getKey()).build();
+			assertTitleStringAndOptionalNulls(pid1, entry.getValue());
 		}
 	}
 
 	@Test
 	public void buildMaximal() throws Exception {
-		for (Map.Entry<String, String> mapElement : VALID_PID_MAP.entrySet()) {
-			final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey())
+		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
+			final PermanentID pid1 = PermanentID.getBuilder(entry.getKey())
 					.withDescription(DESC_STRING)
 					.withRelationshipType(REL_STRING)
 					.build();
-			assertThat(INCORRECT_PID, pid1.getID(), is(mapElement.getValue()));
+			assertThat(INCORRECT_PID, pid1.getID(), is(entry.getValue()));
 			assertThat(INCORRECT_DESC, pid1.getDescription(), is(opt(DESC_STRING)));
 			assertThat(INCORRECT_REL_TYPE, pid1.getRelationshipType(), is(opt(REL_TYPE)));
 		}
@@ -69,12 +69,12 @@ public class PermanentIDTest {
 
 	@Test
 	public void buildMaximalWithRelationshipType() throws Exception {
-		for (Map.Entry<String, String> mapElement : VALID_PID_MAP.entrySet()) {
-			final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey())
+		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
+			final PermanentID pid1 = PermanentID.getBuilder(entry.getKey())
 					.withDescription(DESC_STRING)
 					.withRelationshipType(REL_TYPE)
 					.build();
-			assertThat(INCORRECT_PID, pid1.getID(), is(mapElement.getValue()));
+			assertThat(INCORRECT_PID, pid1.getID(), is(entry.getValue()));
 			assertThat(INCORRECT_DESC, pid1.getDescription(), is(opt(DESC_STRING)));
 			assertThat(INCORRECT_REL_TYPE, pid1.getRelationshipType(), is(opt(REL_TYPE)));
 		}
@@ -108,12 +108,12 @@ public class PermanentIDTest {
 
 	@Test
 	public void buildTrimAllFields() throws Exception {
-		for (Map.Entry<String, String> mapElement : VALID_PID_MAP.entrySet()) {
-			final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey())
+		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
+			final PermanentID pid1 = PermanentID.getBuilder(entry.getKey())
 					.withDescription(DESC_STRING_UNTRIMMED)
 					.withRelationshipType(REL_STRING_UNTRIMMED)
 					.build();
-			assertThat(INCORRECT_PID, pid1.getID(), is(mapElement.getValue()));
+			assertThat(INCORRECT_PID, pid1.getID(), is(entry.getValue()));
 			assertThat(INCORRECT_DESC, pid1.getDescription(), is(opt(DESC_STRING)));
 			assertThat(INCORRECT_REL_TYPE, pid1.getRelationshipType(), is(opt(REL_TYPE)));
 		}
@@ -121,83 +121,93 @@ public class PermanentIDTest {
 
 	@Test
 	public void buildWithNullOrWhitespaceDescriptionRelationshipType() throws Exception {
-		for (Map.Entry<String, String> mapElement : VALID_PID_MAP.entrySet()) {
+		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 			for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-				final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey())
+				final PermanentID pid1 = PermanentID.getBuilder(entry.getKey())
 						.withDescription(nullOrWs)
 						.withRelationshipType(nullOrWs).build();
-				assertTitleStringAndOptionalNulls(pid1, mapElement.getValue());
+				assertTitleStringAndOptionalNulls(pid1, entry.getValue());
 			}
 		}
 	}
 
 	@Test
 	public void buildAndOverwriteDescriptionRelationshipType() throws Exception {
-		for (Map.Entry<String, String> mapElement : VALID_PID_MAP.entrySet()) {
+		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 			for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-				final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey())
+				final PermanentID pid1 = PermanentID.getBuilder(entry.getKey())
 						.withDescription(DESC_STRING).withDescription(nullOrWs)
 						.withRelationshipType(REL_STRING).withRelationshipType(nullOrWs)
 						.build();
-				assertTitleStringAndOptionalNulls(pid1, mapElement.getValue());
+				assertTitleStringAndOptionalNulls(pid1, entry.getValue());
 			}
 		}
 	}
 
 	@Test
 	public void buildAndOverwriteDescriptionRelationshipTypeEnum() throws Exception {
-		for (Map.Entry<String, String> mapElement : VALID_PID_MAP.entrySet()) {
+		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 			for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-				final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey())
+				final PermanentID pid1 = PermanentID.getBuilder(entry.getKey())
 						.withDescription(DESC_STRING).withDescription(nullOrWs)
 						.withRelationshipType(REL_TYPE).withRelationshipType(nullOrWs)
 						.build();
-				assertTitleStringAndOptionalNulls(pid1, mapElement.getValue());
+				assertTitleStringAndOptionalNulls(pid1, entry.getValue());
 			}
-			final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey())
+			final PermanentID pid1 = PermanentID.getBuilder(entry.getKey())
 					.withDescription(DESC_STRING).withDescription(null)
 					.withRelationshipType(REL_TYPE).withRelationshipType((RelationshipType) null)
 					.build();
-			assertTitleStringAndOptionalNulls(pid1, mapElement.getValue());
+			assertTitleStringAndOptionalNulls(pid1, entry.getValue());
+		}
+	}
+
+	private void buildPermanentIDFailWithError(final PermanentID.Builder builder, final String error) {
+		try {
+			builder.build();
+			fail(EXP_EXC);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got,
+					new IllegalArgumentException("Errors in PermanentID construction:\n" + error));
 		}
 	}
 
 	@Test
 	public void buildFailInvalidPID() throws Exception {
 		for (String invalidPid : INVALID_PID_LIST) {
-			try {
-				PermanentID.getBuilder(invalidPid).build();
-				fail(EXP_EXC);
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-						"Illegal format for id: \"" + invalidPid + "\"\n" +
-								"It should match the pattern "
-								+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\""));
-			}
+			buildPermanentIDFailWithError(
+					PermanentID.getBuilder(invalidPid),
+					"Illegal format for id: \"" + invalidPid + "\"\n" +
+							"It should match the pattern "
+							+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 		}
 	}
 
 	@Test
 	public void buildFailNullOrEmptyPID() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-			try {
-				PermanentID.getBuilder(nullOrWs).build();
-				fail(EXP_EXC);
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-						"id cannot be null or whitespace only"));
-			}
+			buildPermanentIDFailWithError(
+					PermanentID.getBuilder(nullOrWs),
+					"id cannot be null or whitespace only");
 		}
 	}
 
 	@Test
 	public void buildFailInvalidRelationshipType() throws Exception {
-		try {
-			PermanentID.getBuilder("ID:permanent").withRelationshipType("unmutualism").build();
-			fail(EXP_EXC);
-		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-					"Invalid relationship type: unmutualism"));
+		buildPermanentIDFailWithError(
+				PermanentID.getBuilder("ID:permanent").withRelationshipType("unmutualism"),
+				"Invalid relationshipType: unmutualism");
+	}
+
+	@Test
+	public void buildFailInvalidFields() throws Exception {
+		for (String invalidPid : INVALID_PID_LIST) {
+			buildPermanentIDFailWithError(
+					PermanentID.getBuilder(invalidPid).withRelationshipType("some old crap"),
+					"Illegal format for id: \"" + invalidPid + "\"\n" +
+							"It should match the pattern "
+							+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"\n"
+							+ "Invalid relationshipType: some old crap");
 		}
 	}
 }

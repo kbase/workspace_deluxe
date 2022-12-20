@@ -1,5 +1,7 @@
 package us.kbase.workspace.database.provenance;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import us.kbase.workspace.database.Util;
@@ -42,8 +44,8 @@ public class PermanentID {
 	/**
 	 * Gets the relationship between the ID and some other entity. For
 	 * example, when a {@link PermanentID] class is used to represent
-	 * objects in a {@link Resource}'s 'related_identifiers' field, this
-	 * field captures the relationship between the {@link Resource} and
+	 * objects in a {@link CitationMetadata}'s 'related_identifiers' field, this
+	 * field captures the relationship between the {@link CitationMetadata} and
 	 * the entity represented by this.id.
 	 *
 	 * This field is currently only settable by workspace admins. See the
@@ -58,7 +60,8 @@ public class PermanentID {
 	/**
 	 * Gets a builder for an {@link PermanentID}.
 	 *
-	 * @param id the permanent ID, for example DOI:10.25982/59912.37.
+	 * @param id
+	 *                the permanent ID, for example DOI:10.25982/59912.37.
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(final String id) {
@@ -87,17 +90,23 @@ public class PermanentID {
 		private String id;
 		private String description = null;
 		private RelationshipType relationshipType = null;
+		private List<String> errorList = new ArrayList<>();
 
 		private Builder(final String id) {
-			this.id = Common.checkPid(id, "id", false);
+			try {
+				this.id = Common.checkPid(id, "id", false);
+			} catch (Exception e) {
+				this.errorList.add(e.getMessage());
+			}
 		}
 
 		/**
 		 * Sets a free text description of the ID.
 		 *
-		 * @param description the description. Null, whitespace, or
-		 *                    the empty string will remove any
-		 *                    current content in the builder.
+		 * @param description
+		 *                the description. Null, whitespace, or
+		 *                the empty string will remove any
+		 *                current content in the builder.
 		 * @return this builder.
 		 */
 		public Builder withDescription(final String description) {
@@ -108,26 +117,33 @@ public class PermanentID {
 		/**
 		 * Sets the relationship type between the ID and the resource.
 		 *
-		 * @param relationshipType the relationship type as a string.
-		 *                         Null, whitespace, or the empty string will
-		 *                         remove the current content in the builder.
+		 * @param relationshipType
+		 *                the relationship type as a string.
+		 *                Null, whitespace, or the empty string will
+		 *                remove the current content in the builder.
 		 *
 		 * @return this builder.
 		 */
 		public Builder withRelationshipType(final String relationshipType) {
 			final String protoRelationshipType = Common.processString(relationshipType);
-			this.relationshipType = protoRelationshipType == null
-					? null
-					: RelationshipType.getRelationshipType(relationshipType);
+			if (protoRelationshipType != null) {
+				try {
+					this.relationshipType = RelationshipType.getRelationshipType(relationshipType);
+				} catch (Exception e) {
+					this.errorList.add(e.getMessage());
+				}
+			} else {
+				this.relationshipType = null;
+			}
 			return this;
 		}
 
 		/**
 		 * Sets the relationship type between the ID and the resource.
 		 *
-		 * @param relationshipType the relationship type as a {@link RelationshipType}
-		 *                         object.
-		 *                         Null will remove the current content in the builder.
+		 * @param relationshipType
+		 *                the relationship type as a {@link RelationshipType}
+		 *                object. Null will remove the current content in the builder.
 		 *
 		 * @return this builder.
 		 */
@@ -142,7 +158,11 @@ public class PermanentID {
 		 * @return the permanent ID.
 		 */
 		public PermanentID build() {
-			return new PermanentID(id, description, relationshipType);
+			if (errorList.isEmpty()) {
+				return new PermanentID(id, description, relationshipType);
+			}
+			throw new IllegalArgumentException("Errors in PermanentID construction:\n" +
+					String.join("\n", errorList));
 		}
 	}
 }

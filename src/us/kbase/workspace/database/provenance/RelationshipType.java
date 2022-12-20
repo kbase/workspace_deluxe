@@ -155,10 +155,10 @@ public enum RelationshipType {
 	 *                                  relationship type name related to the input string.
 	 */
 	public static RelationshipType getRelationshipType(final String input) {
-		final String lowercaseInput = Util.checkString(input, "input").toLowerCase();
-		if (STRING_TO_REL_TYPE_MAP.containsKey(lowercaseInput)) {
-			return STRING_TO_REL_TYPE_MAP.get(lowercaseInput);
+		final String lowercaseInput = Util.checkString(input, "relationshipType").toLowerCase();
+		if (!STRING_TO_REL_TYPE_MAP.containsKey(lowercaseInput)) {
+			throw new IllegalArgumentException("Invalid relationshipType: " + input);
 		}
-		throw new IllegalArgumentException("Invalid relationship type: " + input);
+		return STRING_TO_REL_TYPE_MAP.get(lowercaseInput);
 	}
 }

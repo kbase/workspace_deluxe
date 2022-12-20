@@ -118,6 +118,5 @@ public class OrganizationTest {
 								"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 			}
 		}
-
 	}
 }
