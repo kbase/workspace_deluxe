@@ -24,7 +24,7 @@
   <property name="test.reports.dir" location="test-reports"/>
 
   <fileset dir="${jardir}" id="sourceslib">
-    <include name="kbase/common/kbase-common-0.1.0.jar"/>
+    <include name="kbase/common/kbase-common-0.1.1.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="serverlib">
