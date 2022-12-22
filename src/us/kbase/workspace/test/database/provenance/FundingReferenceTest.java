@@ -75,7 +75,9 @@ public class FundingReferenceTest {
 	 * @param awardURL
 	 *                expected awardURL field
 	 */
-	private void assertFundingReferenceFields(FundingReference fr, final Map<String, String> expectedMap,
+	private void assertFundingReferenceFields(
+			final FundingReference fr,
+			final Map<String, String> expectedMap,
 			final URL awardUrl) {
 		assertThat(INCORRECT_FUNDER_NAME, fr.getFunderName(), is(expectedMap.get(FUNDER_NAME)));
 		assertThat(INCORRECT_FUNDER_ID, fr.getFunderID(),
