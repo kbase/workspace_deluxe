@@ -96,7 +96,7 @@ public class FundingReferenceTest {
 	}
 
 	@Test
-	public void buildMinimalWithURL() throws Exception {
+	public void buildMinimalWithNullURL() throws Exception {
 		final FundingReference fr = FundingReference.getBuilder(FUNDER_NAME_STRING)
 			.withAwardURL((URL) null)
 			.build();
