@@ -1,24 +1,25 @@
 package us.kbase.workspace.database.provenance;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Optional;
 import us.kbase.workspace.database.Util;
+import java.util.Locale;
+import java.util.IllformedLocaleException;
 
 /**
  * Represents a title or name of a resource.
  */
 public class Title {
 
-	private final String titleString;
-	private final TitleType titleType;
-	private final String titleLanguage;
-
 	/**
 	 * An enum representing types of title.
 	 */
-	public static enum TitleType {
+	public enum TitleType {
+		TITLE,
 		SUBTITLE,
 		ALTERNATIVE_TITLE,
 		TRANSLATED_TITLE,
@@ -26,24 +27,34 @@ public class Title {
 
 		private static final Map<String, TitleType> STRING_TO_TITLE_TYPE_MAP = new HashMap<>();
 		static {
-			for (final TitleType tt: TitleType.values()) {
+			for (final TitleType tt : TitleType.values()) {
 				STRING_TO_TITLE_TYPE_MAP.put(tt.name().toLowerCase(), tt);
 			}
 		}
 
-		/** Gets a title type based on a supplied string.
-		 * @param input a string representing a title type.
+		/**
+		 * Gets a title type based on a supplied string.
+		 *
+		 * @param titleType
+		 *                a string representing a title type.
 		 * @return a TitleType.
-		 * @throws IllegalArgumentException if there is no title type related to the input string.
+		 * @throws IllegalArgumentException
+		 *                 if there is no title type related to the input string.
 		 */
-		public static TitleType getTitleType(final String input) {
-			final String lowercaseInput = Util.checkString(input, "input").toLowerCase();
+		public static TitleType getTitleType(final String titleType) {
+			final String lowercaseInput = Util.checkString(titleType, "titleType").toLowerCase();
 			if (STRING_TO_TITLE_TYPE_MAP.containsKey(lowercaseInput)) {
 				return STRING_TO_TITLE_TYPE_MAP.get(lowercaseInput);
 			}
-			throw new IllegalArgumentException("Invalid titleType: " + input);
+			throw new IllegalArgumentException("Invalid titleType: " + titleType);
 		}
 	}
+
+	private static final TitleType DEFAULT_TITLE_TYPE = TitleType.TITLE;
+
+	private final String titleString;
+	private final TitleType titleType;
+	private final String titleLanguage;
 
 	private Title(
 			final String titleString,
@@ -66,14 +77,15 @@ public class Title {
 	/**
 	 * Gets the type of title being represented.
 	 *
-	 * @return the titleType, if present.
+	 * @return the titleType; a null value returns the default titleType
+	 *         TitleType.TITLE.
 	 */
-	public Optional<TitleType> getTitleType() {
-		return Optional.ofNullable(titleType);
+	public TitleType getTitleType() {
+		return titleType;
 	}
 
 	/**
-	 * Gets the language in which the title is written.
+	 * Gets the language in which the title is written, in IETF BCP-47-compliant syntax.
 	 *
 	 * @return the titleLanguage, if present.
 	 */
@@ -115,16 +127,22 @@ public class Title {
 		private String titleString;
 		private TitleType titleType = null;
 		private String titleLanguage = null;
+		private List<String> errorList = new ArrayList<>();
 
 		private Builder(final String titleString) {
-			this.titleString = Util.checkString(titleString, "titleString");
+			try {
+				this.titleString = Util.checkString(titleString, "titleString");
+			} catch (Exception e) {
+				this.errorList.add(e.getMessage());
+			}
 		}
 
 		/**
-		 * Sets the language of title being represented, for example en-GB.
+		 * Sets the language of title being represented, for example en_GB.
 		 *
-		 * @param titleLanguage the language. Null or the empty string removes any
-		 *                      current resource in the builder.
+		 * @param titleLanguage
+		 *                the language. Null or the empty string removes any
+		 *                current value in the builder.
 		 * @return this builder.
 		 */
 		public Builder withTitleLanguage(final String titleLanguage) {
@@ -135,23 +153,32 @@ public class Title {
 		/**
 		 * Sets the type of the title being represented, for example translated_title.
 		 *
-		 * @param titleType the titleType as a string. Null or the empty string removes any
-		 *                  current titleType in the builder.
+		 * @param titleType
+		 *                the titleType as a string. Null or the empty string resets
+		 *                the current titleType in the builder.
 		 * @return this builder.
 		 */
 		public Builder withTitleType(final String titleType) {
 			final String protoTitleType = Common.processString(titleType);
-			this.titleType = protoTitleType == null
-				? null
-				: TitleType.getTitleType(protoTitleType);
+			if (protoTitleType == null) {
+				this.titleType = null;
+			} else {
+				try {
+					this.titleType = TitleType.getTitleType(protoTitleType);
+				} catch (IllegalArgumentException e) {
+					this.errorList.add(e.getMessage());
+				}
+			}
+
 			return this;
 		}
 
 		/**
 		 * Sets the type of the title being represented, for example translated_title.
 		 *
-		 * @param titleType the titleType as an enum. Null removes any
-		 *                  current titleType in the builder.
+		 * @param titleType
+		 *                the titleType as an enum. Null resets any
+		 *                current titleType in the builder.
 		 * @return this builder.
 		 */
 		public Builder withTitleType(final TitleType titleType) {
@@ -162,10 +189,41 @@ public class Title {
 		/**
 		 * Build the {@link Title}.
 		 *
+		 * The titleLanguage value is checked for conformance to IETF BCP-47 syntax
+		 * rules; note that Java does not check the values themselves, but rather the
+		 * syntax of the value.
+		 *
+		 * If the titleType is null, it is set to the default DEFAULT_TITLE_TYPE.
+		 *
 		 * @return the title object.
 		 */
 		public Title build() {
-			return new Title(titleString, titleType, titleLanguage);
+
+			// check and reformat the titleLanguage
+			if (titleLanguage != null) {
+				titleLanguage = titleLanguage.replace("_", "-");
+				Locale.Builder localeBuilder = null;
+				try {
+					localeBuilder = new Locale.Builder().setLanguageTag(titleLanguage);
+				} catch (IllformedLocaleException e) {
+					errorList.add("titleLanguage error: " + e.getMessage());
+				}
+				if (localeBuilder != null) {
+					final Locale l = localeBuilder.build();
+					titleLanguage = l.toLanguageTag();
+				}
+			}
+
+			if (titleType == null) {
+				titleType = DEFAULT_TITLE_TYPE;
+			}
+
+			if (errorList.isEmpty()) {
+				return new Title(titleString, titleType, titleLanguage);
+			}
+
+			throw new IllegalArgumentException("Errors in Title construction:\n" +
+					String.join("\n", errorList));
 		}
 	}
 }
