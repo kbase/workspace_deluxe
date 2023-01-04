@@ -46,7 +46,7 @@ public class TitleTest {
 	}
 
 	private void assertTitleFields(final Title title) {
-		assertTitleFields(title, null, null);
+		assertTitleFields(title, TitleType.TITLE, ES);
 	}
 
 	@Test
