@@ -209,8 +209,7 @@ public class Title {
 					errorList.add("titleLanguage error: " + e.getMessage());
 				}
 				if (localeBuilder != null) {
-					final Locale l = localeBuilder.build();
-					titleLanguage = l.toLanguageTag();
+					titleLanguage = localeBuilder.build().toLanguageTag();
 				}
 			}
 

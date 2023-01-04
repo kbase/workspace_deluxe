@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.opt;
 
 import org.junit.Test;
+import java.util.Optional;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
@@ -30,19 +31,15 @@ public class TitleTest {
 	static final String LANG_STRING = "de";
 	static final String LANG_STRING_UNTRIMMED = "\nde\n";
 
-	static final TitleType DEFAULT_TITLE_TYPE = TitleType.TITLE;
-
 	@Test
 	public void equals() throws Exception {
 		EqualsVerifier.forClass(Title.class).usingGetClass().verify();
 	}
 
-	private void assertTitleFields(final Title title, TitleType titleType, String titleLanguage) {
+	private void assertTitleFields(final Title title, TitleType titleType, Optional<String> titleLanguage) {
 		assertThat(INCORRECT_TITLE, title.getTitleString(), is(TITLE_STRING));
-		assertThat(INCORRECT_TYPE, title.getTitleType(), is(
-				titleType == null ? TitleType.TITLE : titleType));
-		assertThat(INCORRECT_LANG, title.getTitleLanguage(), is(
-				titleLanguage == null ? ES : opt(titleLanguage)));
+		assertThat(INCORRECT_TYPE, title.getTitleType(), is(titleType));
+		assertThat(INCORRECT_LANG, title.getTitleLanguage(), is(titleLanguage));
 	}
 
 	private void assertTitleFields(final Title title) {
@@ -60,7 +57,7 @@ public class TitleTest {
 		final Title title = Title.getBuilder(TITLE_STRING)
 				.withTitleType(TYPE_STRING)
 				.withTitleLanguage(LANG_STRING).build();
-		assertTitleFields(title, TitleType.TRANSLATED_TITLE, LANG_STRING);
+		assertTitleFields(title, TitleType.TRANSLATED_TITLE, opt(LANG_STRING));
 	}
 
 	@Test
@@ -68,7 +65,7 @@ public class TitleTest {
 		final Title title = Title.getBuilder(TITLE_STRING)
 				.withTitleType(TitleType.OTHER)
 				.withTitleLanguage(LANG_STRING).build();
-		assertTitleFields(title, TitleType.OTHER, LANG_STRING);
+		assertTitleFields(title, TitleType.OTHER, opt(LANG_STRING));
 	}
 
 	@Test
@@ -76,7 +73,7 @@ public class TitleTest {
 		final Title title = Title.getBuilder(TITLE_STRING_UNTRIMMED)
 				.withTitleType(TYPE_STRING_UNTRIMMED)
 				.withTitleLanguage(LANG_STRING_UNTRIMMED).build();
-		assertTitleFields(title, TitleType.TRANSLATED_TITLE, LANG_STRING);
+		assertTitleFields(title, TitleType.TRANSLATED_TITLE, opt(LANG_STRING));
 	}
 
 	@Test
@@ -111,7 +108,7 @@ public class TitleTest {
 					.withTitleType(TYPE_STRING_UNTRIMMED)
 					.withTitleLanguage(lp[0])
 					.build();
-			assertTitleFields(title, TitleType.TRANSLATED_TITLE, lp[1]);
+			assertTitleFields(title, TitleType.TRANSLATED_TITLE, opt(lp[1]));
 		}
 	}
 
