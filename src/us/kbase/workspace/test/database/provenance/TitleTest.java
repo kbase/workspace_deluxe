@@ -89,6 +89,7 @@ public class TitleTest {
 				{ "ENGLISH", "english" },
 				{ "ZZ-NONSENSE", "zz-NONSENSE" },
 				{ "WTF_h0gWA5H", "wtf-h0gWA5H" },
+				{ "zh-hant", "zh-Hant" },
 				{ "zh_hant_cn", "zh-Hant-CN" },
 				{ "ZH_HANT_CN", "zh-Hant-CN" },
 				{ "en_Mole_US", "en-Mole-US" },
