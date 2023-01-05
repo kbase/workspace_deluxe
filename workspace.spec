@@ -580,7 +580,7 @@ module Workspace {
 
 		Credit metadata is added after object creation, and requires the user to be a workspace admin. Username, timestamp, and credit metadata schema version are stored along with the CM, which allows tracking of CM changes.
 
-		To update existing CM, a new set of credit metadata is added to the existing list.
+		To update existing CM, a new set of credit metadata is added to the list.
 
 		When requesting credit metadata, the last (i.e. most recent) entry in the list is returned.
 
@@ -590,7 +590,8 @@ module Workspace {
 	/* EventDate
 
 		Represents an event in the lifecycle of a resource and the date it occurred on.
-		These objects are used to capture information about
+
+		See https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#8-date for more information on the events (below).
 
 		Both event and date are required fields.
 
@@ -620,9 +621,16 @@ module Workspace {
 
 		The 'funder_name' field is required; all others are optional.
 
+		Recommended resources for organization identifiers include:
+			- Research Organization Registry, http://ror.org
+			- International Standard Name Identifier, https://isni.org
+			- Crossref Funder Registry, https://www.crossref.org/services/funder-registry/
+
+		Some organizations may have a digital object identifier (DOI).
+
 		string funder_id (optional) - persistent unique identifier for the funder in the format
 			<database name>:<identifier within database>
-		string funder_name - the funder name
+		string funder_name - common name for the funder
 		string award_id (optional) - code for the award, assigned by the funder
 		string award_title (optional) - title for the award
 		string award_url (optional) - URL for the award
@@ -639,12 +647,23 @@ module Workspace {
 
 		Represents an organization.
 
+		Recommended resources for organization identifiers and canonical organization names include:
+			- Research Organization Registry, http://ror.org
+			- International Standard Name Identifier, https://isni.org
+			- Crossref Funder Registry, https://www.crossref.org/services/funder-registry/
+
+		For example, the US DOE would be entered as:
+			organization_name: United States Department of Energy
+			organization_id:   ROR:01bj3aw27
+
 		'organization_name' is required; 'organization_id' is optional.
 
-		string organization_name - common name
+		string organization_name - common name; use the name recommended by ROR if possible.
 		string organization_id (optional) - persistent unique identifier for the organization
 		in the format
 			<database name>:<identifier within database>
+
+		e.g. ROR:01znn6x10
 	*/
 	typedef structure {
 		string organization_name;
@@ -666,7 +685,6 @@ module Workspace {
 		string id - persistent unique ID for an entity. Should be in the format
 			<database name>:<identifier within database>
 			e.g.	DOI:10.46936/10.25585/60000745
-				CrossRef:IsManifestationOf
 				GO:0005456
 				HGNC:7470
 		string description (optional) - description of that entity
@@ -862,6 +880,7 @@ module Workspace {
 		- resource_type
 		- titles (one or more required)
 		- contributors (one or more required)
+		- versioning information: if the resource does not have an explicit version number, one or more dates should be supplied, ideally the date of resource publication and the last update (if applicable).
 
 		string identifier - persistent unique identifier for the resource.
 			Should be in the format
