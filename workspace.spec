@@ -572,6 +572,359 @@ module Workspace {
 		string description;
 	} ProvenanceAction;
 
+	/* Credit Metadata-related objects and fields
+
+		Workspace objects have a list of zero or more sets of credit metadata (CM), or citation information for the object. This information allows data imported into KBase to retain the appropriate details for users wishing to cite the data source, and for those who contributed to its creation to be credited for their work.
+
+		CM is stored in a list as part of the object provenance, but unlike other provenance information, which is immutable, CM can be updated.
+
+		Credit metadata is added after object creation, and requires the user to be a workspace admin. Username, timestamp, and credit metadata schema version are stored along with the CM, which allows tracking of CM changes.
+
+		To update existing CM, a new set of credit metadata is added to the existing list.
+
+		When requesting credit metadata, the last (i.e. most recent) entry in the list is returned.
+
+		In the following entries, "resource" is used to refer to the workspace object that the CM pertains to.
+	*/
+
+	/* EventDate
+
+		Represents an event in the lifecycle of a resource and the date it occurred on.
+		These objects are used to capture information about
+
+		Both event and date are required fields.
+
+		string date - the date associated with the event. The date may be in the format
+			YYYY, YYYY-MM, or YYYY-MM-DD.
+		string event - the event that occurred; events must be from the following list:
+			"accepted"
+			"available"
+			"copyrighted"
+			"collected"
+			"created"
+			"issued"
+			"submitted"
+			"updated"
+			"valid"
+			"withdrawn"
+			"other"
+	*/
+	typedef structure {
+		string date;
+		string event;
+	} EventDate;
+
+	/* FundingReference
+
+		Represents a funding source for a resource, including the funding body and the grant awarded.
+
+		The 'funder_name' field is required; all others are optional.
+
+		string funder_id (optional) - persistent unique identifier for the funder in the format
+			<database name>:<identifier within database>
+		string funder_name - the funder name
+		string award_id (optional) - code for the award, assigned by the funder
+		string award_title (optional) - title for the award
+		string award_url (optional) - URL for the award
+	*/
+	typedef structure {
+		string funder_id;
+		string funder_name;
+		string award_id;
+		string award_title;
+		string award_url;
+	} FundingReference;
+
+	/* Organization
+
+		Represents an organization.
+
+		'organization_name' is required; 'organization_id' is optional.
+
+		string organization_name - common name
+		string organization_id (optional) - persistent unique identifier for the organization
+		in the format
+			<database name>:<identifier within database>
+	*/
+	typedef structure {
+		string organization_name;
+		string organization_id;
+	} Organization;
+
+	/* PermanentID
+
+		Represents a persistent unique identifier for an entity, with an optional relationship to some other entity.
+
+		The 'id' field is required; all other fields are optional.
+
+		The values in the 'relationship_type' field come from controlled vocabularies maintained by Datacite and CrossRef. See the documentation links below for more details.
+
+		DataCite relation types: https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#12b-relationtype
+
+		CrossRef relation types: https://www.crossref.org/documentation/schema-library/markup-guide-metadata-segments/relationships/
+
+		string id - persistent unique ID for an entity. Should be in the format
+			<database name>:<identifier within database>
+			e.g.	DOI:10.46936/10.25585/60000745
+				CrossRef:IsManifestationOf
+				GO:0005456
+				HGNC:7470
+		string description (optional) - description of that entity
+		string relationship_type (optional) - the relationship between the ID and some
+			other entity.
+			For example, when a PermanentID class is used to represent objects in the
+			CreditMetadata field 'related_identifiers', the 'relationship_type' field
+			captures the relationship between the CreditMetadata and this ID.
+
+			Valid relationship_type values:
+				"Datacite:Cites"
+				"Datacite:Compiles"
+				"Datacite:Continues"
+				"Datacite:Describes"
+				"Datacite:Documents"
+				"Datacite:HasMetadata"
+				"Datacite:HasPart"
+				"Datacite:HasVersion"
+				"Datacite:IsCitedBy"
+				"Datacite:isCompiledBy"
+				"Datacite:IsContinuedBy"
+				"Datacite:IsDerivedFrom"
+				"Datacite:IsDescribedBy"
+				"Datacite:IsDocumentedBy"
+				"Datacite:IsIdenticalTo"
+				"Datacite:IsMetadataFor"
+				"Datacite:IsNewVersionOf"
+				"Datacite:IsOriginalFormOf"
+				"Datacite:IsPartOf"
+				"Datacite:IsPreviousVersionOf"
+				"Datacite:IsPublishedIn"
+				"Datacite:IsReferencedBy"
+				"Datacite:IsRequiredBy"
+				"Datacite:IsReviewedBy"
+				"Datacite:IsSourceOf"
+				"Datacite:IsSupplementTo"
+				"Datacite:IsSupplementedBy"
+				"Datacite:IsVariantFormOf"
+				"Datacite:IsVersionOf"
+				"Datacite:Obsoletes"
+				"Datacite:References"
+				"Datacite:Requires"
+				"Datacite:Reviews"
+				"CrossRef:BasedOnData"
+				"CrossRef:Finances"
+				"CrossRef:HasComment"
+				"CrossRef:HasDerivation"
+				"CrossRef:HasExpression"
+				"CrossRef:HasFormat"
+				"CrossRef:HasManifestation"
+				"CrossRef:HasManuscript"
+				"CrossRef:HasPreprint"
+				"CrossRef:HasRelatedMaterial"
+				"CrossRef:HasReply"
+				"CrossRef:HasReview"
+				"CrossRef:HasTranslation"
+				"CrossRef:IsBasedOn"
+				"CrossRef:IsBasisFor"
+				"CrossRef:IsCommentOn"
+				"CrossRef:IsDataBasisFor"
+				"CrossRef:IsExpressionOf"
+				"CrossRef:IsFinancedBy"
+				"CrossRef:IsFormatOf"
+				"CrossRef:IsManifestationOf"
+				"CrossRef:IsManuscriptOf"
+				"CrossRef:IsPreprintOf"
+				"CrossRef:IsRelatedMaterial"
+				"CrossRef:IsReplacedBy"
+				"CrossRef:IsReplyTo"
+				"CrossRef:IsReviewOf"
+				"CrossRef:IsSameAs"
+				"CrossRef:IsTranslationOf"
+				"CrossRef:Replaces"
+	*/
+	typedef structure {
+		string id;
+		string description;
+		string relationship_type;
+	} PermanentID;
+
+	/* Title
+		Represents the title or name of a resource.
+
+		The 'title_string' field is required; if no value is supplied for 'title_type', it
+		defaults to 'title'. If the 'title_type' is set to 'translated_title', the appropriate
+		BCP-47 tag must be supplied in the 'title_language' field.
+
+		string title_string - the resource title
+		string title_language (optional) - language that the title is in, as a IETF BCP-47 tag.
+			Examples: 'fr'; 'jp-JP'; 'zh-Hant-CN'; 'en-Latn-GB'; 'mn-Cyrl'.
+		string title_type (optional) - the type of title described; must be one of the following:
+			"title" (default)
+			"subtitle"
+			"alternative_title"
+			"translated_title"
+			"other"
+	*/
+	typedef structure {
+		string title_string;
+		string title_language;
+		string title_type;
+	} Title;
+
+	/* Contributor
+
+		Represents a contributor to the resource.
+
+		Contributors must have a 'contributor_type', either 'person' or 'organization'.
+
+		There must also be an identifier or name of some sort for the contributor.
+
+		If the contributor is an organization, either the 'contributor_id' or
+		the 'name' field must be populated.
+
+		An individual can be represented by either 'given_name' and 'family_name'; a 'name'
+		(if the name is not in the binomial format); or a `contributor_id`, such as an
+		ORCID.
+
+		The 'contributor_role' field takes values from the Datacite and CRediT contributor
+		roles vocabularies. For more information on these resources and choosing the
+		appropriate roles, please see the following links:
+
+		Datacite contributor roles: https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#7a-contributortype
+
+		CRediT contributor role taxonomy: https://credit.niso.org
+
+		string contributor_type - must be either 'person' or 'organization'
+		string contributor_id (optional) - persistent unique identifier for the contributor;
+			e.g. an ORCID for an individual, or a ROR ID for an organization.
+		string given_name (optional) - first name, for individuals whose names can be split
+			into given and surnames
+		string family_name (optional) - family name, for individuals whose names can be
+			split into given and surnames.
+		string name (optional) - contributor name, in cases where the contributor is an
+			organization or a person whose name cannot easily fit into the given/family
+			name structure.
+		list<Organization> affiliations (optional) - list of organizations with which the
+			contributor is affiliated
+		list<string> contributor_roles (optional) - list of roles played by the contributor
+			when working on the resource.
+			Valid contributor_role values:
+			"Datacite:ContactPerson"
+			"Datacite:DataCollector"
+			"Datacite:DataCurator"
+			"Datacite:DataManager"
+			"Datacite:Distributor"
+			"Datacite:Editor"
+			"Datacite:HostingInstitution"
+			"Datacite:Producer"
+			"Datacite:ProjectLeader"
+			"Datacite:ProjectManager"
+			"Datacite:ProjectMember"
+			"Datacite:RegistrationAgency"
+			"Datacite:RegistrationAuthority"
+			"Datacite:RelatedPerson"
+			"Datacite:Researcher"
+			"Datacite:ResearchGroup"
+			"Datacite:RightsHolder"
+			"Datacite:Sponsor"
+			"Datacite:Supervisor"
+			"Datacite:WorkPackageLeader"
+			"Datacite:Other"
+			"CRediT:conceptualization"
+			"CRediT:data-curation"
+			"CRediT:formal-analysis"
+			"CRediT:funding-acquisition"
+			"CRediT:investigation"
+			"CRediT:methodology"
+			"CRediT:project-administration"
+			"CRediT:resources"
+			"CRediT:software"
+			"CRediT:supervision"
+			"CRediT:validation"
+			"CRediT:visualization"
+			"CRediT:writing-original-draft"
+			"CRediT:writing-review-editing"
+	*/
+	typedef structure {
+		string contributor_type;
+		string name;
+		string given_name;
+		string family_name;
+		string contributor_id;
+		list<Organization> affiliations;
+		list<string> contributor_roles;
+	} Contributor;
+
+	/*
+		Represents the credit metadata associated with a workspace object.
+
+		Required fields are:
+		- identifier
+		- resource_type
+		- titles (one or more required)
+		- contributors (one or more required)
+
+		string identifier - persistent unique identifier for the resource.
+			Should be in the format
+			<database name>:<identifier within database>
+			e.g.	DOI:10.46936/10.25585/60000745
+				CrossRef:IsManifestationOf
+				GO:0005456
+				HGNC:7470
+		string license (optional) - usage license for the resource.
+		string resource_type - the type of resource being represented.
+		string version (optional) - the version of the resource.
+		list<Contributor> contributors (optional) - a list of people and/or organizations who contributed to the resource.
+		list<EventDate> dates - a list of relevant lifecycle events for the resource.
+		list<FundingReference> funding (optional) - zero or more funding sources for the resource.
+		list<PermanentID> related_identifiers (optional) - zero or more PIDs related to the resource.
+		list<Title> titles - one or more titles for the resource.
+	*/
+	typedef structure {
+		string identifier;
+		string license;
+		string version;
+		string resource_type;
+		list<Contributor> contributors;
+		list<EventDate> dates;
+		list<FundingReference> funding;
+		list<PermanentID> related_identifiers;
+		list<Title> titles;
+	} CreditMetadata;
+
+	/* CreditMetadataContainer
+
+		Container for credit metadata; used when adding a new set of credit metadata
+		to a workspace object.
+
+		All fields are required.
+
+		string schema_version - version of the credit metadata schema used
+		CreditMetadata credit_metadata - the credit metadata itself
+	*/
+	typedef structure {
+		CreditMetadata credit_metadata;
+		string schema_version;
+	} CreditMetadataContainer;
+
+	/* CreditMetadataEntry
+
+		Container for an instance of credit metadata; returned by the workspace when
+		credit metadata is requested.
+
+		All fields will be populated.
+
+		username saved_by - the user who added this entry
+		epoch timestamp - timestamp for the addition of this credit metadata
+		string schema_version - version of the credit metadata schema used
+		CreditMetadata credit_metadata - the credit metadata itself
+	*/
+	typedef structure {
+		username saved_by;
+		epoch timestamp;
+		CreditMetadata credit_metadata;
+		string schema_version;
+	} CreditMetadataContainer;
+
 	/*
 		Returns the version of the workspace service.
 	*/
