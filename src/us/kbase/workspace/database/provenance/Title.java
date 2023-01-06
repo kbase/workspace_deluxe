@@ -138,7 +138,7 @@ public class Title {
 		}
 
 		/**
-		 * Sets the language of title being represented, for example en_GB.
+		 * Sets the language of title being represented, for example 'en_GB'.
 		 *
 		 * @param titleLanguage
 		 *                the language. Null or the empty string removes any
@@ -151,7 +151,9 @@ public class Title {
 		}
 
 		/**
-		 * Sets the type of the title being represented, for example translated_title.
+		 * Sets the type of the title being represented, for example 'subtitle'.
+		 *
+		 * If the title type is 'translated_title', the title language must be set.
 		 *
 		 * @param titleType
 		 *                the titleType as a string. Null or the empty string resets
@@ -174,7 +176,7 @@ public class Title {
 		}
 
 		/**
-		 * Sets the type of the title being represented, for example translated_title.
+		 * Sets the type of the title being represented, for example 'subtitle'.
 		 *
 		 * @param titleType
 		 *                the titleType as an enum. Null resets any
@@ -194,6 +196,9 @@ public class Title {
 		 * syntax of the value.
 		 *
 		 * If the titleType is null, it is set to the default DEFAULT_TITLE_TYPE.
+		 *
+		 * If the titleType is 'translated_title', titleLanguage must also be set.
+		 * titleLanguage can also be specified for titles of other types.
 		 *
 		 * @return the title object.
 		 */
@@ -215,6 +220,10 @@ public class Title {
 
 			if (titleType == null) {
 				titleType = DEFAULT_TITLE_TYPE;
+			}
+
+			if (titleType == TitleType.TRANSLATED_TITLE && titleLanguage == null) {
+				errorList.add("titleLanguage must be set if titleType is set to 'translated_title'");
 			}
 
 			if (errorList.isEmpty()) {
