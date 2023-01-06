@@ -883,7 +883,7 @@ module Workspace {
 				- The Incredible Hulk
 
 		list<Organization> affiliations (optional) - list of organizations with which the
-			contributor is affiliated
+			contributor is affiliated. For contributors that represent an organization, this may be a parent organization (e.g. KBase, US DOE; Arkin lab, LBNL).
 
 		list<string> contributor_roles (optional) - list of roles played by the contributor
 			when working on the resource.
@@ -944,12 +944,10 @@ module Workspace {
 		- contributors (one or more required)
 		- versioning information: if the resource does not have an explicit version number, one or more dates should be supplied: ideally the date of resource publication and the last update (if applicable).
 
-		string identifier - persistent unique identifier for the resource.
+		string identifier - persistent unique identifier for the resource (i.e. the source data in the workspace).
 			Should be in the format <database name>:<identifier within database>
 			Examples:
-				- DOI:10.46936/10.25585/60000745
-				- GO:0005456
-				- HGNC:7470
+				- TODO
 
 		string license (optional) - usage license for the resource.
 			Examples:
