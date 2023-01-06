@@ -947,7 +947,9 @@ module Workspace {
 		string identifier - persistent unique identifier for the resource (i.e. the source data in the workspace).
 			Should be in the format <database name>:<identifier within database>
 			Examples:
-				- TODO
+				- RefSeq:GCF_004214875.1
+				- GenBank:CP035949.1
+				- img.taxon:648028003
 
 		string license (optional) - usage license for the resource.
 			Examples:
