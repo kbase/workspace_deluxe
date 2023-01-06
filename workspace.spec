@@ -585,9 +585,9 @@ module Workspace {
 		When requesting credit metadata, the last (i.e. most recent) entry in the list is returned.
 
 		In the following entries, "resource" is used to refer to the workspace object that the CM pertains to.
-	*/
 
-	/* EventDate
+
+	EventDate
 
 		Represents an event in the lifecycle of a resource and the date it occurred on.
 
@@ -597,18 +597,24 @@ module Workspace {
 
 		string date - the date associated with the event. The date may be in the format
 			YYYY, YYYY-MM, or YYYY-MM-DD.
-		string event - the event that occurred; events must be from the following list:
-			"accepted"
-			"available"
-			"copyrighted"
-			"collected"
-			"created"
-			"issued"
-			"submitted"
-			"updated"
-			"valid"
-			"withdrawn"
-			"other"
+			Examples:
+				- 2001
+				- 2021-05
+				- 1998-02-15
+
+		string event - the event that occurred.
+			Valid 'event' values:
+				- accepted
+				- available
+				- copyrighted
+				- collected
+				- created
+				- issued
+				- submitted
+				- updated
+				- valid
+				- withdrawn
+				- other
 	*/
 	typedef structure {
 		string date;
@@ -630,10 +636,28 @@ module Workspace {
 
 		string funder_id (optional) - persistent unique identifier for the funder in the format
 			<database name>:<identifier within database>
+			Examples:
+				- ROR:04xm1d337
+				- ISNI:0000000405337147
+
 		string funder_name - common name for the funder
+			Examples:
+				- Joint Genome Institute
+				- National Science Foundation
+
 		string award_id (optional) - code for the award, assigned by the funder
+			Examples:
+				- 1296
+				- CBET-0756451
+
 		string award_title (optional) - title for the award
+			Examples:
+				- Metagenomic analysis of the rhizosphere of three biofuel crops at the KBS intensive site
+
 		string award_url (optional) - URL for the award
+			Examples:
+				- https://genome.jgi.doe.gov/portal/Metanaintenssite/Metanaintenssite.info.html
+
 	*/
 	typedef structure {
 		string funder_id;
@@ -659,11 +683,16 @@ module Workspace {
 		'organization_name' is required; 'organization_id' is optional.
 
 		string organization_name - common name; use the name recommended by ROR if possible.
-		string organization_id (optional) - persistent unique identifier for the organization
-		in the format
-			<database name>:<identifier within database>
+			Examples:
+				- KBase
+				- United States Department of Energy
 
-		e.g. ROR:01znn6x10
+		string organization_id (optional) - persistent unique identifier for the organization
+		in the format <database name>:<identifier within database>
+			Examples:
+				- ROR:01bj3aw27
+				- ISNI:0000000123423717
+				- CrossrefFunder:100000015
 	*/
 	typedef structure {
 		string organization_name;
@@ -676,88 +705,92 @@ module Workspace {
 
 		The 'id' field is required; all other fields are optional.
 
-		The values in the 'relationship_type' field come from controlled vocabularies maintained by Datacite and CrossRef. See the documentation links below for more details.
+		The values in the 'relationship_type' field come from controlled vocabularies maintained by DataCite and Crossref. See the documentation links below for more details.
 
 		DataCite relation types: https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#12b-relationtype
 
-		CrossRef relation types: https://www.crossref.org/documentation/schema-library/markup-guide-metadata-segments/relationships/
+		Crossref relation types: https://www.crossref.org/documentation/schema-library/markup-guide-metadata-segments/relationships/
 
 		string id - persistent unique ID for an entity. Should be in the format
 			<database name>:<identifier within database>
-			e.g.	DOI:10.46936/10.25585/60000745
-				GO:0005456
-				HGNC:7470
+			Examples:
+				- DOI:10.46936/10.25585/60000745
+				- GO:0005456
+				- HGNC:7470
 		string description (optional) - description of that entity
+			Examples:
+				- Amaranthus hypochondriacus genome
+
 		string relationship_type (optional) - the relationship between the ID and some
 			other entity.
 			For example, when a PermanentID class is used to represent objects in the
 			CreditMetadata field 'related_identifiers', the 'relationship_type' field
 			captures the relationship between the CreditMetadata and this ID.
 
-			Valid relationship_type values:
-				"Datacite:Cites"
-				"Datacite:Compiles"
-				"Datacite:Continues"
-				"Datacite:Describes"
-				"Datacite:Documents"
-				"Datacite:HasMetadata"
-				"Datacite:HasPart"
-				"Datacite:HasVersion"
-				"Datacite:IsCitedBy"
-				"Datacite:isCompiledBy"
-				"Datacite:IsContinuedBy"
-				"Datacite:IsDerivedFrom"
-				"Datacite:IsDescribedBy"
-				"Datacite:IsDocumentedBy"
-				"Datacite:IsIdenticalTo"
-				"Datacite:IsMetadataFor"
-				"Datacite:IsNewVersionOf"
-				"Datacite:IsOriginalFormOf"
-				"Datacite:IsPartOf"
-				"Datacite:IsPreviousVersionOf"
-				"Datacite:IsPublishedIn"
-				"Datacite:IsReferencedBy"
-				"Datacite:IsRequiredBy"
-				"Datacite:IsReviewedBy"
-				"Datacite:IsSourceOf"
-				"Datacite:IsSupplementTo"
-				"Datacite:IsSupplementedBy"
-				"Datacite:IsVariantFormOf"
-				"Datacite:IsVersionOf"
-				"Datacite:Obsoletes"
-				"Datacite:References"
-				"Datacite:Requires"
-				"Datacite:Reviews"
-				"CrossRef:BasedOnData"
-				"CrossRef:Finances"
-				"CrossRef:HasComment"
-				"CrossRef:HasDerivation"
-				"CrossRef:HasExpression"
-				"CrossRef:HasFormat"
-				"CrossRef:HasManifestation"
-				"CrossRef:HasManuscript"
-				"CrossRef:HasPreprint"
-				"CrossRef:HasRelatedMaterial"
-				"CrossRef:HasReply"
-				"CrossRef:HasReview"
-				"CrossRef:HasTranslation"
-				"CrossRef:IsBasedOn"
-				"CrossRef:IsBasisFor"
-				"CrossRef:IsCommentOn"
-				"CrossRef:IsDataBasisFor"
-				"CrossRef:IsExpressionOf"
-				"CrossRef:IsFinancedBy"
-				"CrossRef:IsFormatOf"
-				"CrossRef:IsManifestationOf"
-				"CrossRef:IsManuscriptOf"
-				"CrossRef:IsPreprintOf"
-				"CrossRef:IsRelatedMaterial"
-				"CrossRef:IsReplacedBy"
-				"CrossRef:IsReplyTo"
-				"CrossRef:IsReviewOf"
-				"CrossRef:IsSameAs"
-				"CrossRef:IsTranslationOf"
-				"CrossRef:Replaces"
+			Valid 'relationship_type' values:
+				- DataCite:Cites
+				- DataCite:Compiles
+				- DataCite:Continues
+				- DataCite:Describes
+				- DataCite:Documents
+				- DataCite:HasMetadata
+				- DataCite:HasPart
+				- DataCite:HasVersion
+				- DataCite:IsCitedBy
+				- DataCite:isCompiledBy
+				- DataCite:IsContinuedBy
+				- DataCite:IsDerivedFrom
+				- DataCite:IsDescribedBy
+				- DataCite:IsDocumentedBy
+				- DataCite:IsIdenticalTo
+				- DataCite:IsMetadataFor
+				- DataCite:IsNewVersionOf
+				- DataCite:IsOriginalFormOf
+				- DataCite:IsPartOf
+				- DataCite:IsPreviousVersionOf
+				- DataCite:IsPublishedIn
+				- DataCite:IsReferencedBy
+				- DataCite:IsRequiredBy
+				- DataCite:IsReviewedBy
+				- DataCite:IsSourceOf
+				- DataCite:IsSupplementTo
+				- DataCite:IsSupplementedBy
+				- DataCite:IsVariantFormOf
+				- DataCite:IsVersionOf
+				- DataCite:Obsoletes
+				- DataCite:References
+				- DataCite:Requires
+				- DataCite:Reviews
+				- Crossref:BasedOnData
+				- Crossref:Finances
+				- Crossref:HasComment
+				- Crossref:HasDerivation
+				- Crossref:HasExpression
+				- Crossref:HasFormat
+				- Crossref:HasManifestation
+				- Crossref:HasManuscript
+				- Crossref:HasPreprint
+				- Crossref:HasRelatedMaterial
+				- Crossref:HasReply
+				- Crossref:HasReview
+				- Crossref:HasTranslation
+				- Crossref:IsBasedOn
+				- Crossref:IsBasisFor
+				- Crossref:IsCommentOn
+				- Crossref:IsDataBasisFor
+				- Crossref:IsExpressionOf
+				- Crossref:IsFinancedBy
+				- Crossref:IsFormatOf
+				- Crossref:IsManifestationOf
+				- Crossref:IsManuscriptOf
+				- Crossref:IsPreprintOf
+				- Crossref:IsRelatedMaterial
+				- Crossref:IsReplacedBy
+				- Crossref:IsReplyTo
+				- Crossref:IsReviewOf
+				- Crossref:IsSameAs
+				- Crossref:IsTranslationOf
+				- Crossref:Replaces
 	*/
 	typedef structure {
 		string id;
@@ -772,15 +805,28 @@ module Workspace {
 		defaults to 'title'. If the 'title_type' is set to 'translated_title', the appropriate
 		BCP-47 tag must be supplied in the 'title_language' field.
 
+		Note that the workspace checks that the title_language field adheres to IETF BCP-47 syntax rules, but it does not check the validity of the tag.
+
 		string title_string - the resource title
+			Examples:
+				- Amaranthus hypochondriacus
+				- Viral Annotation Pipeline in KBase
+
 		string title_language (optional) - language that the title is in, as a IETF BCP-47 tag.
-			Examples: 'fr'; 'jp-JP'; 'zh-Hant-CN'; 'en-Latn-GB'; 'mn-Cyrl'.
-		string title_type (optional) - the type of title described; must be one of the following:
-			"title" (default)
-			"subtitle"
-			"alternative_title"
-			"translated_title"
-			"other"
+			Examples:
+				- fr
+				- jp-JP
+				- zh-Hant-CN
+				- en-Latn-GB
+				- mn-Cyrl
+
+		string title_type (optional) - the type of title described.
+			Valid 'title_type' values:
+				- title
+				- subtitle
+				- alternative_title
+				- translated_title
+				- other
 	*/
 	typedef structure {
 		string title_string;
@@ -800,67 +846,89 @@ module Workspace {
 		the 'name' field must be populated.
 
 		An individual can be represented by either 'given_name' and 'family_name'; a 'name'
-		(if the name is not in the binomial format); or a `contributor_id`, such as an
+		(if the name is not in the binomial format); or a 'contributor_id', such as an
 		ORCID.
 
-		The 'contributor_role' field takes values from the Datacite and CRediT contributor
+		The 'contributor_role' field takes values from the DataCite and CRediT contributor
 		roles vocabularies. For more information on these resources and choosing the
 		appropriate roles, please see the following links:
 
-		Datacite contributor roles: https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#7a-contributortype
+		DataCite contributor roles: https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#7a-contributortype
 
 		CRediT contributor role taxonomy: https://credit.niso.org
 
 		string contributor_type - must be either 'person' or 'organization'
+			Valid 'contributor_type' values:
+				- person
+				- organization
+
 		string contributor_id (optional) - persistent unique identifier for the contributor;
-			e.g. an ORCID for an individual, or a ROR ID for an organization.
+			this might be an ORCID for an individual, or a ROR ID for an organization.
+			Examples:
+				- ORCID:0000000010001234
+				- ROR:01bj3aw27
+
 		string given_name (optional) - first name, for individuals whose names can be split
 			into given and surnames
+			Examples:
+				- Dolly
+				- Marionetta
+
 		string family_name (optional) - family name, for individuals whose names can be
 			split into given and surnames.
+			Examples:
+				- Parton
+				- de la Carte-Postale
+
 		string name (optional) - contributor name, in cases where the contributor is an
 			organization or a person whose name cannot easily fit into the given/family
 			name structure.
+			Examples:
+				- Madonna
+				- Monarch Initiative
+				- The Incredible Hulk
+
 		list<Organization> affiliations (optional) - list of organizations with which the
 			contributor is affiliated
+
 		list<string> contributor_roles (optional) - list of roles played by the contributor
 			when working on the resource.
-			Valid contributor_role values:
-			"Datacite:ContactPerson"
-			"Datacite:DataCollector"
-			"Datacite:DataCurator"
-			"Datacite:DataManager"
-			"Datacite:Distributor"
-			"Datacite:Editor"
-			"Datacite:HostingInstitution"
-			"Datacite:Producer"
-			"Datacite:ProjectLeader"
-			"Datacite:ProjectManager"
-			"Datacite:ProjectMember"
-			"Datacite:RegistrationAgency"
-			"Datacite:RegistrationAuthority"
-			"Datacite:RelatedPerson"
-			"Datacite:Researcher"
-			"Datacite:ResearchGroup"
-			"Datacite:RightsHolder"
-			"Datacite:Sponsor"
-			"Datacite:Supervisor"
-			"Datacite:WorkPackageLeader"
-			"Datacite:Other"
-			"CRediT:conceptualization"
-			"CRediT:data-curation"
-			"CRediT:formal-analysis"
-			"CRediT:funding-acquisition"
-			"CRediT:investigation"
-			"CRediT:methodology"
-			"CRediT:project-administration"
-			"CRediT:resources"
-			"CRediT:software"
-			"CRediT:supervision"
-			"CRediT:validation"
-			"CRediT:visualization"
-			"CRediT:writing-original-draft"
-			"CRediT:writing-review-editing"
+			Valid 'contributor_role' values:
+				- DataCite:ContactPerson
+				- DataCite:DataCollector
+				- DataCite:DataCurator
+				- DataCite:DataManager
+				- DataCite:Distributor
+				- DataCite:Editor
+				- DataCite:HostingInstitution
+				- DataCite:Producer
+				- DataCite:ProjectLeader
+				- DataCite:ProjectManager
+				- DataCite:ProjectMember
+				- DataCite:RegistrationAgency
+				- DataCite:RegistrationAuthority
+				- DataCite:RelatedPerson
+				- DataCite:Researcher
+				- DataCite:ResearchGroup
+				- DataCite:RightsHolder
+				- DataCite:Sponsor
+				- DataCite:Supervisor
+				- DataCite:WorkPackageLeader
+				- DataCite:Other
+				- CRediT:conceptualization
+				- CRediT:data-curation
+				- CRediT:formal-analysis
+				- CRediT:funding-acquisition
+				- CRediT:investigation
+				- CRediT:methodology
+				- CRediT:project-administration
+				- CRediT:resources
+				- CRediT:software
+				- CRediT:supervision
+				- CRediT:validation
+				- CRediT:visualization
+				- CRediT:writing-original-draft
+				- CRediT:writing-review-editing
 	*/
 	typedef structure {
 		string contributor_type;
@@ -880,23 +948,42 @@ module Workspace {
 		- resource_type
 		- titles (one or more required)
 		- contributors (one or more required)
-		- versioning information: if the resource does not have an explicit version number, one or more dates should be supplied, ideally the date of resource publication and the last update (if applicable).
+		- versioning information: if the resource does not have an explicit version number, one or more dates should be supplied: ideally the date of resource publication and the last update (if applicable).
 
 		string identifier - persistent unique identifier for the resource.
-			Should be in the format
-			<database name>:<identifier within database>
-			e.g.	DOI:10.46936/10.25585/60000745
-				CrossRef:IsManifestationOf
-				GO:0005456
-				HGNC:7470
+			Should be in the format <database name>:<identifier within database>
+			Examples:
+				- DOI:10.46936/10.25585/60000745
+				- GO:0005456
+				- HGNC:7470
+
 		string license (optional) - usage license for the resource.
+			Examples:
+				- CC0
+				- Creative Commons 4.0
+				- MIT
+
 		string resource_type - the type of resource being represented.
-		string version (optional) - the version of the resource.
+			Valid 'resource_type' values:
+				- dataset
+				- record
+
+		string version (optional) - the version of the resource. This must be an absolute version, not a relative version like 'latest'.
+			Examples:
+				- 5
+				- 1.2.1
+				- 20220405
+
 		list<Contributor> contributors (optional) - a list of people and/or organizations who contributed to the resource.
+
 		list<EventDate> dates - a list of relevant lifecycle events for the resource.
+
 		list<FundingReference> funding (optional) - zero or more funding sources for the resource.
+
 		list<PermanentID> related_identifiers (optional) - zero or more PIDs related to the resource.
+
 		list<Title> titles - one or more titles for the resource.
+
 	*/
 	typedef structure {
 		string identifier;
@@ -918,6 +1005,9 @@ module Workspace {
 		All fields are required.
 
 		string schema_version - version of the credit metadata schema used
+			Example:
+				- 1.1.0
+
 		CreditMetadata credit_metadata - the credit metadata itself
 	*/
 	typedef structure {
