@@ -940,9 +940,9 @@ module Workspace {
 		Required fields are:
 		- identifier
 		- resource_type
-		- titles (one or more required)
-		- contributors (one or more required)
 		- versioning information: if the resource does not have an explicit version number, one or more dates should be supplied: ideally the date of resource publication and the last update (if applicable).
+		- contributors (one or more required)
+		- titles (one or more required)
 
 		string identifier - persistent unique identifier for the resource (i.e. the source data in the workspace).
 			Should be in the format <database name>:<identifier within database>
@@ -961,6 +961,10 @@ module Workspace {
 			Valid 'resource_type' values:
 				- dataset
 				- record
+
+		string schema_version - version of the credit metadata schema used
+			Example:
+				- 1.1.0
 
 		string version (optional) - the version of the resource. This must be an absolute version, not a relative version like 'latest'.
 			Examples:
@@ -990,24 +994,6 @@ module Workspace {
 		list<PermanentID> related_identifiers;
 		list<Title> titles;
 	} CreditMetadata;
-
-	/* CreditMetadataContainer
-
-		Container for credit metadata; used when adding a new set of credit metadata
-		to a workspace object.
-
-		All fields are required.
-
-		string schema_version - version of the credit metadata schema used
-			Example:
-				- 1.1.0
-
-		CreditMetadata credit_metadata - the credit metadata itself
-	*/
-	typedef structure {
-		CreditMetadata credit_metadata;
-		string schema_version;
-	} CreditMetadataContainer;
 
 	/* CreditMetadataEntry
 
