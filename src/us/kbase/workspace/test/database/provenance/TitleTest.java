@@ -211,6 +211,24 @@ public class TitleTest {
 	}
 
 	@Test
+	public void buildFailTranslatedTitleMissingTitleLanguage() throws Exception {
+		buildTitleFailWithError(
+			Title.getBuilder("best title ever")
+					.withTitleType(TitleType.TRANSLATED_TITLE),
+			"titleLanguage must be set if titleType is set to 'translated_title'"
+		);
+
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
+			buildTitleFailWithError(
+					Title.getBuilder("best title ever")
+							.withTitleType(TitleType.TRANSLATED_TITLE)
+							.withTitleLanguage(nullOrWs),
+					"titleLanguage must be set if titleType is set to 'translated_title'"
+			);
+		}
+	}
+
+	@Test
 	public void buildFailNullOrWsTitleInvalidTitleType() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			buildTitleFailWithError(
@@ -218,6 +236,12 @@ public class TitleTest {
 							.withTitleType("unholy and daemonic"),
 					"titleString cannot be null or whitespace only\n" +
 							"Invalid titleType: unholy and daemonic");
+
+			buildTitleFailWithError(
+				Title.getBuilder(nullOrWs)
+						.withTitleType(TYPE_STRING_UNTRIMMED),
+				"titleString cannot be null or whitespace only\n" +
+				"titleLanguage must be set if titleType is set to 'translated_title'");
 		}
 	}
 }
