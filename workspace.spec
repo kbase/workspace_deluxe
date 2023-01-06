@@ -580,9 +580,7 @@ module Workspace {
 
 		Credit metadata is added after object creation, and requires the user to be a workspace admin. Username, timestamp, and credit metadata schema version are stored along with the CM, which allows tracking of CM changes.
 
-		To update existing CM, a new set of credit metadata is added to the list.
-
-		When requesting credit metadata, the last (i.e. most recent) entry in the list is returned.
+		The API does not support updates to select fields; the existing CM for a resource should be fetched, the relevant fields updated, and the resulting structure sent as the input to update credit metadata.
 
 		In the following entries, "resource" is used to refer to the workspace object that the CM pertains to.
 
@@ -809,7 +807,7 @@ module Workspace {
 
 		string title_string - the resource title
 			Examples:
-				- Amaranthus hypochondriacus
+				- Amaranthus hypochondriacus genome
 				- Viral Annotation Pipeline in KBase
 
 		string title_language (optional) - language that the title is in, as a IETF BCP-47 tag.
@@ -840,14 +838,10 @@ module Workspace {
 
 		Contributors must have a 'contributor_type', either 'person' or 'organization'.
 
-		There must also be an identifier or name of some sort for the contributor.
+		If the contributor is an organization, the 'name' field must be populated.
 
-		If the contributor is an organization, either the 'contributor_id' or
-		the 'name' field must be populated.
-
-		An individual can be represented by either 'given_name' and 'family_name'; a 'name'
-		(if the name is not in the binomial format); or a 'contributor_id', such as an
-		ORCID.
+		A person must have either 'given_name' and 'family_name' or a 'name'
+		if the name is not in the binomial format.
 
 		The 'contributor_role' field takes values from the DataCite and CRediT contributor
 		roles vocabularies. For more information on these resources and choosing the
