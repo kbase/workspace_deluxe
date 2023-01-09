@@ -593,14 +593,14 @@ module Workspace {
 
 		Both event and date are required fields.
 
-		string date - the date associated with the event. The date may be in the format
+		date - the date associated with the event. The date may be in the format
 			YYYY, YYYY-MM, or YYYY-MM-DD.
 			Examples:
 				- 2001
 				- 2021-05
 				- 1998-02-15
 
-		string event - the event that occurred.
+		event - the event that occurred.
 			Valid 'event' values:
 				- accepted
 				- available
@@ -632,27 +632,27 @@ module Workspace {
 
 		Some organizations may have a digital object identifier (DOI).
 
-		string funder_id (optional) - persistent unique identifier for the funder in the format
+		funder_id (optional) - persistent unique identifier for the funder in the format
 			<database name>:<identifier within database>
 			Examples:
 				- ROR:04xm1d337
 				- ISNI:0000000405337147
 
-		string funder_name - common name for the funder
+		funder_name - common name for the funder
 			Examples:
 				- Joint Genome Institute
 				- National Science Foundation
 
-		string award_id (optional) - code for the award, assigned by the funder
+		award_id (optional) - code for the award, assigned by the funder
 			Examples:
 				- 1296
 				- CBET-0756451
 
-		string award_title (optional) - title for the award
+		award_title (optional) - title for the award
 			Examples:
 				- Metagenomic analysis of the rhizosphere of three biofuel crops at the KBS intensive site
 
-		string award_url (optional) - URL for the award
+		award_url (optional) - URL for the award
 			Examples:
 				- https://genome.jgi.doe.gov/portal/Metanaintenssite/Metanaintenssite.info.html
 
@@ -680,12 +680,12 @@ module Workspace {
 
 		'organization_name' is required; 'organization_id' is optional.
 
-		string organization_name - common name; use the name recommended by ROR if possible.
+		organization_name - common name; use the name recommended by ROR if possible.
 			Examples:
 				- KBase
 				- United States Department of Energy
 
-		string organization_id (optional) - persistent unique identifier for the organization
+		organization_id (optional) - persistent unique identifier for the organization
 		in the format <database name>:<identifier within database>
 			Examples:
 				- ROR:01bj3aw27
@@ -709,17 +709,17 @@ module Workspace {
 
 		Crossref relation types: https://www.crossref.org/documentation/schema-library/markup-guide-metadata-segments/relationships/
 
-		string id - persistent unique ID for an entity. Should be in the format
+		id - persistent unique ID for an entity. Should be in the format
 			<database name>:<identifier within database>
 			Examples:
 				- DOI:10.46936/10.25585/60000745
 				- GO:0005456
 				- HGNC:7470
-		string description (optional) - description of that entity
+		description (optional) - description of that entity
 			Examples:
 				- Amaranthus hypochondriacus genome
 
-		string relationship_type (optional) - the relationship between the ID and some
+		relationship_type (optional) - the relationship between the ID and some
 			other entity.
 			For example, when a PermanentID class is used to represent objects in the
 			CreditMetadata field 'related_identifiers', the 'relationship_type' field
@@ -805,12 +805,12 @@ module Workspace {
 
 		Note that the workspace checks that the title_language field adheres to IETF BCP-47 syntax rules, but it does not check the validity of the tag.
 
-		string title_string - the resource title
+		title_string - the resource title
 			Examples:
 				- Amaranthus hypochondriacus genome
 				- Viral Annotation Pipeline in KBase
 
-		string title_language (optional) - language that the title is in, as a IETF BCP-47 tag.
+		title_language (optional) - language that the title is in, as a IETF BCP-47 tag.
 			Examples:
 				- fr
 				- jp-JP
@@ -818,7 +818,7 @@ module Workspace {
 				- en-Latn-GB
 				- mn-Cyrl
 
-		string title_type (optional) - the type of title described.
+		title_type (optional) - the type of title described.
 			Valid 'title_type' values:
 				- title
 				- subtitle
@@ -851,30 +851,30 @@ module Workspace {
 
 		CRediT contributor role taxonomy: https://credit.niso.org
 
-		string contributor_type - must be either 'person' or 'organization'
+		contributor_type - must be either 'person' or 'organization'
 			Valid 'contributor_type' values:
 				- person
 				- organization
 
-		string contributor_id (optional) - persistent unique identifier for the contributor;
+		contributor_id (optional) - persistent unique identifier for the contributor;
 			this might be an ORCID for an individual, or a ROR ID for an organization.
 			Examples:
 				- ORCID:0000000010001234
 				- ROR:01bj3aw27
 
-		string given_name (optional) - first name, for individuals whose names can be split
+		given_name (optional) - first name, for individuals whose names can be split
 			into given and surnames
 			Examples:
 				- Dolly
 				- Marionetta
 
-		string family_name (optional) - family name, for individuals whose names can be
+		family_name (optional) - family name, for individuals whose names can be
 			split into given and surnames.
 			Examples:
 				- Parton
 				- de la Carte-Postale
 
-		string name (optional) - contributor name, in cases where the contributor is an
+		name (optional) - contributor name, in cases where the contributor is an
 			organization or a person whose name cannot easily fit into the given/family
 			name structure.
 			Examples:
@@ -882,10 +882,10 @@ module Workspace {
 				- Monarch Initiative
 				- The Incredible Hulk
 
-		list<Organization> affiliations (optional) - list of organizations with which the
+		affiliations (optional) - list of organizations with which the
 			contributor is affiliated. For contributors that represent an organization, this may be a parent organization (e.g. KBase, US DOE; Arkin lab, LBNL).
 
-		list<string> contributor_roles (optional) - list of roles played by the contributor
+		contributor_roles (optional) - list of roles played by the contributor
 			when working on the resource.
 			Valid 'contributor_role' values:
 				- DataCite:ContactPerson
@@ -944,50 +944,55 @@ module Workspace {
 		- contributors (one or more required)
 		- titles (one or more required)
 
-		string identifier - persistent unique identifier for the resource (i.e. the source data in the workspace).
+		comment - freeform text containing comments or extra information about this credit metadata.
+
+		identifier - persistent unique identifier for the resource (i.e. the source data for this workspace object).
 			Should be in the format <database name>:<identifier within database>
 			Examples:
 				- RefSeq:GCF_004214875.1
 				- GenBank:CP035949.1
 				- img.taxon:648028003
 
-		string license (optional) - usage license for the resource.
+		license (optional) - usage license for the resource.
 			Examples:
 				- CC0
 				- Creative Commons 4.0
 				- MIT
 
-		string resource_type - the type of resource being represented.
+
+		resource_type - the type of resource being represented.
 			Valid 'resource_type' values:
 				- dataset
 				- record
 
-		string schema_version - version of the credit metadata schema used
+		schema_version - version of the credit metadata schema used
 			Example:
 				- 1.1.0
 
-		string version (optional) - the version of the resource. This must be an absolute version, not a relative version like 'latest'.
+		version (optional) - the version of the resource. This must be an absolute version, not a relative version like 'latest'.
 			Examples:
 				- 5
 				- 1.2.1
 				- 20220405
 
-		list<Contributor> contributors (optional) - a list of people and/or organizations who contributed to the resource.
+		contributors (optional) - a list of people and/or organizations who contributed to the resource.
 
-		list<EventDate> dates - a list of relevant lifecycle events for the resource.
+		dates - a list of relevant lifecycle events for the resource.
 
-		list<FundingReference> funding (optional) - zero or more funding sources for the resource.
+		funding (optional) - zero or more funding sources for the resource.
 
-		list<PermanentID> related_identifiers (optional) - zero or more PIDs related to the resource.
+		related_identifiers (optional) - zero or more PIDs related to the resource.
 
-		list<Title> titles - one or more titles for the resource.
+		titles - one or more titles for the resource.
 
 	*/
 	typedef structure {
+		string comment;
 		string identifier;
 		string license;
 		string version;
 		string resource_type;
+		string comment;
 		list<Contributor> contributors;
 		list<EventDate> dates;
 		list<FundingReference> funding;
@@ -1002,10 +1007,10 @@ module Workspace {
 
 		All fields will be populated.
 
-		username saved_by - the user who added this entry
-		epoch timestamp - timestamp for the addition of this credit metadata
-		string schema_version - version of the credit metadata schema used
-		CreditMetadata credit_metadata - the credit metadata itself
+		saved_by - the user who added this entry
+		timestamp - timestamp for the addition of this credit metadata
+		schema_version - version of the credit metadata schema used
+		credit_metadata - the credit metadata itself
 	*/
 	typedef structure {
 		username saved_by;
