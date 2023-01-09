@@ -937,6 +937,12 @@ module Workspace {
 	/*
 		Represents the credit metadata associated with a workspace object.
 
+		The 'resource_type' field should be filled using values from the DataCite resourceTypeGeneral field:
+
+		https://support.datacite.org/docs/datacite-metadata-schema-v44-mandatory-properties#10a-resourcetypegeneral
+
+		Currently the KBase workspace only supports credit metadata for objects of type 'dataset'; anything else will return an error.
+
 		Required fields are:
 		- identifier
 		- resource_type
@@ -953,17 +959,15 @@ module Workspace {
 				- GenBank:CP035949.1
 				- img.taxon:648028003
 
-		license (optional) - usage license for the resource.
+		license (optional) - usage license for the resource. May be a text string or an URL. Abbreviations should be spelled out where possible (e.g. "Creative Commons 4.0" instead of CC4).
 			Examples:
-				- CC0
 				- Creative Commons 4.0
 				- MIT
+				- https://jgi.doe.gov/user-programs/pmo-overview/policies/
 
-
-		resource_type - the type of resource being represented.
+		resource_type - the broad type of the source data for this workspace object.
 			Valid 'resource_type' values:
 				- dataset
-				- record
 
 		schema_version - version of the credit metadata schema used
 			Example:
