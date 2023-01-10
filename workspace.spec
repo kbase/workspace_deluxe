@@ -596,7 +596,7 @@ module Workspace {
 		date - the date associated with the event. The date may be in the format
 			YYYY, YYYY-MM, or YYYY-MM-DD.
 			Examples:
-				- 2001
+				- '2001'
 				- 2021-05
 				- 1998-02-15
 
@@ -632,9 +632,9 @@ module Workspace {
 
 		Some organizations may have a digital object identifier (DOI).
 
-		funder_id (optional) - persistent unique identifier for the funder in the format
-			<database name>:<identifier within database>
+		funder_id (optional) - persistent unique identifier for the funder in the format <database name>:<identifier within database>
 			Examples:
+				- DOI:10.13039/100000015
 				- ROR:04xm1d337
 				- ISNI:0000000405337147
 
@@ -642,11 +642,13 @@ module Workspace {
 			Examples:
 				- Joint Genome Institute
 				- National Science Foundation
+				- US DOE Office of Science (SC), Biological and Environmental Research (BER)
 
 		award_id (optional) - code for the award, assigned by the funder
 			Examples:
 				- 1296
 				- CBET-0756451
+				- DOI:10.46936/10.25585/60000745
 
 		award_title (optional) - title for the award
 			Examples:
@@ -680,10 +682,11 @@ module Workspace {
 
 		'organization_name' is required; 'organization_id' is optional.
 
-		organization_name - common name; use the name recommended by ROR if possible.
+		organization_name - common name of the organization; use the name recommended by ROR if possible.
 			Examples:
 				- KBase
-				- United States Department of Energy
+				- Lawrence Berkeley National Laboratory
+				- The Ohio State University
 
 		organization_id (optional) - persistent unique identifier for the organization
 		in the format <database name>:<identifier within database>
@@ -805,10 +808,10 @@ module Workspace {
 
 		Note that the workspace checks that the title_language field adheres to IETF BCP-47 syntax rules, but it does not check the validity of the tag.
 
-		title_string - the resource title
+		title_string - a string used as a title for a resource
 			Examples:
 				- Amaranthus hypochondriacus genome
-				- Viral Annotation Pipeline in KBase
+				- Геном амаранта ипохондрического
 
 		title_language (optional) - language that the title is in, as a IETF BCP-47 tag.
 			Examples:
@@ -859,8 +862,8 @@ module Workspace {
 		contributor_id (optional) - persistent unique identifier for the contributor;
 			this might be an ORCID for an individual, or a ROR ID for an organization.
 			Examples:
-				- ORCID:0000000010001234
-				- ROR:01bj3aw27
+				- ORCID:0000-0001-9557-7715
+				- ROR:01znn6x10
 
 		given_name (optional) - first name, for individuals whose names can be split
 			into given and surnames
@@ -950,7 +953,9 @@ module Workspace {
 		- contributors (one or more required)
 		- titles (one or more required)
 
-		comment - freeform text containing comments or extra information about this credit metadata.
+		comments - freeform text providing extra information about this credit metadata.
+			Examples:
+				- Credit metadata generated automatically from DOI:10.13039/100000015
 
 		identifier - persistent unique identifier for the resource (i.e. the source data for this workspace object).
 			Should be in the format <database name>:<identifier within database>
@@ -959,7 +964,7 @@ module Workspace {
 				- GenBank:CP035949.1
 				- img.taxon:648028003
 
-		license (optional) - usage license for the resource. May be a text string or an URL. Abbreviations should be spelled out where possible (e.g. "Creative Commons 4.0" instead of CC4).
+		license (optional) - usage license for the resource. May be a text string or an URL. Abbreviations should be spelled out where possible (e.g. "Creative Commons 4.0" instead of "CC-BY-4.0").
 			Examples:
 				- Creative Commons 4.0
 				- MIT
@@ -969,34 +974,34 @@ module Workspace {
 			Valid 'resource_type' values:
 				- dataset
 
-		schema_version - version of the credit metadata schema used
+		schema_version - version of the credit metadata schema used.
 			Example:
 				- 1.1.0
 
-		version (optional) - the version of the resource. This must be an absolute version, not a relative version like 'latest'.
+		version (optional if dates are provided) - the version of the resource. This must be an absolute version, not a relative version like 'latest'.
 			Examples:
 				- 5
 				- 1.2.1
 				- 20220405
 
-		contributors (optional) - a list of people and/or organizations who contributed to the resource.
+		contributors - a list of people and/or organizations who contributed to the resource.
 
-		dates - a list of relevant lifecycle events for the resource.
+		dates (optional if version is provided) - a list of relevant lifecycle events for the resource.
 
-		funding (optional) - zero or more funding sources for the resource.
+		funding (optional) - funding sources for the resource.
 
-		related_identifiers (optional) - zero or more PIDs related to the resource.
+		related_identifiers (optional) - other resolvable persistent unique IDs related to the resource.
 
 		titles - one or more titles for the resource.
 
 	*/
 	typedef structure {
-		string comment;
+		string comments;
 		string identifier;
 		string license;
-		string version;
 		string resource_type;
-		string comment;
+		string schema_version;
+		string version;
 		list<Contributor> contributors;
 		list<EventDate> dates;
 		list<FundingReference> funding;
@@ -1006,21 +1011,25 @@ module Workspace {
 
 	/* CreditMetadataEntry
 
-		Container for an instance of credit metadata; returned by the workspace when
-		credit metadata is requested.
+		Container for an instance of credit metadata; returned by the workspace when credit metadata is requested.
 
 		All fields will be populated.
 
-		saved_by - the user who added this entry
-		timestamp - timestamp for the addition of this credit metadata
-		schema_version - version of the credit metadata schema used
 		credit_metadata - the credit metadata itself
+
+		credit_metadata_schema_version - version of the credit metadata schema used
+			Examples:
+				- 1.1.0
+
+		saved_by - KBase workspace ID of the user who added this entry
+
+		timestamp - unix timestamp for the addition of this set of credit metadata
 	*/
 	typedef structure {
-		username saved_by;
-		epoch timestamp;
 		CreditMetadata credit_metadata;
-		string schema_version;
+		username saved_by;
+		string credit_metadata_schema_version;
+		epoch timestamp;
 	} CreditMetadataContainer;
 
 	/*
