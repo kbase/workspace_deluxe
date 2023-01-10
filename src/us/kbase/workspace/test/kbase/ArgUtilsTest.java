@@ -27,21 +27,21 @@ import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 
 public class ArgUtilsTest {
-	
+
 	private static final WorkspaceUser U1 = new WorkspaceUser("u1");
 	private static final WorkspaceUser U2 = new WorkspaceUser("u2");
-	
+
 	// TODO TEST add more ArgUtils unit tests
-	
+
 	@Test
 	public void chooseInstantSuccess() throws Exception {
 		checkChooseInstant(null, null, null);
-		
+
 		checkChooseInstant(null, -1000L, inst(-1000));
 		checkChooseInstant(null, 0L, inst(0));
 		checkChooseInstant(null, 1000L, inst(1000));
 		checkChooseInstant(null, 897086L, inst(897086));
-		
+
 		checkChooseInstant("2013-04-26T23:52:06-1111", null, inst(1367060586000L));
 		checkChooseInstant("2013-04-26T23:52:06-0000", null, inst(1367020326000L));
 		checkChooseInstant("2013-04-26T23:52:06-00:00", null, inst(1367020326000L));
@@ -65,7 +65,7 @@ public class ArgUtilsTest {
 		// started failing with completely unhelpful error messages. So f this for now.
 		checkChooseInstant("2013-04-31T23:52:06-0800", null, inst(1367394726000L));
 	}
-	
+
 	private void checkChooseInstant(
 			final String timestamp,
 			final Long epochMillis,
@@ -88,25 +88,25 @@ public class ArgUtilsTest {
 		failChooseInstant("2013-13-26T23:52:06-0800",
 				"Invalid value for MonthOfYear (valid values 1 - 12): 13");
 		failChooseInstant("2013-O1-26T23:52:06-0800", 5, true);
-		
+
 		failChooseInstant("2013-04-00T23:52:06-0800",
 				"Invalid value for DayOfMonth (valid values 1 - 28/31): 0");
 		failChooseInstant("2013-04-32T23:52:06-0800",
 				"Invalid value for DayOfMonth (valid values 1 - 28/31): 32");
 		failChooseInstant("2013-01-O1T23:52:06-0800", 8, true);
-		
+
 		failChooseInstant("2013-04-01T24:52:06-0800",
 				"Invalid value for HourOfDay (valid values 0 - 23): 24");
 		failChooseInstant("2013-01-01TO2:52:06-0800", 11, true);
-		
+
 		failChooseInstant("2013-04-01T23:60:06-0800",
 				"Invalid value for MinuteOfHour (valid values 0 - 59): 60");
 		failChooseInstant("2013-01-01T02:O4:06-0800", 14, true);
-		
+
 		failChooseInstant("2013-04-01T23:59:60-0800",
 				"Invalid value for SecondOfMinute (valid values 0 - 59): 60");
 		failChooseInstant("2013-01-01T02:07:O9-0800", 17, true);
-		
+
 		failChooseInstant("2013-04-26T23:52:0", 17, true);
 		failChooseInstant("2013-04-26T23:52:06", null, iae(
 				"Date '2013-04-26T23:52:06' does not have time zone information"));
@@ -125,36 +125,36 @@ public class ArgUtilsTest {
 		failChooseInstant("2013-04-26T23:52:06-08:00-0700", 25, false);
 		failChooseInstant("2013-04-26T23:52:06-07:00-0800", 25, false);
 	}
-	
+
 	private void failChooseInstant(final String timestamp, final String errsuffix)
 			throws Exception {
 		failChooseInstant(timestamp, null, iae(generrPrefix(timestamp) + ": " + errsuffix));
 	}
-	
+
 	private void failChooseInstant(final String timestamp, final int index, final boolean prior)
 			throws Exception {
 		failChooseInstant(timestamp, null, iae(generr(timestamp, index, prior)));
 	}
-	
+
 	private IllegalArgumentException iae(final String message) {
 		return new IllegalArgumentException(message);
 	}
-	
+
 	private String generrPrefix(final String timestamp) {
 		return String.format("Unparseable date: Text '%s' could not be parsed", timestamp);
 	}
-	
+
 	private String generr(final String timestamp, final int index, final boolean prior) {
 		final String template;
 		if (prior) {
 			template = generrPrefix(timestamp) + " at index %s";
-					
+
 		} else {
 			template = generrPrefix(timestamp) + ", unparsed text found at index %s";
 		}
 		return String.format(template, index);
 	}
-	
+
 	private void failChooseInstant(
 			final String timestamp,
 			final Long epochMillis,
@@ -167,15 +167,15 @@ public class ArgUtilsTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	final us.kbase.workspace.ProvenanceAction newPA() {
 		return new us.kbase.workspace.ProvenanceAction();
 	}
-	
+
 	final us.kbase.workspace.SubAction newSA() {
 		return new us.kbase.workspace.SubAction();
 	}
-	
+
 	@Test
 	public void processProvenanceEmpty() throws Exception {
 		final Provenance expected = Provenance.getBuilder(U1, inst(10000)).build();
@@ -193,7 +193,7 @@ public class ArgUtilsTest {
 						ProvenanceAction.getBuilder().withCaller("c").build())
 						.build()));
 	}
-	
+
 	@Test
 	public void processProvenanceWithEmptyActions() throws Exception {
 		assertThat("incorrect provenance",
@@ -203,7 +203,7 @@ public class ArgUtilsTest {
 						ProvenanceAction.getBuilder().withCaller("c").build())
 						.build()));
 	}
-	
+
 	@Test
 	public void processProvenanceMaximal() throws Exception {
 		final List<us.kbase.workspace.ProvenanceAction> inc = list(
@@ -248,7 +248,7 @@ public class ArgUtilsTest {
 								.withResourceReleaseDate("2020-03-22T11:00:00.345-0600")
 						)),
 				newPA().withCaller("c"), // test null external data list
-				// test empty lists 
+				// test empty lists
 				newPA().withCaller("d").withExternalData(list()).withSubactions(list())
 				);
 		final Provenance expected = Provenance.getBuilder(U2, inst(20000))
@@ -299,27 +299,27 @@ public class ArgUtilsTest {
 				.withAction(ProvenanceAction.getBuilder().withCaller("c").build())
 				.withAction(ProvenanceAction.getBuilder().withCaller("d").build())
 				.build();
-		
+
 		final Provenance got = processProvenance(U2, inst(20000), inc);
 		assertThat("incorrect provenance", got, is(expected));
 	}
-	
+
 	// ######## Provenance action build failures ########
-	
+
 	@Test
 	public void processProvenanceFailNulls() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA();
 		failProcessProvenance(null, inst(0), list(pa), new NullPointerException("user"));
 		failProcessProvenance(U2, null, list(pa), new NullPointerException("date"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailNullPA() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
 		failProcessProvenance(U2, inst(0), list(pa, null), new IllegalArgumentException(
 				"Provenance action #2: is null"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailAddlArgs() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -328,7 +328,7 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #1: "
 						+ "Unexpected arguments in ProvenanceAction: foo"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailTwoTimeSpecs() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -338,9 +338,9 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #3: Cannot specify both time "
 						+ "and epoch in provenance action"));
 	}
-	
+
 	// there's lots of ways a PA build can fail, we just test a couple of them here
-	
+
 	@Test
 	public void processProvenanceFailBuildNullCustom() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -350,7 +350,7 @@ public class ArgUtilsTest {
 				new IllegalArgumentException(
 						"Provenance action #3: Null key in custom provenance"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailBuildBadRef() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -360,9 +360,9 @@ public class ArgUtilsTest {
 						+ "provenenance reference at position 2: Illegal number of separators "
 						+ "'/' in object reference '1/1/1/1'"));
 	}
-	
+
 	// #### Sub action build failures ####
-	
+
 	@Test
 	public void processProvenanceFailNullSA() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -371,7 +371,7 @@ public class ArgUtilsTest {
 		failProcessProvenance(U2, inst(0), list(pa2, pa), new IllegalArgumentException(
 				"Provenance action #1: Sub action #3: is null"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailAddlArgsSA() throws Exception {
 		final us.kbase.workspace.SubAction ex = newSA().withCommit("c");
@@ -382,9 +382,9 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #2: Sub action #1: Unexpected "
 						+ "arguments in SubAction: yay"));
 	}
-	
+
 	// there's lots of ways a SA build can fail, we just test a few of them here
-	
+
 	@Test
 	public void processProvenanceFailBuildEmptySA() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -394,7 +394,7 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #3: Sub action #2: At least one "
 						+ "field in a provenance sub action must be provided"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailBuildSABadCodeURL() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -404,7 +404,7 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #4: Sub action #2: Illegal code"
 						+ " url 'what's a url vern': no protocol: what's a url vern"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailBuildSABadEndpointURL() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withSubactions(
@@ -414,9 +414,9 @@ public class ArgUtilsTest {
 						+ "endpoint url 'httpsssss://moresesismoresecret.com': unknown "
 						+ "protocol: httpsssss"));
 	}
-	
+
 	// #### External data unit build failures ####
-	
+
 	@Test
 	public void processProvenanceFailNullEDU() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -425,7 +425,7 @@ public class ArgUtilsTest {
 		failProcessProvenance(U2, inst(0), list(pa2, pa), new IllegalArgumentException(
 				"Provenance action #1: External data unit #2: is null"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailTwoTimeSpecsEDU() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -437,7 +437,7 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #2: External data unit #1: "
 						+ "Cannot specify both time and epoch in external data unit"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailAddlArgsEDU() throws Exception {
 		final ExternalDataUnit edu = new ExternalDataUnit().withDataId("d");
@@ -449,9 +449,9 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #5: External data unit #1: "
 						+ "Unexpected arguments in ExternalDataUnit: thing"));
 	}
-	
+
 	// there's lots of ways an EDU build can fail, we just test a few of them here
-	
+
 	@Test
 	public void processProvenanceFailBuildEmptyEDU() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -462,7 +462,7 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #1: External data unit #3: "
 						+ "At least one field in an external data unit must be provided"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailBuildEDUBadDataURL() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -473,7 +473,7 @@ public class ArgUtilsTest {
 				new IllegalArgumentException("Provenance action #2: External data unit #2: "
 						+ "Illegal data url 'well dang': no protocol: well dang"));
 	}
-	
+
 	@Test
 	public void processProvenanceFailBuildEDUBadResourceURL() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
@@ -485,7 +485,7 @@ public class ArgUtilsTest {
 				"Provenance action #4: External data unit #3: Illegal resource url "
 				+ "'download more humans': no protocol: download more humans"));
 	}
-	
+
 	private void failProcessProvenance(
 			final WorkspaceUser u,
 			final Instant t,
@@ -498,5 +498,5 @@ public class ArgUtilsTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 }
