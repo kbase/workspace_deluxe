@@ -44,8 +44,8 @@ public class PermanentID {
 	/**
 	 * Gets the relationship between the ID and some other entity. For
 	 * example, when a {@link PermanentID] class is used to represent
-	 * objects in a {@link CitationMetadata}'s 'related_identifiers' field, this
-	 * field captures the relationship between the {@link CitationMetadata} and
+	 * objects in a {@link CreditMetadata}'s 'related_identifiers' field, this
+	 * field captures the relationship between the {@link CreditMetadata} and
 	 * the entity represented by this.id.
 	 *
 	 * This field is currently only settable by workspace admins. See the
