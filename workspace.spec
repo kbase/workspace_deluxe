@@ -572,20 +572,7 @@ module Workspace {
 		string description;
 	} ProvenanceAction;
 
-	/* Credit Metadata-related objects and fields
-
-		Workspace objects have a list of zero or more sets of credit metadata (CM), or citation information for the object. This information allows data imported into KBase to retain the appropriate details for users wishing to cite the data source, and for those who contributed to its creation to be credited for their work.
-
-		CM is stored in a list as part of the object provenance, but unlike other provenance information, which is immutable, CM can be updated.
-
-		Credit metadata is added after object creation, and requires the user to be a workspace admin. Username, timestamp, and credit metadata schema version are stored along with the CM, which allows tracking of CM changes.
-
-		The API does not support updates to select fields; the existing CM for a resource should be fetched, the relevant fields updated, and the resulting structure sent as the input to update credit metadata.
-
-		In the following entries, "resource" is used to refer to the workspace object that the CM pertains to.
-
-
-	EventDate
+	/* EventDate
 
 		Represents an event in the lifecycle of a resource and the date it occurred on.
 
@@ -937,8 +924,11 @@ module Workspace {
 		list<string> contributor_roles;
 	} Contributor;
 
-	/*
+	/* CreditMetadata
+
 		Represents the credit metadata associated with a workspace object.
+
+		"Resource" is used to refer to the workspace object that the CM pertains to.
 
 		The 'resource_type' field should be filled using values from the DataCite resourceTypeGeneral field:
 
@@ -974,10 +964,6 @@ module Workspace {
 			Valid 'resource_type' values:
 				- dataset
 
-		schema_version - version of the credit metadata schema used.
-			Example:
-				- 1.1.0
-
 		version (optional if dates are provided) - the version of the resource. This must be an absolute version, not a relative version like 'latest'.
 			Examples:
 				- 5
@@ -1000,7 +986,6 @@ module Workspace {
 		string identifier;
 		string license;
 		string resource_type;
-		string schema_version;
 		string version;
 		list<Contributor> contributors;
 		list<EventDate> dates;
@@ -1011,7 +996,15 @@ module Workspace {
 
 	/* CreditMetadataEntry
 
-		Container for an instance of credit metadata; returned by the workspace when credit metadata is requested.
+		Container for the credit metadata for a workspace object, returned by the workspace when credit metadata is requested.
+
+		Workspace objects have credit metadata (CM), or citation information for the object. This information allows data imported into KBase to retain the appropriate details for users wishing to cite the data source, and for those who contributed to its creation to be credited for their work.
+
+		CM is stored as part of the object provenance, but unlike other provenance information, which is immutable, CM can be updated.
+
+		Credit metadata is added after object creation, and requires the user to be a workspace admin. Username, timestamp, and credit metadata schema version are stored along with the CM, which allows tracking of CM changes.
+
+		The API does not support updates to select fields; the existing CM for a resource should be fetched, the relevant fields updated, and the resulting structure sent as the input to update credit metadata.
 
 		All fields will be populated.
 
