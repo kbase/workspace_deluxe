@@ -831,7 +831,19 @@ module Workspace {
 		If the contributor is an organization, the 'name' field must be populated.
 
 		A person must have either 'given_name' and 'family_name' or a 'name'
-		if the name is not in the binomial format.
+		if the name cannot be represented in the given/family name format. Citations will be generated using the initials from the given name(s) and the family name(s). For example:
+
+			given_name:  Hubert George
+			family_name: Wells
+			in citation: Wells, HG
+
+			given_name:  Alexandria
+			family_name: Ocasio-Cortez
+			in citation: Ocasio-Cortez, A
+
+			given_name:  Helena
+			family_name: Bonham Carter
+			in citation: Bonham Carter, H
 
 		The 'contributor_role' field takes values from the DataCite and CRediT contributor
 		roles vocabularies. For more information on these resources and choosing the
@@ -852,25 +864,21 @@ module Workspace {
 				- ORCID:0000-0001-9557-7715
 				- ROR:01znn6x10
 
-		given_name (optional) - first name, for individuals whose names can be split
-			into given and surnames
+		given_name (optional) - first name(s), for individuals whose names can be split into given and surnames.
 			Examples:
 				- Dolly
 				- Marionetta
 
-		family_name (optional) - family name, for individuals whose names can be
-			split into given and surnames.
+		family_name (optional) - family name(s), for individuals whose names can be split into given and surnames.
 			Examples:
 				- Parton
 				- de la Carte-Postale
 
-		name (optional) - contributor name, in cases where the contributor is an
-			organization or a person whose name cannot easily fit into the given/family
-			name structure.
+		name (optional) - contributor name, in cases where the contributor is an organization or a person whose name cannot easily fit into the given/family name structure. For organizations, this should be the full name (no abbreviations).
 			Examples:
 				- Madonna
-				- Monarch Initiative
-				- The Incredible Hulk
+				- National Institute of Mental Health
+				- Ransome the Clown
 
 		affiliations (optional) - list of organizations with which the
 			contributor is affiliated. For contributors that represent an organization, this may be a parent organization (e.g. KBase, US DOE; Arkin lab, LBNL).
@@ -928,7 +936,7 @@ module Workspace {
 
 		Represents the credit metadata associated with a workspace object.
 
-		"Resource" is used to refer to the workspace object that the CM pertains to.
+		In the following documentation, 'Resource' is used to refer to the workspace object that the CM pertains to.
 
 		The 'resource_type' field should be filled using values from the DataCite resourceTypeGeneral field:
 
@@ -954,7 +962,7 @@ module Workspace {
 				- GenBank:CP035949.1
 				- img.taxon:648028003
 
-		license (optional) - usage license for the resource. May be a text string or an URL. Abbreviations should be spelled out where possible (e.g. "Creative Commons 4.0" instead of "CC-BY-4.0").
+		license (optional) - usage license for the resource. May be a text string or an URL. Abbreviations should be spelled out where possible (e.g. 'Creative Commons 4.0' instead of 'CC-BY-4.0').
 			Examples:
 				- Creative Commons 4.0
 				- MIT
@@ -1000,11 +1008,9 @@ module Workspace {
 
 		Workspace objects have credit metadata (CM), or citation information for the object. This information allows data imported into KBase to retain the appropriate details for users wishing to cite the data source, and for those who contributed to its creation to be credited for their work.
 
-		CM is stored as part of the object provenance, but unlike other provenance information, which is immutable, CM can be updated.
+		Credit metadata is added after object creation, and requires the user to be a workspace admin. Username, timestamp, and credit metadata schema version are stored with the credit information.
 
-		Credit metadata is added after object creation, and requires the user to be a workspace admin. Username, timestamp, and credit metadata schema version are stored along with the CM, which allows tracking of CM changes.
-
-		The API does not support updates to select fields; the existing CM for a resource should be fetched, the relevant fields updated, and the resulting structure sent as the input to update credit metadata.
+		WS admins can use the workspace `administer` function to add CM to a workspace object.
 
 		All fields will be populated.
 
