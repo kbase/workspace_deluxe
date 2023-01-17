@@ -622,31 +622,31 @@ module Workspace {
 		Some organizations may have a digital object identifier (DOI).
 
 		funder_id (optional) - persistent unique identifier for the funder in the format
-			<database name>:<identifier within database>
+			<database name>:<identifier within database>.
 			Examples:
 				- DOI:10.13039/100000015
 				- ROR:04xm1d337
 				- ISNI:0000000405337147
 
-		funder_name - common name for the funder
+		funder_name - common name for the funder.
 			Examples:
 				- Joint Genome Institute
 				- National Science Foundation
 				- US DOE Office of Science (SC), Biological and Environmental
 				Research (BER)
 
-		award_id (optional) - code for the award, assigned by the funder
+		award_id (optional) - code for the award, assigned by the funder.
 			Examples:
 				- 1296
 				- CBET-0756451
 				- DOI:10.46936/10.25585/60000745
 
-		award_title (optional) - title for the award
+		award_title (optional) - title for the award.
 			Examples:
 				- Metagenomic analysis of the rhizosphere of three biofuel crops at
 				the KBS intensive site
 
-		award_url (optional) - URL for the award
+		award_url (optional) - URL for the award.
 			Examples:
 				- https://genome.jgi.doe.gov/portal/Metanaintenssite/Metanaintenssite.info.html
 
@@ -683,7 +683,7 @@ module Workspace {
 				- The Ohio State University
 
 		organization_id (optional) - persistent unique identifier for the organization
-			in the format <database name>:<identifier within database>
+			in the format <database name>:<identifier within database>.
 			Examples:
 				- ROR:01bj3aw27
 				- ISNI:0000000123423717
@@ -710,17 +710,16 @@ module Workspace {
 		Crossref relation types: https://www.crossref.org/documentation/schema-library/markup-guide-metadata-segments/relationships/
 
 		id - persistent unique ID for an entity. Should be in the format
-			<database name>:<identifier within database>
+			<database name>:<identifier within database>.
 			Examples:
 				- DOI:10.46936/10.25585/60000745
 				- GO:0005456
 				- HGNC:7470
-		description (optional) - description of that entity
+		description (optional) - description of that entity.
 			Examples:
 				- Amaranthus hypochondriacus genome
 
-		relationship_type (optional) - the relationship between the ID and some
-			other entity.
+		relationship_type (optional) - relationship between the ID and some other entity.
 			For example, when a PermanentID class is used to represent objects in the
 			CreditMetadata field 'related_identifiers', the 'relationship_type' field
 			captures the relationship between the CreditMetadata and this ID.
@@ -806,7 +805,7 @@ module Workspace {
 		Note that the workspace checks that the title_language field adheres to IETF BCP-47
 		syntax rules, but it does not check the validity of the tag.
 
-		title_string - a string used as a title for a resource
+		title_string - a string used as a title for a resource.
 			Examples:
 				- Amaranthus hypochondriacus genome
 				- Геном амаранта ипохондрического
@@ -837,25 +836,21 @@ module Workspace {
 
 		Represents a contributor to the resource.
 
-		Contributors must have a 'contributor_type', either 'person' or 'organization'.
+		Contributors must have a 'contributor_type', either 'person' or 'organization', and
+		a 'name'.
 
-		If the contributor is an organization, the 'name' field must be populated.
-
-		A person must have either 'given_name' and 'family_name' or a 'name'
-		if the name cannot be represented in the given/family name format. Citations will
-		be generated using the initials from the given name(s) and the family name(s).
+		The 'credit_name' field is used to store the name of a person as it would appear in
+		a citation. If there is no 'credit_name' supplied, the 'name' field would be used
+		in citations.
 		For example:
-			given_name:  Hubert George
-			family_name: Wells
-			in citation: Wells, HG
+			name:		Hubert George Wells
+			credit_name:	Wells, HG
 
-			given_name:  Alexandria
-			family_name: Ocasio-Cortez
-			in citation: Ocasio-Cortez, A
+			name:		Alexandria Ocasio-Cortez
+			credit_name:	Ocasio-Cortez, A
 
-			given_name:  Helena
-			family_name: Bonham Carter
-			in citation: Bonham Carter, H
+			name:		Helena Bonham Carter
+			credit_name:	Bonham Carter, H
 
 		The 'contributor_role' field takes values from the DataCite and CRediT contributor
 		roles vocabularies. For more information on these resources and choosing the
@@ -865,7 +860,7 @@ module Workspace {
 
 		CRediT contributor role taxonomy: https://credit.niso.org
 
-		contributor_type - must be either 'person' or 'organization'
+		contributor_type - must be either 'person' or 'organization'.
 			Valid 'contributor_type' values:
 				- person
 				- organization
@@ -876,32 +871,28 @@ module Workspace {
 				- ORCID:0000-0001-9557-7715
 				- ROR:01znn6x10
 
-		given_name (optional) - first name(s), for individuals whose names can be split
-			into given and surnames.
+		name - contributor name. For organizations, this should be the full (unabbreviated)
+			name; for a person, the full name should be entered.
 			Examples:
-				- Dolly
-				- Marionetta
-
-		family_name (optional) - family name(s), for individuals whose names can be split
-			into given and surnames.
-			Examples:
-				- Parton
-				- de la Carte-Postale
-
-		name (optional) - contributor name, in cases where the contributor is an
-			organization or a person whose name cannot easily fit into the given/family
-			structure. For organizations, this should be the full (unabbreviated) name.
-			Examples:
+				- Helena Bonham Carter
+				- Hubert Wells
 				- Madonna
+				- Marionetta Cecille de la Carte-Postale
 				- National Institute of Mental Health
 				- Ransome the Clown
+
+		credit_name (optional) - for a person, how the name should appear in a citation.
+			Examples:
+				- Carte-Postale, MC
+				- Bonham Carter, H
+				- Wells, HG
 
 		affiliations (optional) - list of organizations with which the
 			contributor is affiliated. For contributors that represent an organization,
 			this may be a parent organization (e.g. KBase, US DOE; Arkin lab, LBNL).
 
-		contributor_roles (optional) - list of roles played by the contributor
-			when working on the resource.
+		contributor_roles (optional) - list of roles played by the contributor when working
+			on the resource.
 			Valid 'contributor_role' values:
 				- DataCite:ContactPerson
 				- DataCite:DataCollector
@@ -942,8 +933,7 @@ module Workspace {
 	typedef structure {
 		string contributor_type;
 		string name;
-		string given_name;
-		string family_name;
+		string credit_name;
 		string contributor_id;
 		list<Organization> affiliations;
 		list<string> contributor_roles;
