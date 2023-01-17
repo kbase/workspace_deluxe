@@ -576,7 +576,8 @@ module Workspace {
 
 		Represents an event in the lifecycle of a resource and the date it occurred on.
 
-		See https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#8-date for more information on the events (below).
+		See https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#8-date
+		for more information on the events (below).
 
 		Both event and date are required fields.
 
@@ -608,7 +609,8 @@ module Workspace {
 
 	/* FundingReference
 
-		Represents a funding source for a resource, including the funding body and the grant awarded.
+		Represents a funding source for a resource, including the funding body and the
+		grant awarded.
 
 		The 'funder_name' field is required; all others are optional.
 
@@ -619,7 +621,8 @@ module Workspace {
 
 		Some organizations may have a digital object identifier (DOI).
 
-		funder_id (optional) - persistent unique identifier for the funder in the format <database name>:<identifier within database>
+		funder_id (optional) - persistent unique identifier for the funder in the format
+			<database name>:<identifier within database>
 			Examples:
 				- DOI:10.13039/100000015
 				- ROR:04xm1d337
@@ -629,7 +632,8 @@ module Workspace {
 			Examples:
 				- Joint Genome Institute
 				- National Science Foundation
-				- US DOE Office of Science (SC), Biological and Environmental Research (BER)
+				- US DOE Office of Science (SC), Biological and Environmental
+				Research (BER)
 
 		award_id (optional) - code for the award, assigned by the funder
 			Examples:
@@ -639,7 +643,8 @@ module Workspace {
 
 		award_title (optional) - title for the award
 			Examples:
-				- Metagenomic analysis of the rhizosphere of three biofuel crops at the KBS intensive site
+				- Metagenomic analysis of the rhizosphere of three biofuel crops at
+				the KBS intensive site
 
 		award_url (optional) - URL for the award
 			Examples:
@@ -658,7 +663,8 @@ module Workspace {
 
 		Represents an organization.
 
-		Recommended resources for organization identifiers and canonical organization names include:
+		Recommended resources for organization identifiers and canonical organization names
+		include:
 			- Research Organization Registry, http://ror.org
 			- International Standard Name Identifier, https://isni.org
 			- Crossref Funder Registry, https://www.crossref.org/services/funder-registry/
@@ -669,14 +675,15 @@ module Workspace {
 
 		'organization_name' is required; 'organization_id' is optional.
 
-		organization_name - common name of the organization; use the name recommended by ROR if possible.
+		organization_name - common name of the organization; use the name recommended by
+			ROR if possible.
 			Examples:
 				- KBase
 				- Lawrence Berkeley National Laboratory
 				- The Ohio State University
 
 		organization_id (optional) - persistent unique identifier for the organization
-		in the format <database name>:<identifier within database>
+			in the format <database name>:<identifier within database>
 			Examples:
 				- ROR:01bj3aw27
 				- ISNI:0000000123423717
@@ -689,11 +696,14 @@ module Workspace {
 
 	/* PermanentID
 
-		Represents a persistent unique identifier for an entity, with an optional relationship to some other entity.
+		Represents a persistent unique identifier for an entity, with an optional
+		relationship to some other entity.
 
 		The 'id' field is required; all other fields are optional.
 
-		The values in the 'relationship_type' field come from controlled vocabularies maintained by DataCite and Crossref. See the documentation links below for more details.
+		The values in the 'relationship_type' field come from controlled vocabularies
+		maintained by DataCite and Crossref. See the documentation links below for more
+		details.
 
 		DataCite relation types: https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#12b-relationtype
 
@@ -790,10 +800,11 @@ module Workspace {
 		Represents the title or name of a resource.
 
 		The 'title_string' field is required; if no value is supplied for 'title_type', it
-		defaults to 'title'. If the 'title_type' is set to 'translated_title', the appropriate
-		BCP-47 tag must be supplied in the 'title_language' field.
+		defaults to 'title'. If the 'title_type' is set to 'translated_title', the
+		appropriate BCP-47 tag must be supplied in the 'title_language' field.
 
-		Note that the workspace checks that the title_language field adheres to IETF BCP-47 syntax rules, but it does not check the validity of the tag.
+		Note that the workspace checks that the title_language field adheres to IETF BCP-47
+		syntax rules, but it does not check the validity of the tag.
 
 		title_string - a string used as a title for a resource
 			Examples:
@@ -831,8 +842,9 @@ module Workspace {
 		If the contributor is an organization, the 'name' field must be populated.
 
 		A person must have either 'given_name' and 'family_name' or a 'name'
-		if the name cannot be represented in the given/family name format. Citations will be generated using the initials from the given name(s) and the family name(s). For example:
-
+		if the name cannot be represented in the given/family name format. Citations will
+		be generated using the initials from the given name(s) and the family name(s).
+		For example:
 			given_name:  Hubert George
 			family_name: Wells
 			in citation: Wells, HG
@@ -864,24 +876,29 @@ module Workspace {
 				- ORCID:0000-0001-9557-7715
 				- ROR:01znn6x10
 
-		given_name (optional) - first name(s), for individuals whose names can be split into given and surnames.
+		given_name (optional) - first name(s), for individuals whose names can be split
+			into given and surnames.
 			Examples:
 				- Dolly
 				- Marionetta
 
-		family_name (optional) - family name(s), for individuals whose names can be split into given and surnames.
+		family_name (optional) - family name(s), for individuals whose names can be split
+			into given and surnames.
 			Examples:
 				- Parton
 				- de la Carte-Postale
 
-		name (optional) - contributor name, in cases where the contributor is an organization or a person whose name cannot easily fit into the given/family name structure. For organizations, this should be the full name (no abbreviations).
+		name (optional) - contributor name, in cases where the contributor is an
+			organization or a person whose name cannot easily fit into the given/family
+			structure. For organizations, this should be the full (unabbreviated) name.
 			Examples:
 				- Madonna
 				- National Institute of Mental Health
 				- Ransome the Clown
 
 		affiliations (optional) - list of organizations with which the
-			contributor is affiliated. For contributors that represent an organization, this may be a parent organization (e.g. KBase, US DOE; Arkin lab, LBNL).
+			contributor is affiliated. For contributors that represent an organization,
+			this may be a parent organization (e.g. KBase, US DOE; Arkin lab, LBNL).
 
 		contributor_roles (optional) - list of roles played by the contributor
 			when working on the resource.
@@ -936,18 +953,27 @@ module Workspace {
 
 		Represents the credit metadata associated with a workspace object.
 
-		In the following documentation, 'Resource' is used to refer to the workspace object that the CM pertains to.
+		In the following documentation, 'Resource' is used to refer to the workspace object
+		that the CM pertains to.
 
-		The 'resource_type' field should be filled using values from the DataCite resourceTypeGeneral field:
+		The 'resource_type' field should be filled using values from the DataCite
+		resourceTypeGeneral field:
 
 		https://support.datacite.org/docs/datacite-metadata-schema-v44-mandatory-properties#10a-resourcetypegeneral
 
-		Currently the KBase workspace only supports credit metadata for objects of type 'dataset'; anything else will return an error.
+		Currently the KBase workspace only supports credit metadata for objects of type
+		'dataset'; anything else will return an error.
+
+		The license may be supplied either as an URL pointing to licensing information for
+		the resource, or using a license name. See https://choosealicense.com/appendix/ for
+		a list of common open source licenses.
 
 		Required fields are:
 		- identifier
 		- resource_type
-		- versioning information: if the resource does not have an explicit version number, one or more dates should be supplied: ideally the date of resource publication and the last update (if applicable).
+		- versioning information: if the resource does not have an explicit version number,
+		one or more dates should be supplied: ideally the date of resource publication and
+		the last update (if applicable).
 		- contributors (one or more required)
 		- titles (one or more required)
 
@@ -955,14 +981,17 @@ module Workspace {
 			Examples:
 				- Credit metadata generated automatically from DOI:10.13039/100000015
 
-		identifier - persistent unique identifier for the resource (i.e. the source data for this workspace object).
+		identifier - persistent unique identifier for the resource (i.e. the source data
+			for this workspace object).
 			Should be in the format <database name>:<identifier within database>
 			Examples:
 				- RefSeq:GCF_004214875.1
 				- GenBank:CP035949.1
 				- img.taxon:648028003
 
-		license (optional) - usage license for the resource. May be a text string or an URL. Abbreviations should be spelled out where possible (e.g. 'Creative Commons 4.0' instead of 'CC-BY-4.0').
+		license (optional) - usage license for the resource. May be a text string or an
+			URL. Abbreviations should be spelled out where possible (e.g. 'Creative
+			Commons 4.0' instead of 'CC-BY-4.0').
 			Examples:
 				- Creative Commons 4.0
 				- MIT
@@ -972,19 +1001,23 @@ module Workspace {
 			Valid 'resource_type' values:
 				- dataset
 
-		version (optional if dates are provided) - the version of the resource. This must be an absolute version, not a relative version like 'latest'.
+		version (optional if dates are provided) - the version of the resource. This must
+			be an absolute version, not a relative version like 'latest'.
 			Examples:
 				- 5
 				- 1.2.1
 				- 20220405
 
-		contributors - a list of people and/or organizations who contributed to the resource.
+		contributors - a list of people and/or organizations who contributed to the
+			resource.
 
-		dates (optional if version is provided) - a list of relevant lifecycle events for the resource.
+		dates (optional if version is provided) - a list of relevant lifecycle events for
+			the resource.
 
 		funding (optional) - funding sources for the resource.
 
-		related_identifiers (optional) - other resolvable persistent unique IDs related to the resource.
+		related_identifiers (optional) - other resolvable persistent unique IDs related to
+			the resource.
 
 		titles - one or more titles for the resource.
 
@@ -1004,13 +1037,20 @@ module Workspace {
 
 	/* CreditMetadataEntry
 
-		Container for the credit metadata for a workspace object, returned by the workspace when credit metadata is requested.
+		Container for the credit metadata for a workspace object, returned by the workspace
+		when credit metadata is requested.
 
-		Workspace objects have credit metadata (CM), or citation information for the object. This information allows data imported into KBase to retain the appropriate details for users wishing to cite the data source, and for those who contributed to its creation to be credited for their work.
+		Workspace objects have credit metadata (CM), or citation information for the
+		object. This information allows data imported into KBase to retain the appropriate
+		details for users wishing to cite the data source, and for those who contributed to
+		its creation to be credited for their work.
 
-		Credit metadata is added after object creation, and requires the user to be a workspace admin. Username, timestamp, and credit metadata schema version are stored with the credit information.
+		Credit metadata is added after object creation, and requires the user to be a
+		workspace admin. Username, timestamp, and credit metadata schema version are stored
+		with the credit information.
 
-		WS admins can use the workspace `administer` function to add CM to a workspace object.
+		WS admins can use the workspace `administer` function to add CM to a workspace
+		object.
 
 		All fields will be populated.
 
