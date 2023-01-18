@@ -1512,6 +1512,7 @@ module Workspace {
 		list<obj_ref> path - the path to the object through the object reference graph. All the
 			references in the path are absolute.
 		list<ProvenanceAction> provenance - the object's provenance.
+		CreditMetadataContainer credit_metadata - the credit information for the object.
 		username creator - the user that first saved the object to the workspace.
 		ws_id orig_wsid - the id of the workspace in which this object was
 				originally saved. Missing for objects saved prior to version
@@ -1541,6 +1542,7 @@ module Workspace {
 		object_info info;
 		list<obj_ref> path;
 		list<ProvenanceAction> provenance;
+		CreditMetadataContainer credit_metadata;
 		username creator;
 		ws_id orig_wsid;
 		timestamp created;
@@ -1571,7 +1573,7 @@ module Workspace {
 		boolean ignoreErrors - Don't throw an exception if an object cannot
 			be accessed; return null for that object's information instead.
 			Default false.
-		boolean no_data - return the provenance, references, and
+		boolean no_data - return the provenance, credit metadata, references, and
 			object_info for this object without the object data. Default false.
 		boolean skip_external_system_updates - if the objects contain any external IDs, don't
 			contact external systems to perform any updates for those IDs (often ACL updates,
