@@ -13,6 +13,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.Objects;
 
 /* This is an internal only class for shared code between the provenance classes.
  * Tests are all via testing the public provenance class APIs.
@@ -22,8 +24,9 @@ class Common {
 	static final Pattern VALID_PID_REGEX = Pattern.compile("^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$");
 	static final String VALID_PID_REPLACEMENT = "$1:$2";
 
-        static final String DATACITE = "DataCite";
-        static final String CROSSREF = "Crossref";
+	static final String DATACITE = "DataCite";
+	static final String CROSSREF = "Crossref";
+	static final String CREDIT = "CRediT";
 
 	private Common() {}
 
@@ -58,23 +61,52 @@ class Common {
 	}
 
 	/**
-	 * Trims leading and trailing whitespace, converts empty strings to null, and then
-         * checks that a string is either null or has at least one non-whitespace character
-         * and conforms to the specified regular expression.
-         * If optional is true, null is a valid output value; if false, null will throw an error.
-         * If replace is not null, it is used for a replaceAll operation, and the
+	 * Returns a new immutable list with nulls and duplicates removed
+	 *
+	 * @param <T>
+	 * @param list
+	 *                list of items to deduplicate
+	 * @return immutable deduplicated list
+	 */
+	static <T> List<T> dedupeSimpleList(final List<T> list) {
+		if (list == null) {
+			return list;
+		}
+
+		final List<T> dedupedList = list.stream()
+				.filter(Objects::nonNull)
+				.distinct()
+				.collect(Collectors.toList());
+
+		return Common.immutable(dedupedList);
+	}
+
+	/**
+	 * Trims leading and trailing whitespace, converts empty strings to null, and
+	 * checks that a string is either null or has at least one non-whitespace
+	 * character, and conforms to the specified regular expression.
+	 * If optional is true, null is a valid output value; if false, null will throw
+	 * an error.
+	 * If replace is not null, it is used for a replaceAll operation, and the
 	 * resulting string returned. Otherwise, the trimmed string is returned.
 	 *
-	 * @param stringToCheck the string to check.
-	 * @param pattern       the pattern to validate against.
-	 * @param replace       if non-null, the pattern to use for the replaceAll operation.
-	 * @param name          the name of the string to use in any error messages.
-	 * @param optional      whether or not the field is optional. If false, null and
-         *                      empty or whitespace-only input strings will throw an error.
-         *
-	 * @return the trimmed field, or null if the input string was null or whitespace.
+	 * @param stringToCheck
+	 *                the string to check.
+	 * @param pattern
+	 *                the pattern to validate against.
+	 * @param replace
+	 *                if non-null, the pattern to use for the replaceAll operation.
+	 * @param name
+	 *                the name of the string to use in any error messages.
+	 * @param optional
+	 *                whether or not the field is optional. If false, null and
+	 *                empty or whitespace-only input strings will throw an error.
+	 *
+	 * @return the trimmed field, or null if the input string was null or
+	 *         whitespace.
 	 */
-	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String replace, final String name, final boolean optional)
+	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String replace,
+			final String name, final boolean optional)
 			throws IllegalArgumentException {
 		final String checkedString = checkString(stringToCheck, name, optional);
 		if (checkedString == null) {
@@ -93,16 +125,21 @@ class Common {
 	}
 
 	/**
-	 * Trims leading and trailing whitespace, converts empty strings to null, and then
-         * checks that a string is either null or has at least one non-whitespace character
-         * and conforms to the regular expression VALID_PID_REGEX.
-         * If optional is true, null is a valid output value; if false, null will throw an error.
+	 * Trims leading and trailing whitespace, converts empty strings to null, and
+	 * checks that a string is either null or has at least one non-whitespace
+	 * character, and conforms to the regular expression VALID_PID_REGEX.
+	 * If optional is true, null is a valid output value; if false, null will throw
+	 * an error.
 	 *
-	 * @param putativePid   the putative PID string.
-	 * @param name          the name of the string to use in any error messages.
-	 * @param optional      whether or not the field is optional. If false, null and
-         *                      empty or whitespace-only input strings will throw an error.
-	 * @return the trimmed field, or null if the input string was null or whitespace.
+	 * @param putativePid
+	 *                the putative PID string.
+	 * @param name
+	 *                the name of the string to use in any error messages.
+	 * @param optional
+	 *                whether or not the field is optional. If false, null and
+	 *                empty or whitespace-only input strings will throw an error.
+	 * @return the trimmed field, or null if the input string was null or
+	 *         whitespace.
 	 */
 	static String checkPid(final String putativePid, final String name, final boolean optional)
 			throws IllegalArgumentException {
@@ -134,9 +171,11 @@ class Common {
 		/*
 		 * makes a list immutable by
 		 * 1) making changes to the returned list impossible
-		 * 2) making a copy of the list so mutating the old list doesn't mutate the new one.
+		 * 2) making a copy of the list so mutating the old list doesn't mutate the new
+		 * one.
 		 *
-		 * Note the individual items of the list can still be mutated, since they aren't copied.
+		 * Note the individual items of the list can still be mutated, since they aren't
+		 * copied.
 		 */
 		return Collections.unmodifiableList(new ArrayList<>(list));
 	}
