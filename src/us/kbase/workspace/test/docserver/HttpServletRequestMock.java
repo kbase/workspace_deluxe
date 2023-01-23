@@ -21,23 +21,23 @@ public class HttpServletRequestMock implements HttpServletRequest {
 	private String ipAddress = null;
 	private String pathInfo = null;
 	private String requestURI = null;
-	
+
 	public void setRequestURI(String requestURI) {
 		this.requestURI = requestURI;
 	}
-	
+
 	public void setPathInfo(String pathInfo) {
 		this.pathInfo = pathInfo;
 	}
-	
+
 	public void setIpAddress(String ip) {
 		ipAddress = ip;
 	}
-	
+
 	public void setHeader(String key, String value) {
 		headers.put(key, value);
 	}
-	
+
 	@Override
 	public Object getAttribute(String arg0) {
 		throw new UnsupportedOperationException();
@@ -175,7 +175,7 @@ public class HttpServletRequestMock implements HttpServletRequest {
 	@Override
 	public void removeAttribute(String arg0) {
 		throw new UnsupportedOperationException();
-		
+
 	}
 
 	@Override

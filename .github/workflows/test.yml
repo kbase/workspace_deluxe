@@ -65,6 +65,7 @@ jobs:
           # set up jars
           git clone https://github.com/kbase/jars
           export JARSDIR=$(pwd)/jars/lib/jars/
+          cp -r $(pwd)/workspace_deluxe/target $(pwd)/jars/lib/jars/
 
           # set up arango
           export ARANGODB_VER=3.9.1
@@ -80,7 +81,7 @@ jobs:
           git clone https://github.com/kbase/handle_service2.git
           cd handle_service2/
           git checkout $HS_COMMIT
-          sudo chmod -R 777 .
+          chmod -R 777 .
           cd lib/
           mkdir biokbase
           cd biokbase/
@@ -104,12 +105,14 @@ jobs:
           export BLOBEXE=$(pwd)/blobstore
 
           # set up mongo
-          wget -q http://fastdl.mongodb.org/linux/${{matrix.mongo}}.tgz
+          # mongo: 'mongodb-linux-x86_64-3.6.23'
+          wget -q http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.6.23.tgz
           tar xfz ${{matrix.mongo}}.tgz
           export MONGOD=`pwd`/${{matrix.mongo}}/bin/mongod
 
           # set up minio
-          wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
+          # minio: '2019-05-23T00-29-34Z'
+          wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2019-05-23T00-29-34Z -O minio
           chmod a+x minio
           export MINIOD=`pwd`/minio
 
