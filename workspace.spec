@@ -988,6 +988,8 @@ module Workspace {
 				- https://jgi.doe.gov/user-programs/pmo-overview/policies/
 
 		resource_type - the broad type of the source data for this workspace object.
+			Defaults to 'dataset' (the only valid value currently) if no value is
+			provided.
 			Valid 'resource_type' values:
 				- dataset
 
