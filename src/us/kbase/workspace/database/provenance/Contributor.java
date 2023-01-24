@@ -71,10 +71,6 @@ public class Contributor {
 		return contributorType;
 	}
 
-	public String getContributorTypeString() {
-		return contributorType.name();
-	}
-
 	/**
 	 * Gets the name associated with the contributor.
 	 *
@@ -126,10 +122,11 @@ public class Contributor {
 	 * @return the contributor roles, if present.
 	 */
 	public List<String> getContributorRoleStrings() {
-		return Common.getList(contributorRoles).stream()
+		return Common.immutable(
+			Common.getList(contributorRoles).stream()
 			.map(ContributorRole::getPid)
-			.collect(Collectors.toList());
-	}
+			.collect(Collectors.toList()));
+		}
 
 
 	@Override
@@ -181,12 +178,13 @@ public class Contributor {
 	public static Builder getBuilder(final String contributorType, final String name) {
 
 		final List<String> errorList = new ArrayList<>();
+		ContributorType ct = null;
 		try {
-			return new Builder(ContributorType.getType(contributorType), name, errorList);
+			ct = ContributorType.getType(contributorType);
 		} catch (Exception e) {
 			errorList.add(e.getMessage());
-			return new Builder(null, name, errorList);
 		}
+		return new Builder(ct, name, errorList);
 	}
 
 	/** A builder for a {@link Contributor}. */
@@ -210,6 +208,11 @@ public class Contributor {
 			}
 		}
 
+		/**
+		 * Sets the ID for the contributor
+		 * @param contributorID a persistent unique ID for the contributor
+		 * @return this builder
+		 */
 		public Builder withContributorID(final String contributorID) {
 			try {
 				this.contributorID = Common.checkPid(contributorID, "contributorID", true);
@@ -219,28 +222,52 @@ public class Contributor {
 			return this;
 		}
 
+		/**
+		 * Sets the credit name, i.e. the contributor's name as it would appear in a citation
+		 * @param creditName the name as it would appear in a citation
+		 * @return this builder
+		 */
 		public Builder withCreditName(final String creditName) {
 			this.creditName = Common.processString(creditName);
 			return this;
 		}
 
+		/**
+		 * Sets the affiliation(s) for a contributor
+		 * @param affiliations list of organizations
+		 * @return this builder
+		 */
 		public Builder withAffiliations(final List<Organization> affiliations) {
 			this.affiliations = affiliations;
 			return this;
 		}
 
+		/**
+		 * Sets the role(s) for a contributor, list of ContributorRoles as input
+		 * @param contributorRoles list of contributor roles
+		 * @return this builder
+		 */
 		public Builder withContributorRoles(final List<ContributorRole> contributorRoles) {
 			this.contributorRoleStrings = null;
 			this.contributorRoles = contributorRoles;
 			return this;
 		}
 
+		/**
+		 * Sets the role(s) for a contributor, list of strings as input
+		 * @param contributorRoleStrings list of strings representing contributor roles
+		 * @return this builder
+		 */
 		public Builder withContributorRoleStrings(final List<String> contributorRoleStrings) {
 			this.contributorRoleStrings = contributorRoleStrings;
 			this.contributorRoles = null;
 			return this;
 		}
 
+		/**
+		 * Build the contributor, performing checks for field content and required fields.
+		 * @return the contributor
+		 */
 		public Contributor build() {
 
 			if (creditName != null && contributorType == ContributorType.ORGANIZATION) {

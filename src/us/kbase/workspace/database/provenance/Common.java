@@ -105,8 +105,12 @@ class Common {
 	 * @return the trimmed field, or null if the input string was null or
 	 *         whitespace.
 	 */
-	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String replace,
-			final String name, final boolean optional)
+	static String checkAgainstRegex(
+			final String stringToCheck,
+			final Pattern pattern,
+			final String replace,
+			final String name,
+			final boolean optional)
 			throws IllegalArgumentException {
 		final String checkedString = checkString(stringToCheck, name, optional);
 		if (checkedString == null) {

@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 import java.util.Map;
@@ -29,52 +30,54 @@ import us.kbase.workspace.database.provenance.Contributor.ContributorType;
 
 public class ContributorTest {
 
-	static final String INCORRECT = "incorrect ";
-	static final String EXP_EXC = "expected exception";
+	private static final String INCORRECT = "incorrect ";
+	private static final String EXP_EXC = "expected exception";
 
 	// field names
-	static final String NAME = "name";
-	static final String CREDIT_NAME = "creditName";
-	static final String CONTRIB_ID = "contributorID";
+	private static final String NAME = "name";
+	private static final String CREDIT_NAME = "creditName";
+	private static final String CONTRIB_ID = "contributorID";
 
-	static final String INCORRECT_NAME = INCORRECT + NAME;
-	static final String INCORRECT_CREDIT_NAME = INCORRECT + CREDIT_NAME;
-	static final String INCORRECT_CONTRIB_ID = INCORRECT + CONTRIB_ID;
-	static final String INCORRECT_CONTRIB_TYPE = "incorrect contributor type";
-	static final String INCORRECT_AFFILIATIONS = "incorrect affiliations";
-	static final String INCORRECT_CONTRIB_ROLES = "incorrect contributor roles";
-	static final String INCORRECT_CONTRIB_ROLE_STRINGS = "incorrect contributor role strings";
+	private static final String INCORRECT_NAME = INCORRECT + NAME;
+	private static final String INCORRECT_CREDIT_NAME = INCORRECT + CREDIT_NAME;
+	private static final String INCORRECT_CONTRIB_ID = INCORRECT + CONTRIB_ID;
+	private static final String INCORRECT_CONTRIB_TYPE = "incorrect contributor type";
+	private static final String INCORRECT_AFFILIATIONS = "incorrect affiliations";
+	private static final String INCORRECT_CONTRIB_ROLES = "incorrect contributor roles";
+	private static final String INCORRECT_CONTRIB_ROLE_STRINGS = "incorrect contributor role strings";
 
 	// field values
-	static final String NAME_STRING = "Insert Name Here";
-	static final String CREDIT_NAME_STRING = "Here, IN";
-	static final String CONTRIB_ID_STRING = "contrib:ID";
+	private static final String NAME_STRING = "Insert Name Here";
+	private static final String CREDIT_NAME_STRING = "Here, IN";
+	private static final String CONTRIB_ID_STRING = "contrib:ID";
 
 	// error messages
-	static final String CONTRIBUTOR_ERROR = "Errors in Contributor construction:\n";
-	static final String TITLE_AT_LEAST_ONE = "at least one title must be provided";
-	static final String RESOURCE_TYPE_NON_NULL = "resource type cannot be null";
-	static final String IDENTIFIER_NON_NULL = "identifier cannot be null or whitespace only";
-	static final String CONTRIBUTOR_TYPE_NON_NULL = "contributorType cannot be null or whitespace only";
-	static final String NAME_NON_NULL = "name cannot be null or whitespace only";
-	static final String CREDIT_NAME_FOR_PEOPLE_ONLY = "the creditName field is only used with contributorType person";
+	private static final String CONTRIBUTOR_ERROR = "Errors in Contributor construction:\n";
+	private static final String CONTRIBUTOR_TYPE_NON_NULL = "contributorType cannot be null or whitespace only";
+	private static final String NAME_NON_NULL = "name cannot be null or whitespace only";
+	private static final String CREDIT_NAME_FOR_PEOPLE_ONLY = "the creditName field is only used with contributorType person";
 
-	static final ContributorType CONTRIB_TYPE = ContributorType.PERSON;
+	private static final ContributorType CONTRIB_TYPE = ContributorType.PERSON;
 
-	static final Organization ORG_1 = Organization.getBuilder("Ransome the Clown's Emporium of Wonder").build();
-	static final Organization ORG_2 = Organization.getBuilder("Pillowtronics").build();
-	static final Organization ORG_3 = Organization.getBuilder("Stupendous Brothers Traveling Circus").build();
-	static final Organization ORG_4 = Organization.getBuilder("Safely First Savings").build();
-	static final Organization ORG_5 = Organization.getBuilder("Pigeon Sisters Plumbing").build();
+	private static final String[] INVALID_CONTRIB_TYPES = {
+			"Organisification",
+			"personal",
+			"Creature from the Black Lagoon\n\n",
+			"    organi zation  "
+	};
 
-	static final List<Organization> AFFILIATIONS = Arrays.asList(ORG_1, ORG_2,
+
+	private static final Organization ORG_1 = Organization.getBuilder("Ransome the Clown's Emporium of Wonder").build();
+	private static final Organization ORG_2 = Organization.getBuilder("Pillowtronics").build();
+	private static final Organization ORG_3 = Organization.getBuilder("Stupendous Brothers Traveling Circus").build();
+	private static final Organization ORG_4 = Organization.getBuilder("Safely First Savings").build();
+
+	private static final List<Organization> AFFILIATIONS = Arrays.asList(ORG_1, ORG_2,
 			ORG_3);
 
-	static final List<Organization> SINGLE_AFFILIATION = Arrays.asList(ORG_4);
+	private static final List<Organization> SINGLE_AFFILIATION = Arrays.asList(ORG_4);
 
-	static final List<Organization> AFFILIATIONS_WITH_NULL = Arrays.asList(ORG_5, null);
-
-	static final List<ContributorRole> ROLES = Arrays.asList(
+	private static final List<ContributorRole> ROLES = Arrays.asList(
 			ContributorRole.METHODOLOGY,
 			ContributorRole.WORK_PACKAGE_LEADER,
 			ContributorRole.PROJECT_MANAGER,
@@ -82,7 +85,7 @@ public class ContributorTest {
 			ContributorRole.WRITING_ORIGINAL_DRAFT);
 
 	// as above, but with duplicates and nulls
-	static final List<ContributorRole> ROLES_WITH_DUPES_NULLS = Arrays.asList(
+	private static final List<ContributorRole> ROLES_WITH_DUPES_NULLS = Arrays.asList(
 		ContributorRole.METHODOLOGY,
 		ContributorRole.WORK_PACKAGE_LEADER,
 		ContributorRole.PROJECT_MANAGER,
@@ -95,22 +98,22 @@ public class ContributorTest {
 		null,
 		ContributorRole.WRITING_ORIGINAL_DRAFT);
 
-	static final List<String> ROLES_AS_STRINGS = Arrays.asList(
+	private static final List<String> ROLES_AS_STRINGS = Arrays.asList(
 			"CRediT:methodology",
 			"DataCite:WorkPackageLeader",
 			"DataCite:ProjectManager",
 			"CRediT:funding-acquisition",
 			"CRediT:writing-original-draft");
 
-	static final List<String> ROLE_INPUT_STRINGS = Arrays.asList(
+	private static final List<String> ROLE_INPUT_STRINGS = Arrays.asList(
 			"methodology",
 			"datacite:work_package_leader",
 			"projectmanager",
 			"credit:funding_acquisition",
 			"writingoriginaldraft");
 
-	static final List<String> ROLE_INPUT_STRINGS_DUPES_NULLS = Arrays.asList(
-	"methodology",
+	private static final List<String> ROLE_INPUT_STRINGS_DUPES_NULLS = Arrays.asList(
+			"methodology",
 			null,
 			"datacite:work_package_leader",
 			"\r\n\r\n",
@@ -124,17 +127,17 @@ public class ContributorTest {
 			"methodology",
 			null);
 
-	static final List<ContributorRole> ALT_ROLES = Arrays.asList(
-		ContributorRole.REGISTRATION_AUTHORITY,
-		ContributorRole.FUNDING_ACQUISITION
+	private static final List<ContributorRole> ALT_ROLES = Arrays.asList(
+			ContributorRole.REGISTRATION_AUTHORITY,
+			ContributorRole.FUNDING_ACQUISITION
 	);
 
-	static final List<String> ALT_ROLES_AS_STRINGS = Arrays.asList(
-		"DataCite:RegistrationAuthority",
-		"CRediT:funding-acquisition"
+	private static final List<String> ALT_ROLES_AS_STRINGS = Arrays.asList(
+			"DataCite:RegistrationAuthority",
+			"CRediT:funding-acquisition"
 	);
 
-	static final List<ContributorRole> ALT_ROLES_WITH_DUPES_NULLS = Arrays.asList(
+	private static final List<ContributorRole> ALT_ROLES_WITH_DUPES_NULLS = Arrays.asList(
 			ContributorRole.REGISTRATION_AUTHORITY,
 			null,
 			ContributorRole.REGISTRATION_AUTHORITY,
@@ -145,7 +148,7 @@ public class ContributorTest {
 			ContributorRole.FUNDING_ACQUISITION
 	);
 
-	static final List<String> ALT_ROLE_INPUT_STRINGS_DUPES_NULLS = Arrays.asList(
+	private static final List<String> ALT_ROLE_INPUT_STRINGS_DUPES_NULLS = Arrays.asList(
 			"RegistrationAuthority",
 			"\n\n\n\n\n    CRediT:funding-acquisition",
 			"    RegistrationAuthority\n\n",
@@ -164,41 +167,43 @@ public class ContributorTest {
 	);
 
 	// invalid contributor role strings
-	static final List<String> INVALID_ROLES = Arrays.asList(
-		"magical fairy princess",
-		"ContributorRole:FUNDING_ACQUISITION",
-		"credit:",
-		"datecite:software",
-		"credit:workpackageleader"
+	private static final List<String> INVALID_ROLES = Arrays.asList(
+			"magical fairy princess",
+			"ContributorRole:FUNDING_ACQUISITION",
+			"credit:",
+			"datecite:software",
+			"credit:workpackageleader"
 	);
 
-	static final List<String> INVALID_ROLE_ERRORS = INVALID_ROLES.stream().map(r -> "Invalid contributorRole: " + r)
+	private static final List<String> INVALID_ROLE_ERRORS = INVALID_ROLES.stream()
+			.map(r -> "Invalid contributorRole: " + r)
 			.collect(Collectors.toList());
 
 
-	static final List<String> INVALID_ROLES_WITH_WS_NULL = Arrays.asList(
-				"magical fairy princess",
+	private static final List<String> INVALID_ROLES_WITH_WS_NULL = Arrays.asList(
+			"magical fairy princess",
 			"    ",
 			"ContributorRole:FUNDING_ACQUISITION",
-				"credit:",
+			"credit:",
 			"\n\n\n",
 			"datecite:software",
-				"",
+			"",
 			null,
 			"credit:workpackageleader",
 			"datecite:software"
 	);
 
-	static final Map<String, String> NAME_MAP = ImmutableMap.of(NAME, NAME_STRING);
+	private static final Map<String, String> NAME_MAP = ImmutableMap.of(NAME, NAME_STRING);
 
-	static final Map<String, String> NAME_ID_MAP = ImmutableMap.of(NAME, NAME_STRING, CONTRIB_ID,
-			CONTRIB_ID_STRING);
+	private static final Map<String, String> NAME_ID_MAP = ImmutableMap.of(
+			NAME, NAME_STRING,
+			CONTRIB_ID, CONTRIB_ID_STRING);
 
-	static final Map<String, String> NAME_CREDIT_MAP = ImmutableMap.of(
+	private static final Map<String, String> NAME_CREDIT_MAP = ImmutableMap.of(
 			NAME, NAME_STRING,
 			CREDIT_NAME, CREDIT_NAME_STRING);
 
-	static final Map<String, String> ALL_MAP = ImmutableMap.of(
+	private static final Map<String, String> ALL_MAP = ImmutableMap.of(
 			CREDIT_NAME, CREDIT_NAME_STRING,
 			NAME, NAME_STRING,
 			CONTRIB_ID, CONTRIB_ID_STRING);
@@ -206,6 +211,114 @@ public class ContributorTest {
 	@Test
 	public void equals() throws Exception {
 		EqualsVerifier.forClass(Contributor.class).usingGetClass().verify();
+	}
+
+	@Test
+	public void getContributorTypeValidTypes() throws Exception {
+		final Map<String, ContributorType> stringToContribType = ImmutableMap.of(
+			"\n\n\r\nOrganization\n\n", ContributorType.ORGANIZATION,
+			"organisation", ContributorType.ORGANIZATION,
+			"  PERSON  ", ContributorType.PERSON,
+			"pErSoN", ContributorType.PERSON
+		);
+
+		for (Map.Entry<String, ContributorType> entry : stringToContribType.entrySet()) {
+			assertThat(INCORRECT_CONTRIB_TYPE, ContributorType.getType(entry.getKey()), is(entry.getValue()));
+		}
+	}
+
+	@Test
+	public void getContributorTypeFail() throws Exception {
+		for (final String invalidType : INVALID_CONTRIB_TYPES) {
+			try {
+				ContributorType.getType(invalidType);
+				fail(EXP_EXC);
+			} catch (Exception got) {
+				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
+					"Invalid contributorType: " + invalidType));
+			}
+		}
+	}
+
+	@Test
+	public void assertAffiliationsImmutable() throws Exception {
+		// same as AFFILIATIONS
+		final List<Organization> affiliationList = new ArrayList<>(Arrays.asList(ORG_1, ORG_2, ORG_3));
+		final Contributor c = Contributor.getBuilder(CONTRIB_TYPE, NAME_STRING)
+				.withAffiliations(affiliationList)
+				.build();
+
+		// mutating the input list should not affect the contributor affiliations
+		affiliationList.add(ORG_4);
+		assertThat("no mutation", affiliationList, is(Arrays.asList(ORG_1, ORG_2, ORG_3, ORG_4)));
+		assertThat(INCORRECT_AFFILIATIONS, c.getAffiliations(), is(AFFILIATIONS));
+
+		try {
+			c.getAffiliations().add(ORG_1);
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// hurrah, no mutations here!
+		}
+	}
+
+	@Test
+	public void assertContributorRoleStringsImmutable() throws Exception {
+		final List<String> contributorRoleStringList = new ArrayList<>(Arrays.asList(
+				"  methodology ",
+				"WorkPackageLeader"
+		));
+		final Contributor c = Contributor.getBuilder(CONTRIB_TYPE, NAME_STRING)
+				.withContributorRoleStrings(contributorRoleStringList)
+				.build();
+
+		// mutating the input list should not affect the contributor roles
+		contributorRoleStringList.add("blah blah blah");
+		assertThat("no mutation", contributorRoleStringList, is(Arrays.asList(
+				"  methodology ",
+				"WorkPackageLeader",
+				"blah blah blah"
+		)));
+		assertThat(INCORRECT_AFFILIATIONS, c.getContributorRoleStrings(), is(Arrays.asList(
+				"CRediT:methodology",
+				"DataCite:WorkPackageLeader"
+		)));
+
+		try {
+			c.getContributorRoleStrings().add("person giving zero fscks");
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// test passed
+		}
+	}
+
+	@Test
+	public void assertContributorRolesImmutable() {
+		final List<ContributorRole> contributorRoleList = new ArrayList<>(Arrays.asList(
+			ContributorRole.METHODOLOGY,
+			ContributorRole.WORK_PACKAGE_LEADER
+		));
+		final Contributor c = Contributor.getBuilder(CONTRIB_TYPE, NAME_STRING)
+				.withContributorRoles(contributorRoleList)
+				.build();
+
+		// mutating the input list should not affect the contributor roles
+		contributorRoleList.add(ContributorRole.PROJECT_MANAGER);
+		assertThat("no mutation", contributorRoleList, is(Arrays.asList(
+				ContributorRole.METHODOLOGY,
+				ContributorRole.WORK_PACKAGE_LEADER,
+				ContributorRole.PROJECT_MANAGER
+		)));
+		assertThat(INCORRECT_AFFILIATIONS, c.getContributorRoles(), is(Arrays.asList(
+				ContributorRole.METHODOLOGY,
+				ContributorRole.WORK_PACKAGE_LEADER
+		)));
+
+		try {
+			c.getContributorRoles().add(ContributorRole.CONCEPTUALIZATION);
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// test passed
+		}
 	}
 
 	/**
@@ -227,9 +340,13 @@ public class ContributorTest {
 	 *                `getContributorRoles`;
 	 *                if null, `getContributorRoles` should return an empty list
 	 */
-	private void assertContributorFields(final Contributor contributor, final ContributorType ct,
-			final Map<String, String> expectedMap, final List<Organization> orgs,
-			final List<ContributorRole> roles, final List<String> roleStrings) {
+	private void assertContributorFields(
+			final Contributor contributor,
+			final ContributorType ct,
+			final Map<String, String> expectedMap,
+			final List<Organization> orgs,
+			final List<ContributorRole> roles,
+			final List<String> roleStrings) {
 		assertThat(INCORRECT_CONTRIB_TYPE, contributor.getContributorType(), is(ct));
 		assertThat(INCORRECT_NAME, contributor.getName(), is(expectedMap.get(NAME)));
 		assertThat(INCORRECT_CREDIT_NAME, contributor.getCreditName(),
@@ -245,7 +362,9 @@ public class ContributorTest {
 				is(roleStrings == null ? Collections.emptyList() : roleStrings));
 	}
 
-	private void assertContributorFields(final Contributor contributor, final ContributorType ct,
+	private void assertContributorFields(
+			final Contributor contributor,
+			final ContributorType ct,
 			final Map<String, String> expectedMap) {
 		assertContributorFields(contributor, ct, expectedMap, null, null, null);
 	}
@@ -315,7 +434,6 @@ public class ContributorTest {
 			assertContributorFields(contributor3, ct, NAME_MAP);
 
 			final Contributor contributor4 = Contributor.getBuilder(ct, NAME_STRING)
-					// .withName(NAME_STRING)
 					.withAffiliations(null)
 					.withContributorRoleStrings(Collections.emptyList())
 					.build();
@@ -440,14 +558,14 @@ public class ContributorTest {
 	public void buildContributorRolesPruneDupesNulls() throws Exception {
 		for (final ContributorType ct : ContributorType.values()) {
 			final Contributor contributor1 = Contributor.getBuilder(ct, NAME_STRING)
-				.withContributorRoles(ROLES_WITH_DUPES_NULLS)
-				.build();
+					.withContributorRoles(ROLES_WITH_DUPES_NULLS)
+					.build();
 			assertContributorFields(contributor1, ct, NAME_MAP, null, ROLES, ROLES_AS_STRINGS);
 
 			final Contributor contributor2 = Contributor.getBuilder(ct, NAME_STRING)
-			.withContributorRoleStrings(ROLE_INPUT_STRINGS_DUPES_NULLS)
-			.build();
-		assertContributorFields(contributor2, ct, NAME_MAP, null, ROLES, ROLES_AS_STRINGS);
+					.withContributorRoleStrings(ROLE_INPUT_STRINGS_DUPES_NULLS)
+					.build();
+			assertContributorFields(contributor2, ct, NAME_MAP, null, ROLES, ROLES_AS_STRINGS);
 
 			final Contributor contributor3 = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoleStrings(WHITESPACE_STRINGS_WITH_NULL)
@@ -616,29 +734,26 @@ public class ContributorTest {
 
 	@Test
 	public void buildFailNeedName() throws Exception {
-		final List<String> errorStrings = Arrays.asList(NAME_NON_NULL);
 		for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			for (final ContributorType ct : ContributorType.values()) {
 				buildContributorFailWithError(
 					Contributor.getBuilder(ct, nullOrWs),
-					errorStrings);
+					NAME_NON_NULL);
 			}
 		}
 	}
 
 	@Test
 	public void buildFailOrgWithCreditName() throws Exception {
-		final List<String> errorStrings = Arrays.asList(CREDIT_NAME_FOR_PEOPLE_ONLY);
-
 		buildContributorFailWithError(
 				Contributor.getBuilder(ContributorType.ORGANIZATION, NAME_STRING)
 						.withCreditName(CREDIT_NAME_STRING),
-				errorStrings);
+				CREDIT_NAME_FOR_PEOPLE_ONLY);
 
 		buildContributorFailWithError(
 				Contributor.getBuilder("ORGANISATION", NAME_STRING)
 						.withCreditName(CREDIT_NAME_STRING),
-				errorStrings);
+				CREDIT_NAME_FOR_PEOPLE_ONLY);
 	}
 
 	@Test
@@ -691,15 +806,8 @@ public class ContributorTest {
 
 			final String errorString = String.join("\n", errorStrings);
 
-
-			final String[] invalidTypes = {
-					"Organisification",
-					"personal",
-					"Creature from the Black Lagoon"
-			};
-
 			// invalid contributorTypes
-			for (final String invalidType : invalidTypes) {
+			for (final String invalidType : INVALID_CONTRIB_TYPES) {
 				buildContributorFailWithError(
 						Contributor.getBuilder(invalidType, null)
 								.withContributorID(invalidPid),

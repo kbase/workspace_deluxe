@@ -50,6 +50,8 @@ public enum ContributorRole {
 	WRITING_REVIEW_EDITING(CREDIT, "writing-review-editing");
 
 	// mapping of various name formats to ContributorRole
+	// although the text transformations below may produce the same output,
+	// each transformation maps to a single role
 	private static final Map<String, ContributorRole> STRING_TO_ROLE_MAP = new HashMap<>();
 	static {
 		for (final ContributorRole cr : ContributorRole.values()) {
