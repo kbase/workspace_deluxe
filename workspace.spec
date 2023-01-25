@@ -799,11 +799,14 @@ module Workspace {
 		Represents the title or name of a resource.
 
 		The 'title_string' field is required; if no value is supplied for 'title_type', it
-		defaults to 'title'. If the 'title_type' is set to 'translated_title', the
-		appropriate BCP-47 tag must be supplied in the 'title_language' field.
+		defaults to 'title'.
 
-		Note that the workspace checks that the title_language field adheres to IETF BCP-47
-		syntax rules, but it does not check the validity of the tag.
+		If the title is in a language other than English, the 'title_type' should be set to
+		'translated_title', and the appropriate BCP-47 tag supplied in the 'title_language'
+		field.
+
+		Note that the workspace checks that the 'title_language' field adheres to IETF
+		BCP-47 syntax rules, but it does not check the validity of the tag.
 
 		title_string - a string used as a title for a resource.
 			Examples:
