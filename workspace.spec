@@ -1029,8 +1029,7 @@ module Workspace {
 
 	/* CreditMetadataEntry
 
-		Container for the credit metadata for a workspace object, returned by the workspace
-		when credit metadata is requested.
+		Container for the credit metadata for a workspace object.
 
 		Workspace objects have credit metadata (CM), or citation information for the
 		object. This information allows data imported into KBase to retain the appropriate
