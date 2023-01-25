@@ -572,6 +572,499 @@ module Workspace {
 		string description;
 	} ProvenanceAction;
 
+	/* EventDate
+
+		Represents an event in the lifecycle of a resource and the date it occurred on.
+
+		See https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#8-date
+		for more information on the events (below).
+
+		Both event and date are required fields.
+
+		date - the date associated with the event. The date may be in the format
+			YYYY, YYYY-MM, or YYYY-MM-DD.
+			Examples:
+				- '2001'
+				- 2021-05
+				- 1998-02-15
+
+		event - the event that occurred.
+			Valid 'event' values:
+				- accepted
+				- available
+				- copyrighted
+				- collected
+				- created
+				- issued
+				- submitted
+				- updated
+				- valid
+				- withdrawn
+				- other
+	*/
+	typedef structure {
+		string date;
+		string event;
+	} EventDate;
+
+	/* FundingReference
+
+		Represents a funding source for a resource, including the funding body and the
+		grant awarded.
+
+		The 'funder_name' field is required; all others are optional.
+
+		Recommended resources for organization identifiers include:
+			- Research Organization Registry, http://ror.org
+			- International Standard Name Identifier, https://isni.org
+			- Crossref Funder Registry, https://www.crossref.org/services/funder-registry/
+
+		Some organizations may have a digital object identifier (DOI).
+
+		funder_id (optional) - persistent unique identifier for the funder in the format
+			<database name>:<identifier within database>.
+			Examples:
+				- DOI:10.13039/100000015
+				- ROR:04xm1d337
+				- ISNI:0000000405337147
+
+		funder_name - common name for the funder.
+			Examples:
+				- Joint Genome Institute
+				- National Science Foundation
+				- US DOE Office of Science (SC), Biological and Environmental
+				Research (BER)
+
+		award_id (optional) - code for the award, assigned by the funder.
+			Examples:
+				- 1296
+				- CBET-0756451
+				- DOI:10.46936/10.25585/60000745
+
+		award_title (optional) - title for the award.
+			Examples:
+				- Metagenomic analysis of the rhizosphere of three biofuel crops at
+				the KBS intensive site
+
+		award_url (optional) - URL for the award.
+			Examples:
+				- https://genome.jgi.doe.gov/portal/Metanaintenssite/Metanaintenssite.info.html
+
+	*/
+	typedef structure {
+		string funder_id;
+		string funder_name;
+		string award_id;
+		string award_title;
+		string award_url;
+	} FundingReference;
+
+	/* Organization
+
+		Represents an organization.
+
+		Recommended resources for organization identifiers and canonical organization names
+		include:
+			- Research Organization Registry, http://ror.org
+			- International Standard Name Identifier, https://isni.org
+			- Crossref Funder Registry, https://www.crossref.org/services/funder-registry/
+
+		For example, the US DOE would be entered as:
+			organization_name: United States Department of Energy
+			organization_id:   ROR:01bj3aw27
+
+		'organization_name' is required; 'organization_id' is optional.
+
+		organization_name - common name of the organization; use the name recommended by
+			ROR if possible.
+			Examples:
+				- KBase
+				- Lawrence Berkeley National Laboratory
+				- The Ohio State University
+
+		organization_id (optional) - persistent unique identifier for the organization
+			in the format <database name>:<identifier within database>.
+			Examples:
+				- ROR:01bj3aw27
+				- ISNI:0000000123423717
+				- CrossrefFunder:100000015
+	*/
+	typedef structure {
+		string organization_name;
+		string organization_id;
+	} Organization;
+
+	/* PermanentID
+
+		Represents a persistent unique identifier for an entity, with an optional
+		relationship to some other entity.
+
+		The 'id' field is required; all other fields are optional.
+
+		The values in the 'relationship_type' field come from controlled vocabularies
+		maintained by DataCite and Crossref. See the documentation links below for more
+		details.
+
+		DataCite relation types: https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#12b-relationtype
+
+		Crossref relation types: https://www.crossref.org/documentation/schema-library/markup-guide-metadata-segments/relationships/
+
+		id - persistent unique ID for an entity. Should be in the format
+			<database name>:<identifier within database>.
+			Examples:
+				- DOI:10.46936/10.25585/60000745
+				- GO:0005456
+				- HGNC:7470
+		description (optional) - description of that entity.
+			Examples:
+				- Amaranthus hypochondriacus genome
+
+		relationship_type (optional) - relationship between the ID and some other entity.
+			For example, when a PermanentID class is used to represent objects in the
+			CreditMetadata field 'related_identifiers', the 'relationship_type' field
+			captures the relationship between the CreditMetadata and this ID.
+
+			Valid 'relationship_type' values:
+				- DataCite:Cites
+				- DataCite:Compiles
+				- DataCite:Continues
+				- DataCite:Describes
+				- DataCite:Documents
+				- DataCite:HasMetadata
+				- DataCite:HasPart
+				- DataCite:HasVersion
+				- DataCite:IsCitedBy
+				- DataCite:isCompiledBy
+				- DataCite:IsContinuedBy
+				- DataCite:IsDerivedFrom
+				- DataCite:IsDescribedBy
+				- DataCite:IsDocumentedBy
+				- DataCite:IsIdenticalTo
+				- DataCite:IsMetadataFor
+				- DataCite:IsNewVersionOf
+				- DataCite:IsOriginalFormOf
+				- DataCite:IsPartOf
+				- DataCite:IsPreviousVersionOf
+				- DataCite:IsPublishedIn
+				- DataCite:IsReferencedBy
+				- DataCite:IsRequiredBy
+				- DataCite:IsReviewedBy
+				- DataCite:IsSourceOf
+				- DataCite:IsSupplementTo
+				- DataCite:IsSupplementedBy
+				- DataCite:IsVariantFormOf
+				- DataCite:IsVersionOf
+				- DataCite:Obsoletes
+				- DataCite:References
+				- DataCite:Requires
+				- DataCite:Reviews
+				- Crossref:BasedOnData
+				- Crossref:Finances
+				- Crossref:HasComment
+				- Crossref:HasDerivation
+				- Crossref:HasExpression
+				- Crossref:HasFormat
+				- Crossref:HasManifestation
+				- Crossref:HasManuscript
+				- Crossref:HasPreprint
+				- Crossref:HasRelatedMaterial
+				- Crossref:HasReply
+				- Crossref:HasReview
+				- Crossref:HasTranslation
+				- Crossref:IsBasedOn
+				- Crossref:IsBasisFor
+				- Crossref:IsCommentOn
+				- Crossref:IsDataBasisFor
+				- Crossref:IsExpressionOf
+				- Crossref:IsFinancedBy
+				- Crossref:IsFormatOf
+				- Crossref:IsManifestationOf
+				- Crossref:IsManuscriptOf
+				- Crossref:IsPreprintOf
+				- Crossref:IsRelatedMaterial
+				- Crossref:IsReplacedBy
+				- Crossref:IsReplyTo
+				- Crossref:IsReviewOf
+				- Crossref:IsSameAs
+				- Crossref:IsTranslationOf
+				- Crossref:Replaces
+	*/
+	typedef structure {
+		string id;
+		string description;
+		string relationship_type;
+	} PermanentID;
+
+	/* Title
+		Represents the title or name of a resource.
+
+		The 'title_string' field is required; if no value is supplied for 'title_type', it
+		defaults to 'title'.
+
+		If the title is in a language other than English, the 'title_type' should be set to
+		'translated_title', and the appropriate BCP-47 tag supplied in the 'title_language'
+		field.
+
+		Note that the workspace checks that the 'title_language' field adheres to IETF
+		BCP-47 syntax rules, but it does not check the validity of the tag.
+
+		title_string - a string used as a title for a resource.
+			Examples:
+				- Amaranthus hypochondriacus genome
+				- Геном амаранта ипохондрического
+
+		title_language (optional) - language that the title is in, as a IETF BCP-47 tag.
+			Examples:
+				- fr
+				- jp-JP
+				- zh-Hant-CN
+				- en-Latn-GB
+				- mn-Cyrl
+
+		title_type (optional) - the type of title described.
+			Valid 'title_type' values:
+				- title
+				- subtitle
+				- alternative_title
+				- translated_title
+				- other
+	*/
+	typedef structure {
+		string title_string;
+		string title_language;
+		string title_type;
+	} Title;
+
+	/* Contributor
+
+		Represents a contributor to the resource.
+
+		Contributors must have a 'contributor_type', either 'person' or 'organization', and
+		a 'name'.
+
+		The 'credit_name' field is used to store the name of a person as it would appear in
+		a citation. If there is no 'credit_name' supplied, the 'name' field would be used
+		in citations.
+		For example:
+			name:		Hubert George Wells
+			credit_name:	Wells, HG
+
+			name:		Alexandria Ocasio-Cortez
+			credit_name:	Ocasio-Cortez, A
+
+			name:		Helena Bonham Carter
+			credit_name:	Bonham Carter, H
+
+		The 'contributor_role' field takes values from the DataCite and CRediT contributor
+		roles vocabularies. For more information on these resources and choosing the
+		appropriate roles, please see the following links:
+
+		DataCite contributor roles: https://support.datacite.org/docs/datacite-metadata-schema-v44-recommended-and-optional-properties#7a-contributortype
+
+		CRediT contributor role taxonomy: https://credit.niso.org
+
+		contributor_type - must be either 'person' or 'organization'.
+			Valid 'contributor_type' values:
+				- person
+				- organization
+
+		contributor_id (optional) - persistent unique identifier for the contributor;
+			this might be an ORCID for an individual, or a ROR ID for an organization.
+			Examples:
+				- ORCID:0000-0001-9557-7715
+				- ROR:01znn6x10
+
+		name - contributor name. For organizations, this should be the full (unabbreviated)
+			name; for a person, the full name should be entered.
+			Examples:
+				- Helena Bonham Carter
+				- Hubert Wells
+				- Madonna
+				- Marionetta Cecille de la Carte-Postale
+				- National Institute of Mental Health
+				- Ransome the Clown
+
+		credit_name (optional) - for a person, how the name should appear in a citation.
+			Examples:
+				- Carte-Postale, MC
+				- Bonham Carter, H
+				- Wells, HG
+
+		affiliations (optional) - list of organizations with which the
+			contributor is affiliated. For contributors that represent an organization,
+			this may be a parent organization (e.g. KBase, US DOE; Arkin lab, LBNL).
+
+		contributor_roles (optional) - list of roles played by the contributor when working
+			on the resource.
+			Valid 'contributor_role' values:
+				- DataCite:ContactPerson
+				- DataCite:DataCollector
+				- DataCite:DataCurator
+				- DataCite:DataManager
+				- DataCite:Distributor
+				- DataCite:Editor
+				- DataCite:HostingInstitution
+				- DataCite:Producer
+				- DataCite:ProjectLeader
+				- DataCite:ProjectManager
+				- DataCite:ProjectMember
+				- DataCite:RegistrationAgency
+				- DataCite:RegistrationAuthority
+				- DataCite:RelatedPerson
+				- DataCite:Researcher
+				- DataCite:ResearchGroup
+				- DataCite:RightsHolder
+				- DataCite:Sponsor
+				- DataCite:Supervisor
+				- DataCite:WorkPackageLeader
+				- DataCite:Other
+				- CRediT:conceptualization
+				- CRediT:data-curation
+				- CRediT:formal-analysis
+				- CRediT:funding-acquisition
+				- CRediT:investigation
+				- CRediT:methodology
+				- CRediT:project-administration
+				- CRediT:resources
+				- CRediT:software
+				- CRediT:supervision
+				- CRediT:validation
+				- CRediT:visualization
+				- CRediT:writing-original-draft
+				- CRediT:writing-review-editing
+	*/
+	typedef structure {
+		string contributor_type;
+		string name;
+		string credit_name;
+		string contributor_id;
+		list<Organization> affiliations;
+		list<string> contributor_roles;
+	} Contributor;
+
+	/* CreditMetadata
+
+		Represents the credit metadata associated with a workspace object.
+
+		In the following documentation, 'Resource' is used to refer to the workspace object
+		that the CM pertains to.
+
+		The 'resource_type' field should be filled using values from the DataCite
+		resourceTypeGeneral field:
+
+		https://support.datacite.org/docs/datacite-metadata-schema-v44-mandatory-properties#10a-resourcetypegeneral
+
+		Currently the KBase workspace only supports credit metadata for objects of type
+		'dataset'; anything else will return an error.
+
+		The license may be supplied either as an URL pointing to licensing information for
+		the resource, or using a license name. See https://choosealicense.com/appendix/ for
+		a list of common open source licenses.
+
+		Required fields are:
+		- identifier
+		- resource_type
+		- versioning information: if the resource does not have an explicit version number,
+		one or more dates should be supplied: ideally the date of resource publication and
+		the last update (if applicable).
+		- contributors (one or more required)
+		- titles (one or more required)
+
+		comments - freeform text providing extra information about this credit metadata.
+			Examples:
+				- Credit metadata generated automatically from DOI:10.13039/100000015
+
+		identifier - persistent unique identifier for the resource (i.e. the source data
+			for this workspace object).
+			Should be in the format <database name>:<identifier within database>
+			Examples:
+				- RefSeq:GCF_004214875.1
+				- GenBank:CP035949.1
+				- img.taxon:648028003
+
+		license (optional) - usage license for the resource. May be a text string or an
+			URL. Abbreviations should be spelled out where possible (e.g. 'Creative
+			Commons 4.0' instead of 'CC-BY-4.0').
+			Examples:
+				- Creative Commons 4.0
+				- MIT
+				- https://jgi.doe.gov/user-programs/pmo-overview/policies/
+
+		resource_type - the broad type of the source data for this workspace object.
+			Defaults to 'dataset' (the only valid value currently) if no value is
+			provided.
+			Valid 'resource_type' values:
+				- dataset
+
+		version (optional if dates are provided) - the version of the resource. This must
+			be an absolute version, not a relative version like 'latest'.
+			Examples:
+				- 5
+				- 1.2.1
+				- 20220405
+
+		contributors - a list of people and/or organizations who contributed to the
+			resource.
+
+		dates (optional if version is provided) - a list of relevant lifecycle events for
+			the resource.
+
+		funding (optional) - funding sources for the resource.
+
+		related_identifiers (optional) - other resolvable persistent unique IDs related to
+			the resource.
+
+		titles - one or more titles for the resource.
+
+	*/
+	typedef structure {
+		string comments;
+		string identifier;
+		string license;
+		string resource_type;
+		string version;
+		list<Contributor> contributors;
+		list<EventDate> dates;
+		list<FundingReference> funding;
+		list<PermanentID> related_identifiers;
+		list<Title> titles;
+	} CreditMetadata;
+
+	/* CreditMetadataEntry
+
+		Container for the credit metadata for a workspace object.
+
+		Workspace objects have credit metadata (CM), or citation information for the
+		object. This information allows data imported into KBase to retain the appropriate
+		details for users wishing to cite the data source, and for those who contributed to
+		its creation to be credited for their work.
+
+		Credit metadata is added after object creation, and requires the user to be a
+		workspace admin. Username, timestamp, and credit metadata schema version are stored
+		with the credit information.
+
+		WS admins can use the workspace `administer` function to add CM to a workspace
+		object.
+
+		All fields will be populated.
+
+		credit_metadata - the credit metadata itself
+
+		credit_metadata_schema_version - version of the credit metadata schema used
+			Examples:
+				- 1.1.0
+
+		saved_by - KBase workspace ID of the user who added this entry
+
+		timestamp - unix timestamp for the addition of this set of credit metadata
+	*/
+	typedef structure {
+		CreditMetadata credit_metadata;
+		username saved_by;
+		string credit_metadata_schema_version;
+		epoch timestamp;
+	} CreditMetadataContainer;
+
 	/*
 		Returns the version of the workspace service.
 	*/
@@ -1023,6 +1516,7 @@ module Workspace {
 		list<obj_ref> path - the path to the object through the object reference graph. All the
 			references in the path are absolute.
 		list<ProvenanceAction> provenance - the object's provenance.
+		CreditMetadataContainer credit_metadata - the credit information for the object.
 		username creator - the user that first saved the object to the workspace.
 		ws_id orig_wsid - the id of the workspace in which this object was
 				originally saved. Missing for objects saved prior to version
@@ -1052,6 +1546,7 @@ module Workspace {
 		object_info info;
 		list<obj_ref> path;
 		list<ProvenanceAction> provenance;
+		CreditMetadataContainer credit_metadata;
 		username creator;
 		ws_id orig_wsid;
 		timestamp created;
@@ -1082,7 +1577,7 @@ module Workspace {
 		boolean ignoreErrors - Don't throw an exception if an object cannot
 			be accessed; return null for that object's information instead.
 			Default false.
-		boolean no_data - return the provenance, references, and
+		boolean no_data - return the provenance, credit metadata, references, and
 			object_info for this object without the object data. Default false.
 		boolean skip_external_system_updates - if the objects contain any external IDs, don't
 			contact external systems to perform any updates for those IDs (often ACL updates,
