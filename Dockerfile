@@ -1,10 +1,12 @@
 FROM kbase/sdkbase2 as build
 
-COPY . /tmp/workspace_deluxe
 RUN pip install configobj && \
     cd /tmp && \
-    git clone https://github.com/kbase/jars && \
-    cd workspace_deluxe && \
+    git clone https://github.com/kbase/jars
+
+COPY . /tmp/workspace_deluxe
+RUN \
+    cd /tmp/workspace_deluxe && \
     make docker_deps
 
 FROM kbase/kb_jre
@@ -20,6 +22,7 @@ RUN /usr/bin/tomcat8-instance-create /kb/deployment/services/workspace/tomcat &&
     mv /kb/deployment/services/workspace/WorkspaceService.war /kb/deployment/services/workspace/tomcat/webapps/ROOT.war && \
     rm -rf /kb/deployment/services/workspace/tomcat/webapps/ROOT
 
+COPY --from=build /tmp/workspace_deluxe/scripts/entrypoint.sh/ /kb/deployment/bin/
 # Must set catalina_base to match location of tomcat8-instance-create dir
 # before calling /usr/share/tomcat8/bin/catalina.sh
 ENV CATALINA_BASE /kb/deployment/services/workspace/tomcat
@@ -35,14 +38,6 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
       maintainer="Steve Chan sychan@lbl.gov"
 
 EXPOSE 7058
-ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
+ENTRYPOINT [ "/kb/deployment/bin/entrypoint.sh" ]
 WORKDIR /kb/deployment/services/workspace/tomcat
-CMD [ "-template", "/kb/deployment/conf/.templates/deployment.cfg.templ:/kb/deployment/conf/deployment.cfg", \
-      "-template", "/kb/deployment/conf/.templates/server.xml.templ:/kb/deployment/services/workspace/tomcat/conf/server.xml", \
-      "-template", "/kb/deployment/conf/.templates/tomcat-users.xml.templ:/kb/deployment/services/workspace/tomcat/conf/tomcat-users.xml", \
-      "-template", "/kb/deployment/conf/.templates/logging.properties.templ:/kb/deployment/services/workspace/tomcat/conf/logging.properties", \
-      "-template", "/kb/deployment/conf/.templates/setenv.sh.templ:/kb/deployment/services/workspace/tomcat/bin/setenv.sh", \
-      "-stdout", "/kb/deployment/services/workspace/tomcat/logs/catalina.out", \
-      "-stdout", "/kb/deployment/services/workspace/tomcat/logs/access.log", \
-      "/usr/share/tomcat8/bin/catalina.sh", "run" ]
 
