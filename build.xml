@@ -28,8 +28,8 @@
   </fileset>
 
   <fileset dir="${jardir}" id="serverlib">
-    <!-- <include name="ini4j/ini4j-0.5.2.jar"/> -->
-    <include name="target/dependency/ini4j-0.5.4.jar"/>
+    <include name="ini4j/ini4j-0.5.2.jar"/>
+    <!-- <include name="target/dependency/ini4j-0.5.4.jar"/> -->
     <include name="target/dependency/jetty-all-7.6.21.v20160908.jar"/>
     <!-- <include name="target/dependency/jetty-all-9.2.30.v20200428.jar"/> -->
         <include name="servlet/servlet-api-2.5.jar"/>
@@ -49,8 +49,8 @@
     <include name="target/dependency/hamcrest-core-2.2.jar"/> -->
     <include name="kbase/common/kbase-common-0.1.1.jar"/>
     <!-- joda is required for kbase-common -->
-    <!-- <include name="joda/joda-time-2.2.jar"/> -->
-    <include name="target/dependency/joda-time-2.12.2.jar"/>
+    <include name="joda/joda-time-2.2.jar"/>
+    <!-- <include name="target/dependency/joda-time-2.12.2.jar"/> -->
     <include name="kbase/auth/kbase-auth-0.4.4.jar"/>
     <include name="jackson/jackson-annotations-2.9.9.jar"/>
     <include name="jackson/jackson-core-2.9.9.jar"/>
@@ -66,42 +66,40 @@
 
   <fileset dir="${jardir}" id="shocklib">
     <include name="kbase/shock/shock-client-0.1.0.jar"/>
-    <!-- <include name="apache_commons/commons-logging-1.1.1.jar"/>
+    <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.5.9.jar"/>
     <include name="apache_commons/http/httpcore-4.4.5.jar"/>
-    <include name="apache_commons/http/httpmime-4.5.8.jar"/> -->
-    <include name="target/dependency/commons-logging-1.2.jar"/>
+    <include name="apache_commons/http/httpmime-4.5.8.jar"/>
+    <!-- <include name="target/dependency/commons-logging-1.2.jar"/>
     <include name="target/dependency/httpclient-4.5.14.jar"/>
     <include name="target/dependency/httpcore-4.4.16.jar"/>
-    <include name="target/dependency/httpmime-4.5.14.jar"/>
+    <include name="target/dependency/httpmime-4.5.14.jar"/> -->
   </fileset>
 
   <fileset dir="${jardir}" id="applicationlib">
     <include name="kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar"/>
-    <!-- <include name="apache_commons/commons-codec-1.8.jar"/>
+    <include name="apache_commons/commons-codec-1.8.jar"/>
     <include name="apache_commons/commons-io-2.4.jar"/>
-    <include name="apache_commons/commons-lang3-3.1.jar"/> -->
-    <include name="target/dependency/commons-codec-1.15.jar"/>
+    <include name="apache_commons/commons-lang3-3.1.jar"/>
+    <!-- <include name="target/dependency/commons-codec-1.15.jar"/>
     <include name="target/dependency/commons-io-2.11.0.jar"/>
-    <include name="target/dependency/commons-lang3-3.12.0.jar"/>
-    <!-- <include name="picocli/picocli-4.6.1.jar"/> -->
-    <include name="target/dependency/picocli-4.7.0.jar"/>
-    <!-- <include name="mongo/mongo-java-driver-3.12.10.jar"/> -->
-    <include name="target/dependency/mongo-java-driver-3.12.11.jar"/>
-    <!-- <include name="slf4j/slf4j-api-1.7.30.jar"/> -->
-    <include name="target/dependency/slf4j-api-2.0.6.jar"/>
-    <!-- <include name="logback/logback-core-1.1.2.jar"/>
-    <include name="logback/logback-classic-1.1.2.jar"/> -->
-    <!-- <include name="target/dependency/logback-core-1.4.5.jar"/>
-    <include name="target/dependency/logback-classic-1.4.5.jar"/> -->
-    <include name="target/dependency/logback-core-1.3.5.jar"/>
-    <include name="target/dependency/logback-classic-1.3.5.jar"/>
-    <!-- <include name="google/guava-14.0.1.jar"/> -->
-    <include name="target/dependency/guava-31.1-jre.jar"/>
+    <include name="target/dependency/commons-lang3-3.12.0.jar"/> -->
+    <include name="picocli/picocli-4.6.1.jar"/>
+    <!-- <include name="target/dependency/picocli-4.7.0.jar"/> -->
+    <include name="mongo/mongo-java-driver-3.12.10.jar"/>
+    <!-- <include name="target/dependency/mongo-java-driver-3.12.11.jar"/> -->
+    <include name="slf4j/slf4j-api-1.7.30.jar"/>
+    <!-- <include name="target/dependency/slf4j-api-2.0.6.jar"/> -->
+    <include name="logback/logback-core-1.1.2.jar"/>
+    <include name="logback/logback-classic-1.1.2.jar"/>
+    <!-- <include name="target/dependency/logback-core-1.3.5.jar"/>
+    <include name="target/dependency/logback-classic-1.3.5.jar"/> -->
+    <include name="google/guava-14.0.1.jar"/>
+    <!-- <include name="target/dependency/guava-31.1-jre.jar"/>
         <include name="target/dependency/failureaccess-1.0.1.jar"/>
         <include name="target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"/>
         <include name="target/dependency/jsr305-3.0.2.jar"/>
-        <include name="target/dependency/j2objc-annotations-1.3.jar"/>
+        <include name="target/dependency/j2objc-annotations-1.3.jar"/> -->
     <include name="caffeinecache/caffeine-2.9.3.jar"/>
     <!-- <include name="target/dependency/caffeine-3.1.2.jar"/>
         <include name="target/dependency/checker-qual-3.27.0.jar"/>
@@ -117,14 +115,14 @@
   </fileset>
 
   <fileset dir="${jardir}" id="s3lib">
-    <!-- <include name="amazon/V2/annotations-2.17.214.jar"/>
+    <include name="amazon/V2/annotations-2.17.214.jar"/>
     <include name="amazon/V2/arns-2.17.214.jar.jar"/>
     <include name="amazon/V2/auth-2.17.214.jar"/>
     <include name="amazon/V2/aws-core-2.17.214.jar"/>
     <include name="amazon/V2/aws-query-protocol-2.17.214.jar"/>
-    <include name="amazon/V2/aws-xml-protocol-2.17.214.jar"/> -->
+    <include name="amazon/V2/aws-xml-protocol-2.17.214.jar"/>
     <include name="amazon/V2/eventstream-1.0.1.jar"/>
-    <!-- <include name="amazon/V2/http-client-spi-2.17.214.jar"/>
+    <include name="amazon/V2/http-client-spi-2.17.214.jar"/>
     <include name="amazon/V2/json-utils-2.17.214.jar"/>
     <include name="amazon/V2/metrics-spi-2.17.214.jar"/>
     <include name="amazon/V2/profiles-2.17.214.jar"/>
@@ -134,26 +132,8 @@
     <include name="amazon/V2/sdk-core-2.17.214.jar"/>
     <include name="amazon/V2/third-party-jackson-core-2.17.214.jar"/>
     <include name="amazon/V2/url-connection-client-2.17.214.jar"/>
-    <include name="amazon/V2/utils-2.17.214.jar"/> -->
+    <include name="amazon/V2/utils-2.17.214.jar"/>
     <include name="reactivestreams/reactive-streams-1.0.3.jar"/>
-    <include name="target/dependency/annotations-2.19.24.jar"/>
-    <include name="target/dependency/arns-2.19.24.jar"/>
-    <include name="target/dependency/auth-2.19.24.jar"/>
-    <include name="target/dependency/aws-core-2.19.24.jar"/>
-    <include name="target/dependency/aws-query-protocol-2.19.24.jar"/>
-    <include name="target/dependency/aws-xml-protocol-2.19.24.jar"/>
-    <include name="target/dependency/endpoints-spi-2.19.24.jar"/>
-    <include name="target/dependency/http-client-spi-2.19.24.jar"/>
-    <include name="target/dependency/json-utils-2.19.24.jar"/>
-    <include name="target/dependency/metrics-spi-2.19.24.jar"/>
-    <include name="target/dependency/profiles-2.19.24.jar"/>
-    <include name="target/dependency/protocol-core-2.19.24.jar"/>
-    <include name="target/dependency/regions-2.19.24.jar"/>
-    <include name="target/dependency/s3-2.19.24.jar"/>
-    <include name="target/dependency/sdk-core-2.19.24.jar"/>
-    <include name="target/dependency/third-party-jackson-core-2.19.24.jar"/>
-    <include name="target/dependency/url-connection-client-2.19.24.jar"/>
-    <include name="target/dependency/utils-2.19.24.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="testlib">
@@ -161,23 +141,160 @@
     <include name="apache_commons/commons-lang-2.4.jar"/>
     <include name="apache_commons/commons-collections-3.2.1.jar"/>
     <include name="jsemver/java-semver-0.9.0.jar"/>
-    <!-- <include name="equalsverifier/equalsverifier-3.1.10.jar"/> -->
-    <include name="target/dependency/equalsverifier-3.12.3.jar"/>
-        <!-- <include name="bytebuddy/byte-buddy-1.9.10.jar"/> -->
-        <include name="target/dependency/byte-buddy-1.12.19.jar"/>
-        <!-- <include name="objenesis/objenesis-2.6.jar"/> -->
-        <include name="target/dependency/objenesis-3.3.jar"/>
+    <include name="equalsverifier/equalsverifier-3.1.10.jar"/>
+    <!-- <include name="target/dependency/equalsverifier-3.12.3.jar"/> -->
+        <include name="bytebuddy/byte-buddy-1.9.10.jar"/>
+        <!-- <include name="target/dependency/byte-buddy-1.12.19.jar"/> -->
+        <include name="objenesis/objenesis-2.6.jar"/>
+        <!-- <include name="target/dependency/objenesis-3.3.jar"/> -->
     <include name="kbase/auth2/kbase-auth2test-0.2.4.jar"/>
     <include name="arangodb/arangodb-java-driver-6.7.2.jar"/>
     <!-- <include name="target/dependency/arangodb-java-driver-6.20.0.jar"/> -->
-        <!-- <include name="arangodb/velocypack-2.4.0.jar"/> -->
-        <include name="target/dependency/velocypack-2.5.4.jar"/>
+        <include name="arangodb/velocypack-2.4.0.jar"/>
+        <!-- <include name="target/dependency/velocypack-2.5.4.jar"/> -->
     <!-- mockito and dependencies -->
     <include name="mockito/mockito-core-3.0.0.jar"/>
     <!-- <include name="target/dependency/mockito-core-5.0.0.jar"/> -->
-    <!-- <include name="bytebuddy/byte-buddy-agent-1.9.10.jar"/> -->
-        <include name="target/dependency/byte-buddy-agent-1.12.22.jar"/>
-</fileset>
+        <include name="bytebuddy/byte-buddy-agent-1.9.10.jar"/>
+        <!-- <include name="target/dependency/byte-buddy-agent-1.12.22.jar"/> -->
+  </fileset>
+
+<!-- new stuff -->
+      <fileset dir="${jardir}" id="newserverlib">
+        <!-- <include name="ini4j/ini4j-0.5.2.jar"/> -->
+        <include name="target/dependency/ini4j-0.5.4.jar"/>
+        <include name="target/dependency/jetty-all-7.6.21.v20160908.jar"/>
+        <!-- <include name="target/dependency/jetty-all-9.2.30.v20200428.jar"/> -->
+            <include name="servlet/servlet-api-2.5.jar"/>
+            <!-- <include name="target/dependency/javax.websocket-api-1.0.jar"/> -->
+            <!-- <include name="target/dependency/javax.servlet-api-3.1.0.jar"/> -->
+            <!-- <include name="target/dependency/javax.servlet-api-4.0.1.jar"/> -->
+        <include name="jna/jna-3.4.0.jar"/>
+        <include name="syslog4j/syslog4j-0.9.46.jar"/>
+        <include name="annotation/javax.annotation-api-1.3.2.jar"/>
+      </fileset>
+
+      <fileset dir="${jardir}" id="newclientserverlib">
+        <include name="junit/junit-4.12.jar"/>
+        <!-- <include name="target/dependency/junit-4.13.2.jar"/> -->
+        <include name="hamcrest/hamcrest-core-1.3.jar"/>
+        <!-- <include name="target/dependency/hamcrest-2.2.jar"/>
+        <include name="target/dependency/hamcrest-core-2.2.jar"/> -->
+        <include name="kbase/common/kbase-common-0.1.1.jar"/>
+        <!-- joda is required for kbase-common -->
+        <!-- <include name="joda/joda-time-2.2.jar"/> -->
+        <include name="target/dependency/joda-time-2.12.2.jar"/>
+        <include name="kbase/auth/kbase-auth-0.4.4.jar"/>
+        <include name="jackson/jackson-annotations-2.9.9.jar"/>
+        <include name="jackson/jackson-core-2.9.9.jar"/>
+        <include name="jackson/jackson-databind-2.9.9.jar"/>
+        <!-- <include name="target/dependency/jackson-annotations-2.14.1.jar"/>
+        <include name="target/dependency/jackson-core-2.14.1.jar"/>
+        <include name="target/dependency/jackson-databind-2.14.1.jar"/>
+        <include name="target/dependency/jackson-annotations-2.12.7.jar"/>
+        <include name="target/dependency/jackson-core-2.12.7.jar"/>
+        <include name="target/dependency/jackson-databind-2.12.7.1.jar"/>
+        <include name="target/dependency/jackson-datatype-jsr310-2.12.7.jar"/> -->
+      </fileset>
+
+      <fileset dir="${jardir}" id="newshocklib">
+        <include name="kbase/shock/shock-client-0.1.0.jar"/>
+        <!-- <include name="apache_commons/commons-logging-1.1.1.jar"/>
+        <include name="apache_commons/http/httpclient-4.5.9.jar"/>
+        <include name="apache_commons/http/httpcore-4.4.5.jar"/>
+        <include name="apache_commons/http/httpmime-4.5.8.jar"/> -->
+        <include name="target/dependency/commons-logging-1.2.jar"/>
+        <include name="target/dependency/httpclient-4.5.14.jar"/>
+        <include name="target/dependency/httpcore-4.4.16.jar"/>
+        <include name="target/dependency/httpmime-4.5.14.jar"/>
+      </fileset>
+
+      <fileset dir="${jardir}" id="newapplicationlib">
+        <include name="kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar"/>
+        <!-- <include name="apache_commons/commons-codec-1.8.jar"/>
+        <include name="apache_commons/commons-io-2.4.jar"/>
+        <include name="apache_commons/commons-lang3-3.1.jar"/> -->
+        <include name="target/dependency/commons-codec-1.15.jar"/>
+        <include name="target/dependency/commons-io-2.11.0.jar"/>
+        <include name="target/dependency/commons-lang3-3.12.0.jar"/>
+        <!-- <include name="picocli/picocli-4.6.1.jar"/> -->
+        <include name="target/dependency/picocli-4.7.0.jar"/>
+        <!-- <include name="mongo/mongo-java-driver-3.12.10.jar"/> -->
+        <include name="target/dependency/mongo-java-driver-3.12.11.jar"/>
+        <!-- <include name="slf4j/slf4j-api-1.7.30.jar"/> -->
+        <include name="target/dependency/slf4j-api-2.0.6.jar"/>
+        <!-- <include name="logback/logback-core-1.1.2.jar"/>
+        <include name="logback/logback-classic-1.1.2.jar"/> -->
+        <!-- <include name="target/dependency/logback-core-1.4.5.jar"/>
+        <include name="target/dependency/logback-classic-1.4.5.jar"/> -->
+        <include name="target/dependency/logback-core-1.3.5.jar"/>
+        <include name="target/dependency/logback-classic-1.3.5.jar"/>
+        <!-- <include name="google/guava-14.0.1.jar"/> -->
+        <include name="target/dependency/guava-31.1-jre.jar"/>
+            <include name="target/dependency/failureaccess-1.0.1.jar"/>
+            <include name="target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"/>
+            <include name="target/dependency/jsr305-3.0.2.jar"/>
+            <include name="target/dependency/j2objc-annotations-1.3.jar"/>
+        <include name="caffeinecache/caffeine-2.9.3.jar"/>
+        <!-- <include name="target/dependency/caffeine-3.1.2.jar"/>
+            <include name="target/dependency/checker-qual-3.27.0.jar"/>
+            <include name="target/dependency/error_prone_annotations-2.16.jar"/> -->
+
+        <include name="kafka/kafka-clients-2.1.0.jar"/>
+        <!-- <include name="target/dependency/kafka-clients-3.3.2.jar"/>
+            <include name="target/dependency/lz4-java-1.8.0.jar"/>
+            <include name="target/dependency/snappy-java-1.1.8.4.jar"/>
+            <include name="target/dependency/zstd-jni-1.5.2-1.jar"/> -->
+        <include name="kbase/handle/AbstractHandleClient-1.0.0.jar"/>
+        <include name="kbase/sample/SampleServiceClient-0.1.1.jar"/>
+      </fileset>
+
+      <fileset dir="${jardir}" id="news3lib">
+        <include name="amazon/V2/eventstream-1.0.1.jar"/>
+        <include name="reactivestreams/reactive-streams-1.0.3.jar"/>
+        <include name="target/dependency/annotations-2.19.24.jar"/>
+        <include name="target/dependency/arns-2.19.24.jar"/>
+        <include name="target/dependency/auth-2.19.24.jar"/>
+        <include name="target/dependency/aws-core-2.19.24.jar"/>
+        <include name="target/dependency/aws-query-protocol-2.19.24.jar"/>
+        <include name="target/dependency/aws-xml-protocol-2.19.24.jar"/>
+        <include name="target/dependency/endpoints-spi-2.19.24.jar"/>
+        <include name="target/dependency/http-client-spi-2.19.24.jar"/>
+        <include name="target/dependency/json-utils-2.19.24.jar"/>
+        <include name="target/dependency/metrics-spi-2.19.24.jar"/>
+        <include name="target/dependency/profiles-2.19.24.jar"/>
+        <include name="target/dependency/protocol-core-2.19.24.jar"/>
+        <include name="target/dependency/regions-2.19.24.jar"/>
+        <include name="target/dependency/s3-2.19.24.jar"/>
+        <include name="target/dependency/sdk-core-2.19.24.jar"/>
+        <include name="target/dependency/third-party-jackson-core-2.19.24.jar"/>
+        <include name="target/dependency/url-connection-client-2.19.24.jar"/>
+        <include name="target/dependency/utils-2.19.24.jar"/>
+      </fileset>
+
+      <fileset dir="${jardir}" id="newtestlib">
+        <include name="apache_commons/velocity-1.7.jar"/>
+        <include name="apache_commons/commons-lang-2.4.jar"/>
+        <include name="apache_commons/commons-collections-3.2.1.jar"/>
+        <include name="jsemver/java-semver-0.9.0.jar"/>
+        <!-- <include name="equalsverifier/equalsverifier-3.1.10.jar"/> -->
+        <include name="target/dependency/equalsverifier-3.12.3.jar"/>
+            <!-- <include name="bytebuddy/byte-buddy-1.9.10.jar"/> -->
+            <include name="target/dependency/byte-buddy-1.12.19.jar"/>
+            <!-- <include name="objenesis/objenesis-2.6.jar"/> -->
+            <include name="target/dependency/objenesis-3.3.jar"/>
+        <include name="kbase/auth2/kbase-auth2test-0.2.4.jar"/>
+        <include name="arangodb/arangodb-java-driver-6.7.2.jar"/>
+        <!-- <include name="target/dependency/arangodb-java-driver-6.20.0.jar"/> -->
+            <!-- <include name="arangodb/velocypack-2.4.0.jar"/> -->
+            <include name="target/dependency/velocypack-2.5.4.jar"/>
+        <!-- mockito and dependencies -->
+        <include name="mockito/mockito-core-3.0.0.jar"/>
+        <!-- <include name="target/dependency/mockito-core-5.0.0.jar"/> -->
+        <!-- <include name="bytebuddy/byte-buddy-agent-1.9.10.jar"/> -->
+            <include name="target/dependency/byte-buddy-agent-1.12.22.jar"/>
+      </fileset>
+
 
   <union id="applicationjars">
     <fileset refid="serverlib"/>
@@ -189,11 +306,11 @@
 
   <union id="serverside">
     <fileset refid="serverlib"/>
-    <fileset refid="clientserverlib"/>
-    <fileset refid="shocklib"/>
-    <fileset refid="applicationlib"/>
-    <fileset refid="s3lib"/>
-    <fileset refid="testlib"/>
+    <fileset refid="newclientserverlib"/>
+    <fileset refid="newshocklib"/>
+    <fileset refid="newapplicationlib"/>
+    <fileset refid="news3lib"/>
+    <fileset refid="newtestlib"/>
   </union>
 
   <fileset id="client-jdoc-files" dir="${src}/us/kbase" defaultexcludes="yes">
@@ -273,6 +390,7 @@
         source="1.8"
         encoding="UTF-8"
         debug="true"
+        deprecation="true"
         classpathref="compile.classpath">
       <src path="${src}"/>
     </javac>
