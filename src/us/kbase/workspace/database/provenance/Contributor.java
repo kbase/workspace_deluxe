@@ -181,7 +181,7 @@ public class Contributor {
 		ContributorType ct = null;
 		try {
 			ct = ContributorType.getType(contributorType);
-		} catch (Exception e) {
+		} catch (IllegalArgumentException e) {
 			errorList.add(e.getMessage());
 		}
 		return new Builder(ct, name, errorList);
