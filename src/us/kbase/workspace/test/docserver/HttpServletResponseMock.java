@@ -15,16 +15,16 @@ public class HttpServletResponseMock implements HttpServletResponse {
 	private Map<String, String> headers = new HashMap<String, String>();
 	private String contentType = null;
 	private int statusCode;
-	
-	
+
+
 	public String getHeader(String header) {
 		return headers.get(header);
 	}
-	
+
 	public int getStatusCode() {
 		return statusCode;
 	}
-	
+
 	@Override
 	public void flushBuffer() throws IOException {
 		throw new UnsupportedOperationException();
@@ -130,7 +130,9 @@ public class HttpServletResponseMock implements HttpServletResponse {
 		throw new UnsupportedOperationException();
 	}
 
+	/** @deprecated */
 	@Override
+        @Deprecated
 	public String encodeRedirectUrl(String arg0) {
 		throw new UnsupportedOperationException();
 	}
@@ -140,7 +142,9 @@ public class HttpServletResponseMock implements HttpServletResponse {
 		throw new UnsupportedOperationException();
 	}
 
+	/** @deprecated */
 	@Override
+        @Deprecated
 	public String encodeUrl(String arg0) {
 		throw new UnsupportedOperationException();
 	}
@@ -180,9 +184,10 @@ public class HttpServletResponseMock implements HttpServletResponse {
 		throw new UnsupportedOperationException();
 	}
 
+	/** @deprecated */
 	@Override
+        @Deprecated
 	public void setStatus(int arg0, String arg1) {
 		throw new UnsupportedOperationException();
 	}
-
 }

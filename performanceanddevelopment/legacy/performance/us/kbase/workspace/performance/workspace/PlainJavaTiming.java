@@ -18,22 +18,22 @@ import com.mongodb.client.MongoDatabase;
 public class PlainJavaTiming {
 	private static final String WORKSPACE = "TestObjs";
 	private static final String WS_DB = "ws_test";
-	
+
 	private static final String SHOCK_URL = "http://localhost:7044";
-	
+
 	public static void main(String args[]) throws Exception {
 		final String token = args[0];
 		if (token == null || token.trim().isEmpty()) {
 			throw new IllegalArgumentException("no token in args");
 		}
-		
+
 		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient();
 		final MongoDatabase db = mc.getDatabase(WS_DB);
 		final List<String> md5s = getMD5s(db, WORKSPACE);
-		
+
 		final List<String> nodes = getShockNodes(db, md5s);
-		
+
 		final URL shockURL = new URL(SHOCK_URL);
 		final List<Long> shockTimes = new LinkedList<>();
 		final long startShock = System.nanoTime();
@@ -45,7 +45,7 @@ public class PlainJavaTiming {
 			con.setRequestProperty("Authorization", "OAuth " + token);
 			final InputStream io = con.getInputStream();
 			@SuppressWarnings("unused")
-			final String s = IOUtils.toString(io);
+			final String s = IOUtils.toString(io, "UTF-8");
 			shockTimes.add(System.nanoTime() - startNode);
 			if (count % 10000 == 0) {
 				System.out.println(count);

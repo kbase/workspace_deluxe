@@ -37,14 +37,14 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.test.controllers.minio.MinioController;
 
 public class S3BlobStoreIntegrationTest {
-	
+
 	// TODO TEST test that indexes are correct
-	
+
 	// probably some way to make the individual tests run on the 3 different store setups.
 	// tests are very similar
 	// parameterized tests are crappy because eclipse can't run a single test anymore for
 	// some reason.
-	
+
 	private static S3BlobStore s3bs;
 	// use to exercise the cert trusting code, although doesn't actually test against self
 	//signed certs
@@ -53,7 +53,7 @@ public class S3BlobStoreIntegrationTest {
 	private static MongoDatabase mongo;
 	private static MinioController minio;
 	private static MongoController mongoCon;
-	
+
 	private static final String A32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	private static final String COLLECTION = "minio_blobs";
 	private static final String BUCKET = "test-bucket";
@@ -66,7 +66,7 @@ public class S3BlobStoreIntegrationTest {
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + mongoCon.getTempDir());
 		System.out.println("Started mongo server at localhost:" + mongoCon.getServerPort());
-		
+
 		String mongohost = "localhost:" + mongoCon.getServerPort();
 		@SuppressWarnings("resource")
 		MongoClient mongoClient = new MongoClient(mongohost);
@@ -83,12 +83,12 @@ public class S3BlobStoreIntegrationTest {
 		s3client = new S3ClientWithPresign(
 				url, "s3keyhere", "sooporsekrit", Region.of("us-west-1"), false);
 		s3bs = new S3BlobStore(mongo.getCollection(COLLECTION), s3client, BUCKET);
-		
+
 		final S3ClientWithPresign s3client2 = new S3ClientWithPresign(
 				url, "s3keyhere", "sooporsekrit", Region.of("us-west-1"), true);
 		s3bsTrustCerts = new S3BlobStore(mongo.getCollection(COLLECTION), s3client2, BUCKET);
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (minio != null) {
@@ -98,14 +98,14 @@ public class S3BlobStoreIntegrationTest {
 			mongoCon.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
-	
+
 	@Test
 	public void constructClientFailBadInput() throws Exception {
 		final URL u = new URL("http://localhost:45678");
 		final String k = "k";
 		final String s = "s";
 		final Region r = Region.of("us-west-1");
-		
+
 		constructClientFail(null, k, s, r, new NullPointerException("host"));
 		constructClientFail(new URL("http://local^host:45678"), k, s, r, new URISyntaxException(
 				"http://local^host:45678", "Illegal character in authority at index 7"));
@@ -119,7 +119,7 @@ public class S3BlobStoreIntegrationTest {
 				"s3secret cannot be null or whitespace only"));
 		constructClientFail(u, k, s, null, new NullPointerException("region"));
 	}
-	
+
 	private void constructClientFail(
 			final URL host,
 			final String key,
@@ -133,17 +133,17 @@ public class S3BlobStoreIntegrationTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	@Test
 	public void uploadPresignFailBadInput() throws Exception {
 		final PutObjectRequest p = PutObjectRequest.builder().bucket("b").key("k").build();
 		final Restreamable r = new StringRestreamable("foo");
-		
+
 		uploadPresignFail(null, r, new NullPointerException("put"));
 		uploadPresignFail(p, null, new NullPointerException("object"));
-		
+
 	}
-	
+
 	private void uploadPresignFail(
 			final PutObjectRequest put,
 			final Restreamable object,
@@ -155,30 +155,30 @@ public class S3BlobStoreIntegrationTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	static class StringRestreamable implements Restreamable {
 
 		private final String data;
-		
+
 		public StringRestreamable(final String data) {
 			this.data = data;
 		}
 		@Override
 		public InputStream getInputStream() {
-			return IOUtils.toInputStream(data);
+			return IOUtils.toInputStream(data, "UTF-8");
 		}
 		@Override
 		public long getSize() {
 			return (long) data.getBytes().length;
 		}
 	}
-	
+
 	@Test
 	public void saveAndGetBlob() throws Exception {
 		saveAndGetBlob(s3bs);
 		saveAndGetBlob(s3bsTrustCerts);
 	}
-	
+
 	private void saveAndGetBlob(final S3BlobStore bs) throws Exception {
 		MD5 md1 = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		String data = "this is a blob yo";
@@ -190,22 +190,22 @@ public class S3BlobStoreIntegrationTest {
 		assertThat("Didn't get same data back from store", returned, is(data));
 		//should be able to save the same thing twice with no error
 		bs.saveBlob(md1, new StringRestreamable(data), true);
-		
+
 		bs.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing
 		assertThat("sorted still true", s3bs.getBlob(md1copy, new ByteArrayFileCacheManager())
 				.isSorted(), is(true));
-		
+
 		MD5 md2 = new MD5("78afe93c486269db5b49d9017e850103");
 		String data2 = "this is also a blob yo";
 		bs.saveBlob(md2, new StringRestreamable(data2), false);
 		d = bs.getBlob(md2, new ByteArrayFileCacheManager());
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
-		
+
 		bs.removeBlob(md1);
 		bs.removeBlob(md2);
 		failGetBlob(md1);
 	}
-	
+
 	@Test
 	public void getNonExistantBlob() throws Exception {
 		failGetBlob(new MD5(A32));
@@ -221,13 +221,13 @@ public class S3BlobStoreIntegrationTest {
 					+ md5.getMD5()));
 		}
 	}
-	
+
 	@Test
 	public void removeNonExistantBlob() throws Exception {
 		s3bs.removeBlob(new MD5(A32)); //should silently not remove anything
-		
+
 	}
-	
+
 	@Test
 	public void status() throws Exception {
 		List<DependencyStatus> deps = s3bs.status();
@@ -238,7 +238,7 @@ public class S3BlobStoreIntegrationTest {
 		assertThat("incorrect status", dep.getStatus(), is("OK"));
 		assertThat("incorrect version", dep.getVersion(), is("Unknown"));
 	}
-	
+
 	@Test
 	public void presignUploadFail() throws Exception {
 		try {
@@ -254,7 +254,7 @@ public class S3BlobStoreIntegrationTest {
 						"follows:\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
 						"<Error><Code>NoSuchBucket</Code><Message>The specified bucket does " +
 						"not exist</Message><Key>"));
-				
+
 				assertThat("incorrect exception", e.getMessage(), containsString(
 						"</Key><BucketName>test-bucket</BucketName><Resource>"));
 			}

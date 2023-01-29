@@ -74,37 +74,37 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 
 public class Workspace {
-	
+
 	//TODO MEM limit all methods that return a set or list or map
-	
+
 	//TODO TEST general unit tests
 	//TODO GC garbage collection - see WOR-45
 	//TODO SEARCH index typespecs
 	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
 	//TODO CODE wrap event listeners in try/catch, catch everything & log & continue
-	
+
 	// TODO CODE this whole * = all users thing is a mess. It needs to go. First try and
 	// just remove it from everywhere but the MongoDB level and maybe the JSONRPC level
 	public static final AllUsers ALL_USERS = new AllUsers('*');
-	
+
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_WS_COUNT = 1000;
 	private final static int NAME_LIMIT = 1000;
-	/* may need to calculate memory for search tree and modify, or add a separate limit. 
+	/* may need to calculate memory for search tree and modify, or add a separate limit.
 	 * for now this is low enough it's not really a concern.
 	 */
 	private final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
 	private final static int MAX_GET_OBJECTS_REQUEST = 10000;
-	
+
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
-	
+
 	private final WorkspaceDatabase db;
 	private ResourceUsageConfiguration rescfg;
 	private final TypedObjectValidator validator;
 	private final TempFilesManager tfm;
 	private final List<WorkspaceEventListener> listeners;
 	private int maximumObjectSearchCount;
-	
+
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
@@ -113,7 +113,7 @@ public class Workspace {
 			throws WorkspaceCommunicationException {
 		this(db, cfg, validator, tfm, Collections.emptyList());
 	}
-	
+
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
@@ -132,7 +132,7 @@ public class Workspace {
 		this.listeners = Collections.unmodifiableList(listeners);
 		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
 	}
-	
+
 	/* this is temporary until we have path returning code when searching for objects.
 	 * Will probably want to determine the max number of objects based on some max memory usage and
 	 * on speed.
@@ -140,30 +140,30 @@ public class Workspace {
 	public void setMaximumObjectSearchCount(final int count) {
 		maximumObjectSearchCount = count;
 	}
-	
+
 	public int getMaximumObjectSearchCount() {
 		return maximumObjectSearchCount;
 	}
-	
+
 	public ResourceUsageConfiguration getResourceConfig() {
 		return rescfg;
 	}
-	
+
 	public void setResourceConfig(final ResourceUsageConfiguration rescfg) {
 		if (rescfg == null) {
 			throw new NullPointerException("rescfg cannot be null");
 		}
 		this.rescfg = rescfg;
 	}
-	
+
 	public TempFilesManager getTempFilesManager() {
 		return tfm;
 	}
-	
+
 	public List<DependencyStatus> status() {
 		return db.status();
 	}
-	
+
 	/** Set the dynamic configuration for the workspace. This method should only be exposed
 	 * to workspace admins.
 	 * @param config the configuration
@@ -173,7 +173,7 @@ public class Workspace {
 			throws WorkspaceCommunicationException {
 		db.setConfig(requireNonNull(config, "config"), true);
 	}
-	
+
 	/** Get the dynamic configuration for the workspace. This method should only be exposed to
 	 * workspace admins.
 	 * @return the configuration.
@@ -184,8 +184,8 @@ public class Workspace {
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return db.getConfig();
 	}
-	
-	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
+
+	public WorkspaceInformation createWorkspace(final WorkspaceUser user,
 			final String wsname, boolean globalread, final String description,
 			final WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
@@ -199,7 +199,7 @@ public class Workspace {
 		}
 		return ret;
 	}
-	
+
 	/** Set and remove metadata for a workspace.
 	 * @param user the user altering the metadata.
 	 * @param wsi the workspace to alter.
@@ -246,7 +246,7 @@ public class Workspace {
 			}
 		}
 	}
-	
+
 	public WorkspaceInformation cloneWorkspace(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -270,7 +270,7 @@ public class Workspace {
 		}
 		return info;
 	}
-	
+
 	/** Lock a workspace, preventing further changes other than making the workspace globally
 	 * readable.
 	 * @param user the user locking the workspace.
@@ -343,7 +343,7 @@ public class Workspace {
 		}
 		return wsid.getID();
 	}
-	
+
 	/** Get the free text description of a workspace.
 	 * @param user the user that is fetching the data.
 	 * @param wsi the workspace to fetch from.
@@ -371,7 +371,7 @@ public class Workspace {
 		}
 		return db.getWorkspaceDescription(wsid);
 	}
-	
+
 	/** Change the owner of a workspace.
 	 * @param owner the current owner.
 	 * @param wsi the workspace.
@@ -436,7 +436,7 @@ public class Workspace {
 		}
 		return db.getWorkspaceInformation(newUser, rwsi);
 	}
-			
+
 
 	public long setPermissions(
 			final WorkspaceUser user,
@@ -448,7 +448,7 @@ public class Workspace {
 			WorkspaceCommunicationException {
 		return setPermissions(user, wsi, users, permission, false);
 	}
-	
+
 	public long setPermissions(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -491,7 +491,7 @@ public class Workspace {
 		}
 		return wsid.getID();
 	}
-	
+
 	/** Set the global permission (e.g. readable or not) for a workspace.
 	 * @param user the user setting the permission.
 	 * @param wsi the workspace.
@@ -537,7 +537,7 @@ public class Workspace {
 
 	//TODO USERS make an anonymous user class instead of using null.
 	//TODO WORKSPACES consider a single method that returns all workspace info in a class. Probably performance difference is trivial compared to multiple methods.
-	
+
 	/** Get user permissions for a set of workspaces. If the user has at least write permission
 	 * to a particular workspace, all permissions for the workspace will be returned.
 	 * @param user the user for which permissions will be returned, or null for an anonymous user.
@@ -555,7 +555,7 @@ public class Workspace {
 				CorruptWorkspaceDBException {
 		return getPermissions(user, wslist, false);
 	}
-	
+
 	/** Get user permissions for a set of workspaces as an administrator. Returns all permissions
 	 * for all workspaces.
 	 * @param wslist the list of workspaces.
@@ -571,7 +571,7 @@ public class Workspace {
 				CorruptWorkspaceDBException {
 		return getPermissions(null, wslist, true);
 	}
-	
+
 	private List<Map<User, Permission>> getPermissions(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wslist,
@@ -631,7 +631,7 @@ public class Workspace {
 				.getWorkspaceChecker(wsi, Permission.READ).check();
 		return db.getWorkspaceInformation(user, wsid);
 	}
-	
+
 	/** Get information about a workspace as an admin. The user permission returned will always
 	 * be NONE.
 	 * @param wsi the workspace.
@@ -648,19 +648,19 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
 		return db.getWorkspaceInformation(null, wsid);
 	}
-	
+
 	private static String getObjectErrorId(final WorkspaceSaveObject wo, final int objcount) {
 		return getObjectErrorId(wo.getObjectIdentifier(), objcount);
 	}
-	
+
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi, final int objcount) {
 		return "#" + objcount +  ", " + oi.getIdentifierString();
 	}
-	
+
 	private static class IDAssociation {
 		final int objnum;
 		final boolean provenance;
-		
+
 		public IDAssociation(int objnum, boolean provenance) {
 			super();
 			this.objnum = objnum;
@@ -701,7 +701,7 @@ public class Workspace {
 	/** Note adds own handler factory for type ws */
 	public List<ObjectInformation> saveObjects(
 			final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, 
+			final WorkspaceIdentifier wsi,
 			List<WorkspaceSaveObject> objects,
 			final IdReferenceHandlerSetFactory idHandlerFac) throws
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
@@ -716,12 +716,12 @@ public class Workspace {
 		idHandlerFac.addFactory(getHandlerFactory(user));
 		final IdReferenceHandlerSet<IDAssociation> idhandler =
 				idHandlerFac.createHandlers(IDAssociation.class);
-		
-		final Map<WorkspaceSaveObject, ValidatedTypedObject> reports = 
+
+		final Map<WorkspaceSaveObject, ValidatedTypedObject> reports =
 				validateObjectsAndExtractReferences(objects, idhandler);
-		
+
 		processIds(objects, idhandler, reports);
-		
+
 		//handle references and calculate size with new references
 		final List<ResolvedSaveObject> saveobjs = new ArrayList<ResolvedSaveObject>();
 		long ttlObjSize = 0;
@@ -751,7 +751,7 @@ public class Workspace {
 			for (final RemappedId id: refids) {
 				refs.add((Reference) id);
 			}
-			
+
 			final ValidatedTypedObject rep = reports.get(wo);
 			saveobjs.add(wo.resolve(rwsi, rep, refs, provrefs, extractedIDs));
 			ttlObjSize += rep.calculateRelabeledSize();
@@ -766,9 +766,9 @@ public class Workspace {
 		}
 		objects = null;
 		reports.clear();
-		
+
 		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, rwsi);
-		
+
 		try {
 			sortObjects(saveobjs, ttlObjSize);
 			final List<ObjectInformation> ret = db.saveObjects(user, rwsi, saveobjs);
@@ -954,11 +954,11 @@ public class Workspace {
 		}
 		return rep;
 	}
-	
+
 	private String getValidationErrorPrefix(final WorkspaceSaveObject wo, final int objcount) {
 		return String.format("Object %s failed type checking", getObjectErrorId(wo, objcount));
 	}
-	
+
 	private TypedObjectValidationException wrapTooManyIDsException(
 			final WorkspaceSaveObject wo,
 			final int objcount,
@@ -993,7 +993,7 @@ public class Workspace {
 		return db.getWorkspaceInformation(perms, users, meta, after, before,
 				showDeleted, showOnlyDeleted);
 	}
-	
+
 	/** List workspace IDs to which a user has access. Returns much less data than
 	 * {@link #listWorkspaces(WorkspaceUser, Permission, List, WorkspaceUserMetadata, Date, Date, boolean, boolean, boolean)}
 	 * and should be faster.
@@ -1028,7 +1028,7 @@ public class Workspace {
 		}
 		return new UserWorkspaceIDs(user, minPerm, workspaceIDs, publicIDs);
 	}
-	
+
 	public List<ObjectInformation> listObjects(final ListObjectsParameters params)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
@@ -1049,7 +1049,7 @@ public class Workspace {
 		}
 		return db.getObjectInformation(params.resolve(pset));
 	}
-	
+
 	/** Get data objects from the workspace.
 	 * @param user the user requesting the objects, or null for an anonymous user.
 	 * @param objs the requested objects; no more than 10,000.
@@ -1094,13 +1094,13 @@ public class Workspace {
 			orb.withObject(oi);
 		}
 		ObjectResolver res = orb.resolve();
-		
+
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> stddata = getObjects(
 				res, false, !nullIfInaccessible, false, !nullIfInaccessible);
 		//objects cannot be missing at this stage
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> refdata = getObjects(
 				res, true, false, true, true);
-		
+
 		final List<WorkspaceObjectData.Builder> toProc = new ArrayList<>();
 		for (final ObjectIdentifier o: objs) {
 			final WorkspaceObjectData.Builder wodb;
@@ -1181,7 +1181,7 @@ public class Workspace {
 		if (size > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +
-					"data requested including potential subsets is %sB " + 
+					"data requested including potential subsets is %sB " +
 					"which exceeds maximum of %s.", size, rescfg.getMaxReturnedDataSize()));
 		}
 		return new ByteArrayFileCacheManager(
@@ -1218,7 +1218,7 @@ public class Workspace {
 				i.remove();
 			}
 		}
-		
+
 		//only includes workspaces that are at least readable
 		final PermissionSet perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
 		i = rwsis.entrySet().iterator();
@@ -1227,7 +1227,7 @@ public class Workspace {
 				i.remove();
 			}
 		}
-		
+
 		final Map<WorkspaceObjectData.Builder, ObjectIDResolvedWS> rois = new HashMap<>();
 		for (final WorkspaceObjectData.Builder d: data) {
 			if (d != null && d.getCopyReference().isPresent()) {
@@ -1241,17 +1241,17 @@ public class Workspace {
 				}
 			}
 		}
-		
+
 		final Map<ObjectIDResolvedWS, Boolean> objexists =
-				db.getObjectExists(new HashSet<>(rois.values())); 
-		
+				db.getObjectExists(new HashSet<>(rois.values()));
+
 		for (final Entry<WorkspaceObjectData.Builder, ObjectIDResolvedWS> e: rois.entrySet()) {
 			if (!objexists.get(e.getValue())) {
 				e.getKey().withCopySourceInaccessible();
 			}
 		}
 	}
-	
+
 	public List<Set<ObjectInformation>> getReferencingObjects(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
@@ -1261,10 +1261,10 @@ public class Workspace {
 				new PermissionsCheckerFactory(db, user).getObjectChecker(loi, Permission.READ)
 						.check();
 		final PermissionSet perms = db.getPermissions(user, Permission.READ, false);
-		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> refs = 
+		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> refs =
 				db.getReferencingObjects(perms,
 						new HashSet<ObjectIDResolvedWS>(ws.values()));
-		
+
 		final List<Set<ObjectInformation>> ret =
 				new LinkedList<Set<ObjectInformation>>();
 		for (final ObjectIdentifier o: loi) {
@@ -1272,8 +1272,9 @@ public class Workspace {
 		}
 		return ret;
 	}
-	
+
 	/** @deprecated */
+        @Deprecated
 	public List<Integer> getReferencingObjectCounts(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
@@ -1291,7 +1292,7 @@ public class Workspace {
 		}
 		return ret;
 	}
-	
+
 	/** Get all versions of an object.
 	 * @param user the user making the request.
 	 * @param oi the object to query.
@@ -1309,7 +1310,7 @@ public class Workspace {
 			CorruptWorkspaceDBException, NoSuchObjectException {
 		return getObjectHistory(user, oi, false);
 	}
-	
+
 	/** Get all versions of an object.
 	 * @param user the user making the request.
 	 * @param oi the object to query.
@@ -1331,7 +1332,7 @@ public class Workspace {
 						.getObjectChecker(oi, asAdmin ? Permission.NONE : Permission.READ).check();
 		return db.getObjectHistory(o);
 	}
-	
+
 	public List<ObjectInformation> getObjectInformation(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi,
@@ -1343,7 +1344,7 @@ public class Workspace {
 				NoSuchObjectException {
 		return getObjectInformation(user, loi, includeMetadata, nullIfInaccessible, false);
 	}
-	
+
 	public List<ObjectInformation> getObjectInformation(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi,
@@ -1354,7 +1355,7 @@ public class Workspace {
 				CorruptWorkspaceDBException, InaccessibleObjectException,
 				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException,
 				NoSuchObjectException {
-	
+
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
 				.withIgnoreInaccessible(nullIfInaccessible)
 				.withAsAdmin(asAdmin)
@@ -1363,15 +1364,15 @@ public class Workspace {
 			orb.withObject(oi);
 		}
 		final ObjectResolver res = orb.resolve();
-		
+
 		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = db.getObjectInformation(
 				res.getResolvedObjects(false),
 				includeMetadata, !nullIfInaccessible, false, !nullIfInaccessible);
-		
+
 		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = db.getObjectInformation(
 				res.getResolvedObjects(true), includeMetadata, false, true, true);
 				// at this point the object at the chain end must exist
-		
+
 		final List<ObjectInformation> ret = new ArrayList<>();
 		for (final ObjectIdentifier o: loi) {
 			final ObjectResolution objres = res.getObjectResolution(o);
@@ -1402,7 +1403,7 @@ public class Workspace {
 	 * @param prefix the prefix returned names must have.
 	 * @param includeHidden include hidden objects in the output.
 	 * @param limit the maximum number of names to return, at most 1000.
-	 * @return list of workspace names, listed by workspace in order of the 
+	 * @return list of workspace names, listed by workspace in order of the
 	 * input workspace list.
 	 * @throws NoSuchWorkspaceException if an input workspace does not exist.
 	 * @throws WorkspaceCommunicationException if a communication error with
@@ -1438,7 +1439,7 @@ public class Workspace {
 		if (wsis.isEmpty()) {
 			return new LinkedList<>();
 		}
-		
+
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				new PermissionsCheckerFactory(db, user).getWorkspaceChecker(wsis, Permission.READ)
 					.check();
@@ -1457,7 +1458,7 @@ public class Workspace {
 		}
 		return ret;
 	}
-	
+
 	/** Rename a workspace.
 	 * @param user the user performing the rename.
 	 * @param wsi the workspace.
@@ -1485,7 +1486,7 @@ public class Workspace {
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
-	
+
 	public ObjectInformation renameObject(
 			final WorkspaceUser user,
 			final ObjectIdentifier oi,
@@ -1504,7 +1505,7 @@ public class Workspace {
 		}
 		return objinfo;
 	}
-	
+
 	public ObjectInformation copyObject(
 			final WorkspaceUser user,
 			final ObjectIdentifier from,
@@ -1529,7 +1530,7 @@ public class Workspace {
 		}
 		return oi;
 	}
-	
+
 	public ObjectInformation revertObject(final WorkspaceUser user, final ObjectIdentifier oi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, NoSuchObjectException {
@@ -1543,7 +1544,7 @@ public class Workspace {
 		}
 		return objinfo;
 	}
-	
+
 	public void setObjectsHidden(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi,
@@ -1564,7 +1565,7 @@ public class Workspace {
 			}
 		}
 	}
-	
+
 	public void setObjectsDeleted(final WorkspaceUser user,
 			final List<ObjectIdentifier> loi, final boolean delete)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
@@ -1583,7 +1584,7 @@ public class Workspace {
 			}
 		}
 	}
-	
+
 	/** Set the deletion state of a workspace.
 	 * @param user the user requesting deletion or undeletion.
 	 * @param wsi the workspace.
@@ -1653,9 +1654,9 @@ public class Workspace {
 			throws WorkspaceCommunicationException {
 		return db.getAllWorkspaceOwners();
 	}
-	
+
 	/* these admin functions are provided as a convenience and have nothing
-	 * to do with the rest of the DB, really. 
+	 * to do with the rest of the DB, really.
 	 */
 	public boolean isAdmin(WorkspaceUser putativeAdmin)
 			throws WorkspaceCommunicationException {
@@ -1676,17 +1677,17 @@ public class Workspace {
 			throws WorkspaceCommunicationException {
 		db.addAdmin(user);
 	}
-	
-	
+
+
 	private WorkspaceIDHandlerFactory getHandlerFactory(
 			final WorkspaceUser user) {
 		return new WorkspaceIDHandlerFactory(user);
 	}
-	
+
 	private class WorkspaceIDHandlerFactory implements IdReferenceHandlerFactory {
 
 		private final WorkspaceUser user;
-		
+
 		private WorkspaceIDHandlerFactory(final WorkspaceUser user) {
 			super();
 			if (user == null) {
@@ -1706,7 +1707,7 @@ public class Workspace {
 		public IdReferenceType getIDType() {
 			return WS_ID_TYPE;
 		}
-		
+
 		@Override
 		public List<DependencyStatus> getDependencyStatus() {
 			// unused
@@ -1725,15 +1726,15 @@ public class Workspace {
 			return null;
 		}
 	}
-	
+
 	public class WorkspaceIDHandler<T> extends IdReferenceHandler<T> {
 
 		private final WorkspaceUser user;
-		
+
 		// associatedObject -> id -> list of attributes
 		private final Map<T, Map<String, Set<List<String>>>> ids = new HashMap<>();
 		private final Map<String, RemappedId> remapped = new HashMap<>();
-		
+
 		private WorkspaceIDHandler(final WorkspaceUser user) {
 			super();
 			this.user = user;
@@ -1746,7 +1747,7 @@ public class Workspace {
 //			throw new IdReferenceException("Workspace IDs must be strings",
 //					getIdType(), associatedObject, "" + id, attributes, null);
 //		}
-		
+
 		/* To conserve memory the attributes are not copied to another list,
 		 * so modification of the attributes will modify the internal
 		 * representation of the object.
@@ -1782,7 +1783,7 @@ public class Workspace {
 				}
 			}
 			final ObjectResolver wsresolvedids = resolveIDs(idset);
-			
+
 			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes =
 					getObjectTypes(wsresolvedids);
 
@@ -1796,7 +1797,7 @@ public class Workspace {
 				}
 			}
 		}
-		
+
 		private ObjectIdentifier parseIDString(
 				final String id,
 				final T associatedObject)
@@ -1954,7 +1955,7 @@ public class Workspace {
 			return generateIDReferenceException(ioe,
 					ioe.getInaccessibleObject(), exception);
 		}
-		
+
 		private IdReferenceException generateIDReferenceException(
 				final NoSuchObjectException ioe,
 				final ObjectIdentifier originalObject)
@@ -1983,7 +1984,7 @@ public class Workspace {
 					"Programming error: Lookup of object %s failed",
 					originalObject.getReferenceString()));
 		}
-		
+
 		@Override
 		protected RemappedId getRemappedIdImpl(final String oldId)
 				throws NoSuchIdException {
