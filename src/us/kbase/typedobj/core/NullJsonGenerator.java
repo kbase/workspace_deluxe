@@ -239,7 +239,9 @@ public class NullJsonGenerator extends JsonGenerator {
 		return 0;
 	}
 
+	/** @deprecated */
 	@Override
+        @Deprecated
 	public JsonGenerator setFeatureMask(int values) {
 		return null;
 	}

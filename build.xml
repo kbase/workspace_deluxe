@@ -91,10 +91,10 @@
         <include name="target/dependency/slf4j-api-2.0.6.jar"/>
         <!-- <include name="logback/logback-core-1.1.2.jar"/>
         <include name="logback/logback-classic-1.1.2.jar"/> -->
-        <!-- <include name="target/dependency/logback-core-1.4.5.jar"/>
-        <include name="target/dependency/logback-classic-1.4.5.jar"/> -->
-        <include name="target/dependency/logback-core-1.3.5.jar"/>
-        <include name="target/dependency/logback-classic-1.3.5.jar"/>
+        <include name="target/dependency/logback-core-1.4.5.jar"/>
+        <include name="target/dependency/logback-classic-1.4.5.jar"/>
+        <!-- <include name="target/dependency/logback-core-1.3.5.jar"/>
+        <include name="target/dependency/logback-classic-1.3.5.jar"/> -->
         <!-- <include name="google/guava-14.0.1.jar"/> -->
         <include name="target/dependency/guava-31.1-jre.jar"/>
             <include name="target/dependency/failureaccess-1.0.1.jar"/>
@@ -221,7 +221,7 @@
     <path refid="compile.classpath"/>
   </path>
 
-  <target name="init" description="make directories">
+  <target name="init" depends="clean" description="make directories">
     <!-- Create the output directory structure-->
     <mkdir dir="${classes}"/>
     <mkdir dir="${dist}"/>
@@ -254,8 +254,8 @@
     <javac
         destdir="${classes}"
         includeantruntime="false"
-        target="1.8"
-        source="1.8"
+        target="11"
+        source="11"
         encoding="UTF-8"
         debug="true"
         deprecation="true"

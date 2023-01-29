@@ -443,7 +443,7 @@ public class TestCommon {
 		final int rescode = conn.getResponseCode();
 		if (rescode < 200 || rescode >= 300) {
 			System.out.println("Response code: " + rescode);
-			String err = IOUtils.toString(conn.getErrorStream());
+			String err = IOUtils.toString(conn.getErrorStream(), "UTF-8");
 			System.out.println(err);
 			if (err.length() > 200) {
 				err = err.substring(0, 200);
@@ -464,7 +464,7 @@ public class TestCommon {
 		writer.close();
 
 		checkForError(conn);
-		final String out = IOUtils.toString(conn.getInputStream());
+		final String out = IOUtils.toString(conn.getInputStream(), "UTF-8");
 		@SuppressWarnings("unchecked")
 		final Map<String, Object> resp = new ObjectMapper().readValue(out, Map.class);
 		return (String) resp.get("token");

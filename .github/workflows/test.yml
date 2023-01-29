@@ -21,14 +21,15 @@ jobs:
   workspace_deluxe_tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - java: '8'
+          - java: '11'
             mongo: 'mongodb-linux-x86_64-3.6.23'
             minio: '2019-05-23T00-29-34Z'
-            wired_tiger: 'false'
+            wired_tiger: 'true'
             ant_test: 'test_quick_coverage'
-          - java: '11'
+          - java: '17'
             mongo: 'mongodb-linux-x86_64-3.6.23'
             minio: '2019-05-23T00-29-34Z'
             wired_tiger: 'true'

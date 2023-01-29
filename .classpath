@@ -8,103 +8,332 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-logging-1.1.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/ini4j/ini4j-0.5.2.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/jetty/jetty-all-7.0.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/jna/jna-3.4.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/servlet/servlet-api-2.5.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/syslog4j/syslog4j-0.9.46.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-collections-3.2.1.jar" sourcepath="/jars/lib/jars/apache_commons/commons-collections-3.2.1-sources.jar">
+
+
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/ini4j/ini4j-0.5.2.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/ini4j-0.5.2.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jetty-all-7.6.21.v20160908.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jetty-all-9.2.30.v20200428.jar"/> -->
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/servlet/servlet-api-2.5.jar"/>
+                <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/javax.websocket-api-1.0.jar"/> -->
+                <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/javax.servlet-api-3.1.0.jar"/> -->
+                <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/javax.servlet-api-4.0.1.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jna/jna-3.4.0.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/syslog4j/syslog4j-0.9.46.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/annotation/javax.annotation-api-1.3.2.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/junit/junit-4.12.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/junit-4.13.2.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/hamcrest/hamcrest-core-1.3.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/hamcrest-2.2.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/hamcrest-core-2.2.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/common/kbase-common-0.1.1.jar"/>
+        <!-- joda is required for kbase-common -->
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/joda/joda-time-2.2.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/joda-time-2.12.2.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/auth/kbase-auth-0.4.4.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jackson/jackson-annotations-2.9.9.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jackson/jackson-core-2.9.9.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jackson/jackson-databind-2.9.9.jar"/> -->
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jackson-annotations-2.14.1.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jackson-core-2.14.1.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jackson-databind-2.14.1.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jackson-annotations-2.12.7.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jackson-core-2.12.7.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jackson-databind-2.12.7.1.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jackson-datatype-jsr310-2.12.7.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/shock/shock-client-0.1.0.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-logging-1.1.1.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/http/httpclient-4.5.9.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/http/httpcore-4.4.5.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/http/httpmime-4.5.8.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/commons-logging-1.2.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/httpclient-4.5.14.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/httpcore-4.4.16.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/httpmime-4.5.14.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-codec-1.8.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-io-2.4.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-lang3-3.1.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/commons-codec-1.15.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/commons-io-2.11.0.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/commons-lang3-3.12.0.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/picocli/picocli-4.6.1.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/picocli-4.7.0.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/mongo/mongo-java-driver-3.12.10.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/mongo-java-driver-3.12.11.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/slf4j/slf4j-api-1.7.30.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/slf4j-api-2.0.6.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/logback/logback-core-1.1.2.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/logback/logback-classic-1.1.2.jar"/> -->
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/logback-core-1.4.5.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/logback-classic-1.4.5.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/logback-core-1.3.5.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/logback-classic-1.3.5.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/google/guava-14.0.1.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/guava-31.1-jre.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/failureaccess-1.0.1.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/jsr305-3.0.2.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/j2objc-annotations-1.3.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/caffeinecache/caffeine-2.9.3.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/caffeine-3.1.2.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/checker-qual-3.27.0.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/error_prone_annotations-2.16.jar"/> -->
+
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kafka/kafka-clients-2.1.0.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/kafka-clients-3.3.2.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/lz4-java-1.8.0.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/snappy-java-1.1.8.4.jar"/>
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/zstd-jni-1.5.2-1.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/handle/AbstractHandleClient-1.0.0.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.1.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/annotations-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/arns-2.17.214.jar.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/auth-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/aws-core-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/aws-query-protocol-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/aws-xml-protocol-2.17.214.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/eventstream-1.0.1.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/http-client-spi-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/json-utils-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/metrics-spi-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/profiles-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/protocol-core-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/regions-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/s3-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/sdk-core-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/third-party-jackson-core-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/url-connection-client-2.17.214.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/utils-2.17.214.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/reactivestreams/reactive-streams-1.0.3.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/annotations-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/arns-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/auth-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/aws-core-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/aws-query-protocol-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/aws-xml-protocol-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/endpoints-spi-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/http-client-spi-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/json-utils-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/metrics-spi-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/profiles-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/protocol-core-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/regions-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/s3-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/sdk-core-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/third-party-jackson-core-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/url-connection-client-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/utils-2.19.24.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/velocity-1.7.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-lang-2.4.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-collections-3.2.1.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jsemver/java-semver-0.9.0.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/equalsverifier/equalsverifier-3.1.10.jar"/> -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/equalsverifier-3.12.3.jar"/>
+                <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/bytebuddy/byte-buddy-1.9.10.jar"/> -->
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/byte-buddy-1.12.19.jar"/>
+                <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/objenesis/objenesis-2.6.jar"/> -->
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/objenesis-3.3.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/auth2/kbase-auth2test-0.2.4.jar"/>
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/arangodb-java-driver-6.20.0.jar"/> -->
+                <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/arangodb/velocypack-2.4.0.jar"/> -->
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/velocypack-2.5.4.jar"/>
+        <!-- mockito and dependencies -->
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/mockito/mockito-core-3.0.0.jar"/>
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/mockito-core-5.0.0.jar"/> -->
+        <!-- <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/bytebuddy/byte-buddy-agent-1.9.10.jar"/> -->
+                <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/target/dependency/byte-buddy-agent-1.12.22.jar"/>
+
+<!--
+
+        <classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="target/dependency/commons-logging-1.2.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/ini4j/ini4j-0.5.2.jar"/>
+	<classpathentry kind="lib" path="target/dependency/ini4j-0.5.4.jar"/>
+
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jetty/jetty-all-7.0.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/jetty-all-7.0.2.v20100331.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/jetty-all-7.6.21.v20160908.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/jetty-all-9.2.30.v20200428.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jna/jna-3.4.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/servlet/servlet-api-2.5.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/javax.servlet-api-3.1.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/syslog4j/syslog4j-0.9.46.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-collections-3.2.1.jar" sourcepath="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-collections-3.2.1-sources.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/jars/lib/jars/apache_commons/commons-collections-3.2.1-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/jars/lib/jars/bson4jackson/bson4jackson-2.2.0-2.2.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/texttable/text-table-formatter-1.1.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-codec-1.8.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-io-2.4.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-lang3-3.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/google/guava-14.0.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/fge/btf-1.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/fge/jackson-coreutils-1.4.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/fge/json-patch-1.3.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/fge/json-schema-core-1.1.8.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/fge/json-schema-validator-2.1.7.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/fge/msg-simple-0.9.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/fge/uri-template-0.7.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/aopalliance/aopalliance-1.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/google/guice-3.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/google/jsonschema2pojo-core-0.3.6.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/google/jsr305-2.0.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/google/libphonenumber-5.6.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/inject/javax.inject-1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/joda/joda-time-2.2.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/mailapi/mailapi-1.4.3.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/mozilla/rhino-1.7R4.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/testng/testng-6.8.5.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/logback/logback-core-1.1.2.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/logback/logback-classic-1.1.2.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/velocity-1.7.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-lang-2.4.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/jsemver/java-semver-0.9.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/AbstractHandleClient-1.0.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.4.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/junit/junit-4.12.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/hamcrest/hamcrest-core-1.3.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth2/kbase-auth2test-0.2.4.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kafka/kafka-clients-2.1.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/shock/shock-client-0.1.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/eventstream-1.0.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/annotation/javax.annotation-api-1.3.2.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/bytebuddy/byte-buddy-1.9.10.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/bytebuddy/byte-buddy-agent-1.9.10.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/mockito/mockito-core-3.0.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/objenesis/objenesis-2.6.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/equalsverifier/equalsverifier-3.1.10.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-annotations-2.9.9.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-core-2.9.9.jar" sourcepath="/jars/lib/jars/jackson/jackson-core-2.9.9-sources.jar">
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/bson4jackson/bson4jackson-2.2.0-2.2.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/texttable/text-table-formatter-1.1.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-codec-1.8.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-io-2.4.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-lang3-3.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/google/guava-14.0.1.jar"/>
+        <classpathentry kind="lib" path="target/dependency/annotations-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/arangodb-java-driver-6.20.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/arns-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/auth-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/aws-core-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/aws-query-protocol-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/aws-xml-protocol-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/byte-buddy-1.12.19.jar"/>
+        <classpathentry kind="lib" path="target/dependency/byte-buddy-agent-1.12.22.jar"/>
+        <classpathentry kind="lib" path="target/dependency/caffeine-3.1.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/checker-qual-3.27.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/commons-codec-1.15.jar"/>
+        <classpathentry kind="lib" path="target/dependency/commons-io-2.11.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/commons-lang3-3.12.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/commons-logging-1.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/endpoints-spi-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/equalsverifier-3.12.3.jar"/>
+        <classpathentry kind="lib" path="target/dependency/error_prone_annotations-2.16.jar"/>
+        <classpathentry kind="lib" path="target/dependency/eventstream-1.0.1.jar"/>
+        <classpathentry kind="lib" path="target/dependency/failureaccess-1.0.1.jar"/>
+        <classpathentry kind="lib" path="target/dependency/guava-31.1-jre.jar"/>
+        <classpathentry kind="lib" path="target/dependency/hamcrest-2.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/hamcrest-core-2.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/http-client-spi-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/httpclient-4.5.14.jar"/>
+        <classpathentry kind="lib" path="target/dependency/httpcore-4.4.16.jar"/>
+        <classpathentry kind="lib" path="target/dependency/httpmime-4.5.14.jar"/>
+        <classpathentry kind="lib" path="target/dependency/ini4j-0.5.4.jar"/>
+        <classpathentry kind="lib" path="target/dependency/j2objc-annotations-1.3.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jackson-annotations-2.12.7.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jackson-annotations-2.14.1.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jackson-core-2.12.7.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jackson-core-2.14.1.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jackson-databind-2.12.7.1.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jackson-databind-2.14.1.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jackson-datatype-jsr310-2.12.7.jar"/>
+        <classpathentry kind="lib" path="target/dependency/java-semver-0.9.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/javax.annotation-api-1.3.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/javax.servlet-api-4.0.1.jar"/>
+        <classpathentry kind="lib" path="target/dependency/javax.websocket-api-1.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jetty-all-9.2.30.v20200428.jar"/>
+        <classpathentry kind="lib" path="target/dependency/joda-time-2.12.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/json-utils-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/jsr305-3.0.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/junit-4.13.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/kafka-clients-3.3.2.jar"/>
+        <classpathentry kind="lib" path="target/dependency/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"/>
+        <classpathentry kind="lib" path="target/dependency/logback-classic-1.3.5.jar"/>
+        <classpathentry kind="lib" path="target/dependency/logback-classic-1.4.5.jar"/>
+        <classpathentry kind="lib" path="target/dependency/logback-core-1.3.5.jar"/>
+        <classpathentry kind="lib" path="target/dependency/logback-core-1.4.5.jar"/>
+        <classpathentry kind="lib" path="target/dependency/lz4-java-1.8.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/metrics-spi-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/mockito-core-5.0.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/mongo-java-driver-3.12.11.jar"/>
+        <classpathentry kind="lib" path="target/dependency/objenesis-3.3.jar"/>
+        <classpathentry kind="lib" path="target/dependency/picocli-4.7.0.jar"/>
+        <classpathentry kind="lib" path="target/dependency/profiles-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/protocol-core-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/reactive-streams-1.0.3.jar"/>
+        <classpathentry kind="lib" path="target/dependency/regions-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/s3-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/sdk-core-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/slf4j-api-2.0.6.jar"/>
+        <classpathentry kind="lib" path="target/dependency/snappy-java-1.1.8.4.jar"/>
+        <classpathentry kind="lib" path="target/dependency/third-party-jackson-core-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/url-connection-client-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/utils-2.19.24.jar"/>
+        <classpathentry kind="lib" path="target/dependency/velocypack-2.5.4.jar"/>
+        <classpathentry kind="lib" path="target/dependency/zstd-jni-1.5.2-1.jar"/>
+
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-lang3-3.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/google/guava-14.0.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/fge/btf-1.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/fge/jackson-coreutils-1.4.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/fge/json-patch-1.3.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/fge/json-schema-core-1.1.8.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/fge/json-schema-validator-2.1.7.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/fge/msg-simple-0.9.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/fge/uri-template-0.7.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/aopalliance/aopalliance-1.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/google/guice-3.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/google/jsonschema2pojo-core-0.3.6.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/google/jsr305-2.0.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/google/libphonenumber-5.6.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/inject/javax.inject-1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/joda/joda-time-2.2.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/mailapi/mailapi-1.4.3.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/mozilla/rhino-1.7R4.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/testng/testng-6.8.5.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/logback/logback-core-1.1.2.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/logback/logback-classic-1.1.2.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/logback-core-1.4.5.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/logback-classic-1.4.5.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/logback-core-1.3.5.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/logback-classic-1.3.5.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/velocity-1.7.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/commons-lang-2.4.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jsemver/java-semver-0.9.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/handle/AbstractHandleClient-1.0.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/auth/kbase-auth-0.4.4.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/junit/junit-4.12.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/hamcrest/hamcrest-core-1.3.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/auth2/kbase-auth2test-0.2.4.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kafka/kafka-clients-2.1.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/shock/shock-client-0.1.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/eventstream-1.0.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/annotation/javax.annotation-api-1.3.2.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/bytebuddy/byte-buddy-1.9.10.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/bytebuddy/byte-buddy-agent-1.9.10.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/mockito/mockito-core-3.0.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/objenesis/objenesis-2.6.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/equalsverifier/equalsverifier-3.1.10.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jackson/jackson-annotations-2.9.9.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jackson/jackson-core-2.9.9.jar" sourcepath="/Users/gwg/code/kbase/jars/lib/jars/jackson/jackson-core-2.9.9-sources.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/jars/lib/jars/jackson/jackson-core-2.9.9-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-databind-2.9.9.jar" sourcepath="/jars/lib/jars/jackson/jackson-databind-2.9.9-sources.jar">
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/jackson/jackson-databind-2.9.9.jar" sourcepath="/Users/gwg/code/kbase/jars/lib/jars/jackson/jackson-databind-2.9.9-sources.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/jars/lib/jars/jackson/jackson-databind-2.9.9-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2.jar">
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/jackson-datatype-jsr310-2.12.7.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/jackson-databind-2.12.7.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/jackson-core-2.12.7.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/jackson-annotations-2.12.7.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/jars/lib/jars/arangodb/velocypack-2.4.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/reactivestreams/reactive-streams-1.0.3.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpclient-4.5.9.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpcore-4.4.5.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpmime-4.5.8.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/picocli/picocli-4.6.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/mongo/mongo-java-driver-3.12.10.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/caffeinecache/caffeine-2.9.3.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/slf4j/slf4j-api-1.7.30.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/annotations-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/arns-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/auth-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-core-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-query-protocol-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-xml-protocol-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/http-client-spi-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/json-utils-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/metrics-spi-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/profiles-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/protocol-core-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/regions-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/s3-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/sdk-core-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/third-party-jackson-core-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/url-connection-client-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/utils-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.1.1.jar"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/arangodb/velocypack-2.4.0.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/reactivestreams/reactive-streams-1.0.3.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/http/httpclient-4.5.9.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/http/httpcore-4.4.5.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/apache_commons/http/httpmime-4.5.8.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/picocli/picocli-4.6.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.1.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/mongo/mongo-java-driver-3.12.10.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/caffeinecache/caffeine-2.9.3.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/slf4j/slf4j-api-1.7.30.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/dependency/slf4j-api-2.0.6.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/annotations-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/arns-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/auth-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/aws-core-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/aws-query-protocol-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/aws-xml-protocol-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/http-client-spi-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/json-utils-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/metrics-spi-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/profiles-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/protocol-core-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/regions-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/s3-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/sdk-core-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/third-party-jackson-core-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/url-connection-client-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/amazon/V2/utils-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/Users/gwg/code/kbase/jars/lib/jars/kbase/common/kbase-common-0.1.1.jar"/> -->
+
+        <classpathentry kind="output" path="bin"/>
 </classpath>

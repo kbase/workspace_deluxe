@@ -2682,6 +2682,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	/** @deprecated */
 	@Override
+        @Deprecated
 	public Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
 			final Set<ObjectIDResolvedWS> objects)
 			throws WorkspaceCommunicationException, NoSuchObjectException {

@@ -1,5 +1,5 @@
 # FROM amazoncorretto:8 as build
-FROM eclipse-temurin:8-jdk as build
+FROM eclipse-temurin:11-jdk as build
 # FROM ibmjava:8-sdk as build
 # FROM ibm-semeru-runtimes:open-8-jdk as build
 # FROM kbase/sdkbase2 as build
