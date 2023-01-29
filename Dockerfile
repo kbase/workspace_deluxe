@@ -20,8 +20,11 @@ RUN cp -r target /tmp/jars/lib/jars/ && \
     make docker_deps
 
 # updated/slimmed down version of what's in kbase/kb_jre
-# FROM bitnami/minideb
-FROM ubuntu:18.04
+
+# FROM jetty:jre8
+
+FROM bitnami/minideb
+# FROM ubuntu:18.04
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
@@ -29,13 +32,13 @@ ARG VCS_REF
 ARG BRANCH=develop
 
 ENV DOCKERIZE_VERSION linux-amd64-v0.6.1
-
+ENV TOMCAT_VERSION tomcat9
 USER root
 
 RUN mkdir -p /var/lib/apt/lists/partial && \
     apt-get update -y && \
-    apt-get install --no-install-recommends -y ca-certificates tomcat8-user libservlet3.1-java wget && \
-#     install_packages ca-certificates tomcat9-user jetty9 libservlet3.1-java wget && \
+#    apt-get install --no-install-recommends -y ca-certificates tomcat8-user libservlet3.1-java wget && \
+    install_packages ca-certificates ${TOMCAT_VERSION}-user jetty9 libservlet3.1-java wget && \
     apt-get clean && \
     useradd -c "KBase user" -rd /kb/deployment/ -u 998 -s /bin/bash kbase && \
     mkdir -p /kb/deployment/bin && \
@@ -49,11 +52,11 @@ RUN mkdir -p /var/lib/apt/lists/partial && \
 
 COPY --from=build /tmp/workspace_deluxe/deployment/ /kb/deployment/
 
-RUN /usr/bin/tomcat8-instance-create /kb/deployment/services/workspace/tomcat && \
+RUN /usr/bin/${TOMCAT_VERSION}-instance-create /kb/deployment/services/workspace/tomcat && \
     mv /kb/deployment/services/workspace/WorkspaceService.war /kb/deployment/services/workspace/tomcat/webapps/ROOT.war && \
     rm -rf /kb/deployment/services/workspace/tomcat/webapps/ROOT
 
-# Must set catalina_base to match location of tomcat8-instance-create dir
+# Must set catalina_base to match location of tomcat9-instance-create dir
 # before calling /usr/share/tomcat9/bin/catalina.sh
 ENV CATALINA_BASE /kb/deployment/services/workspace/tomcat
 ENV KB_DEPLOYMENT_CONFIG /kb/deployment/conf/deployment.cfg
@@ -74,7 +77,7 @@ CMD [ "-template", "/kb/deployment/conf/.templates/deployment.cfg.templ:/kb/depl
       "-template", "/kb/deployment/conf/.templates/server.xml.templ:/kb/deployment/services/workspace/tomcat/conf/server.xml", \
       "-template", "/kb/deployment/conf/.templates/tomcat-users.xml.templ:/kb/deployment/services/workspace/tomcat/conf/tomcat-users.xml", \
       "-template", "/kb/deployment/conf/.templates/logging.properties.templ:/kb/deployment/services/workspace/tomcat/conf/logging.properties", \
-      "-template", "/kb/deployment/conf/.templates/setenv.sh.templ:/kb/deployment/services/workspace/tomcat/bin/setenv.sh", \
+#       "-template", "/kb/deployment/conf/.templates/setenv.sh.templ:/kb/deployment/services/workspace/tomcat/bin/setenv.sh", \
       "-stdout", "/kb/deployment/services/workspace/tomcat/logs/catalina.out", \
       "-stdout", "/kb/deployment/services/workspace/tomcat/logs/access.log", \
-      "/usr/share/tomcat8/bin/catalina.sh", "run" ]
+      "/usr/share/tomcat9/bin/catalina.sh", "run" ]
