@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
+
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -193,6 +194,10 @@ public class ContributorTest {
 			"datecite:software"
 	);
 
+        private static final List<Organization> ELO = Collections.emptyList();
+        private static final List<ContributorRole> ELCR = Collections.emptyList();
+        private static final List<String> ELCRS = Collections.emptyList();
+
 	private static final Map<String, String> NAME_MAP = ImmutableMap.of(NAME, NAME_STRING);
 
 	private static final Map<String, String> NAME_ID_MAP = ImmutableMap.of(
@@ -355,18 +360,18 @@ public class ContributorTest {
 				is(expectedMap.containsKey(CONTRIB_ID) ? opt(expectedMap.get(CONTRIB_ID)) : ES));
 
 		assertThat(INCORRECT_AFFILIATIONS, contributor.getAffiliations(),
-				is(orgs == null ? Collections.emptyList() : orgs));
+				is(orgs));
 		assertThat(INCORRECT_CONTRIB_ROLES, contributor.getContributorRoles(),
-				is(roles == null ? Collections.emptyList() : roles));
+				is(roles));
 		assertThat(INCORRECT_CONTRIB_ROLE_STRINGS, contributor.getContributorRoleStrings(),
-				is(roleStrings == null ? Collections.emptyList() : roleStrings));
+				is(roleStrings));
 	}
 
 	private void assertContributorFields(
 			final Contributor contributor,
 			final ContributorType ct,
 			final Map<String, String> expectedMap) {
-		assertContributorFields(contributor, ct, expectedMap, null, null, null);
+		assertContributorFields(contributor, ct, expectedMap, ELO, ELCR, ELCRS);
 	}
 
 	@Test
@@ -415,8 +420,8 @@ public class ContributorTest {
 		// build the List fields with either an empty list or null
 		for (final ContributorType ct : ContributorType.values()) {
 			final Contributor contributor1 = Contributor.getBuilder(ct, NAME_STRING)
-					.withAffiliations(Collections.emptyList())
-					.withContributorRoles(Collections.emptyList())
+					.withAffiliations(ELO)
+					.withContributorRoles(ELCR)
 					.build();
 			assertContributorFields(contributor1, ct, NAME_MAP);
 
@@ -435,7 +440,7 @@ public class ContributorTest {
 
 			final Contributor contributor4 = Contributor.getBuilder(ct, NAME_STRING)
 					.withAffiliations(null)
-					.withContributorRoleStrings(Collections.emptyList())
+					.withContributorRoleStrings(ELCRS)
 					.build();
 			assertContributorFields(contributor4, ct, NAME_MAP);
 		}
@@ -505,7 +510,7 @@ public class ContributorTest {
 								null,
 								ORG_3))
 				.build();
-		assertContributorFields(contributor, ContributorType.ORGANIZATION, NAME_MAP, AFFILIATIONS, null, null);
+		assertContributorFields(contributor, ContributorType.ORGANIZATION, NAME_MAP, AFFILIATIONS, ELCR, ELCRS);
 
 		final Contributor contributor2 = Contributor.getBuilder(ContributorType.ORGANIZATION, NAME_STRING)
 				.withAffiliations(
@@ -516,7 +521,7 @@ public class ContributorTest {
 								null,
 								null))
 				.build();
-		assertContributorFields(contributor2, ContributorType.ORGANIZATION, NAME_MAP, null, null, null);
+		assertContributorFields(contributor2, ContributorType.ORGANIZATION, NAME_MAP);
 	}
 
 
@@ -527,7 +532,7 @@ public class ContributorTest {
 			// affiliations, overwrite with empty list
 			final Contributor contributor1 = Contributor.getBuilder(ct, NAME_STRING)
 					.withAffiliations(AFFILIATIONS)
-					.withAffiliations(Collections.emptyList())
+					.withAffiliations(ELO)
 					.build();
 			assertContributorFields(contributor1, ct, NAME_MAP);
 
@@ -543,14 +548,14 @@ public class ContributorTest {
 					.withAffiliations(AFFILIATIONS)
 					.withAffiliations(Arrays.asList((Organization) null, null))
 					.build();
-			assertContributorFields(contributor3, ct, NAME_MAP, null, null, null);
+			assertContributorFields(contributor3, ct, NAME_MAP);
 
 			// overwrite list o' nulls
 			final Contributor contributor4 = Contributor.getBuilder(ct, NAME_STRING)
 					.withAffiliations(Arrays.asList(null, null))
 					.withAffiliations(AFFILIATIONS)
 					.build();
-			assertContributorFields(contributor4, ct, NAME_MAP, AFFILIATIONS, null, null);
+			assertContributorFields(contributor4, ct, NAME_MAP, AFFILIATIONS, ELCR, ELCRS);
 		}
 	}
 
@@ -560,17 +565,17 @@ public class ContributorTest {
 			final Contributor contributor1 = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoles(ROLES_WITH_DUPES_NULLS)
 					.build();
-			assertContributorFields(contributor1, ct, NAME_MAP, null, ROLES, ROLES_AS_STRINGS);
+			assertContributorFields(contributor1, ct, NAME_MAP, ELO, ROLES, ROLES_AS_STRINGS);
 
 			final Contributor contributor2 = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoleStrings(ROLE_INPUT_STRINGS_DUPES_NULLS)
 					.build();
-			assertContributorFields(contributor2, ct, NAME_MAP, null, ROLES, ROLES_AS_STRINGS);
+			assertContributorFields(contributor2, ct, NAME_MAP, ELO, ROLES, ROLES_AS_STRINGS);
 
 			final Contributor contributor3 = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoleStrings(WHITESPACE_STRINGS_WITH_NULL)
 					.build();
-			assertContributorFields(contributor3, ct, NAME_MAP, null, null, null);
+			assertContributorFields(contributor3, ct, NAME_MAP);
 
 		}
 
@@ -583,7 +588,7 @@ public class ContributorTest {
 			// contrib role strings, empty list
 			final Contributor contributor1 = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
-					.withContributorRoleStrings(Collections.emptyList())
+					.withContributorRoleStrings(ELCRS)
 					.build();
 			assertContributorFields(contributor1, ct, NAME_MAP);
 
@@ -604,7 +609,7 @@ public class ContributorTest {
 			// contrib roles, empty list
 			final Contributor contributor4 = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoles(ROLES)
-					.withContributorRoles(Collections.emptyList())
+					.withContributorRoles(ELCR)
 					.build();
 			assertContributorFields(contributor4, ct, NAME_MAP);
 
@@ -626,7 +631,7 @@ public class ContributorTest {
 			// empty list
 			final Contributor contributor1m = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoles(ROLES)
-					.withContributorRoleStrings(Collections.emptyList())
+					.withContributorRoleStrings(ELCRS)
 					.build();
 			assertContributorFields(contributor1m, ct, NAME_MAP);
 
@@ -647,7 +652,7 @@ public class ContributorTest {
 			// empty list
 			final Contributor contributor4m = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
-					.withContributorRoles(Collections.emptyList())
+					.withContributorRoles(ELCR)
 					.build();
 			assertContributorFields(contributor4m, ct, NAME_MAP);
 
@@ -671,28 +676,28 @@ public class ContributorTest {
 					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
 					.withContributorRoles(ALT_ROLES_WITH_DUPES_NULLS)
 					.build();
-			assertContributorFields(contributor1o, ct, NAME_MAP, null, ALT_ROLES, ALT_ROLES_AS_STRINGS);
+			assertContributorFields(contributor1o, ct, NAME_MAP, ELO, ALT_ROLES, ALT_ROLES_AS_STRINGS);
 
 			// strings overwrite strings
 			final Contributor contributor2o = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
 					.withContributorRoleStrings(ALT_ROLE_INPUT_STRINGS_DUPES_NULLS)
 					.build();
-			assertContributorFields(contributor2o, ct, NAME_MAP, null, ALT_ROLES, ALT_ROLES_AS_STRINGS);
+			assertContributorFields(contributor2o, ct, NAME_MAP, ELO, ALT_ROLES, ALT_ROLES_AS_STRINGS);
 
 			// strings overwrite roles
 			final Contributor contributor3o = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoles(ROLES_WITH_DUPES_NULLS)
 					.withContributorRoleStrings(ALT_ROLE_INPUT_STRINGS_DUPES_NULLS)
 					.build();
-			assertContributorFields(contributor3o, ct, NAME_MAP, null, ALT_ROLES, ALT_ROLES_AS_STRINGS);
+			assertContributorFields(contributor3o, ct, NAME_MAP, ELO, ALT_ROLES, ALT_ROLES_AS_STRINGS);
 
 			// roles overwrite roles
 			final Contributor contributor4o = Contributor.getBuilder(ct, NAME_STRING)
 					.withContributorRoles(ROLES)
 					.withContributorRoles(ALT_ROLES_WITH_DUPES_NULLS)
 					.build();
-			assertContributorFields(contributor4o, ct, NAME_MAP, null, ALT_ROLES, ALT_ROLES_AS_STRINGS);
+			assertContributorFields(contributor4o, ct, NAME_MAP, ELO, ALT_ROLES, ALT_ROLES_AS_STRINGS);
 		}
 	}
 
