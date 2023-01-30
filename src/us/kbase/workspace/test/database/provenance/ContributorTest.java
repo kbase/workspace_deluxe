@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
-
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -24,7 +23,6 @@ import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.W
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_PID_LIST;
 
 import us.kbase.workspace.database.provenance.Organization;
-
 import us.kbase.workspace.database.provenance.Contributor;
 import us.kbase.workspace.database.provenance.ContributorRole;
 import us.kbase.workspace.database.provenance.Contributor.ContributorType;
