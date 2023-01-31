@@ -196,6 +196,7 @@ public class Contributor {
 		private String contributorID = null;
 		private List<Organization> affiliations = null;
 		private List<ContributorRole> contributorRoles = null;
+		private List<String> contributorRoleStrings = null;
 		private List<String> errorList;
 
 		private Builder(final ContributorType contributorType, final String name, final List<String> errorList) {
@@ -247,6 +248,7 @@ public class Contributor {
 		 * @return this builder
 		 */
 		public Builder withContributorRoles(final List<ContributorRole> contributorRoles) {
+			this.contributorRoleStrings = null;
 			this.contributorRoles = contributorRoles;
 			return this;
 		}
@@ -257,33 +259,8 @@ public class Contributor {
 		 * @return this builder
 		 */
 		public Builder withContributorRoleStrings(final List<String> contributorRoleStrings) {
+			this.contributorRoleStrings = contributorRoleStrings;
 			this.contributorRoles = null;
-			if (contributorRoleStrings == null) {
-				return this;
-			}
-			// remove null/whitespace and dedupe
-			final List<String> prunedRoleStrings = contributorRoleStrings.stream()
-				.filter(Objects::nonNull)
-				.map(String::trim)
-				.distinct()
-				.filter(c -> !Util.isNullOrWhitespace(c))
-				.collect(Collectors.toList());
-
-			final List<ContributorRole> prunedRoles = new ArrayList<>();
-			// convert contributorRoleStrings to contributorRoles
-			for (final String cs : prunedRoleStrings) {
-				try {
-					final ContributorRole cr = ContributorRole
-						.getContributorRole(cs);
-					prunedRoles.add(cr);
-
-				} catch (Exception e) {
-					this.errorList.add(e.getMessage());
-				}
-			}
-			if (!prunedRoles.isEmpty()) {
-				this.contributorRoles = prunedRoles;
-			}
 			return this;
 		}
 
@@ -295,6 +272,32 @@ public class Contributor {
 
 			if (creditName != null && contributorType == ContributorType.ORGANIZATION) {
 				errorList.add("the creditName field is only used with contributorType person");
+			}
+
+			if (contributorRoleStrings != null) {
+				// remove null/whitespace and dedupe
+				final List<String> prunedRoleStrings = contributorRoleStrings.stream()
+					.filter(Objects::nonNull)
+					.map(String::trim)
+					.distinct()
+					.filter(c -> !Util.isNullOrWhitespace(c))
+					.collect(Collectors.toList());
+
+				final List<ContributorRole> prunedRoles = new ArrayList<>();
+				// convert contributorRoleStrings to contributorRoles
+				for (final String cs : prunedRoleStrings) {
+					try {
+						final ContributorRole cr = ContributorRole
+							.getContributorRole(cs);
+						prunedRoles.add(cr);
+
+					} catch (Exception e) {
+						this.errorList.add(e.getMessage());
+					}
+				}
+				if (!prunedRoles.isEmpty()) {
+					contributorRoles = prunedRoles;
+				}
 			}
 
 			if (errorList.isEmpty()) {

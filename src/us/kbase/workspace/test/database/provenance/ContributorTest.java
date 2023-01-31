@@ -166,7 +166,7 @@ public class ContributorTest {
 	);
 
 	// invalid contributor role strings
-	private static final List<String> INVALID_ROLES = Arrays.asList(
+	private static final List<String> INVALID_ROLE_INPUT_STRINGS = Arrays.asList(
 			"magical fairy princess",
 			"ContributorRole:FUNDING_ACQUISITION",
 			"credit:",
@@ -174,12 +174,12 @@ public class ContributorTest {
 			"credit:workpackageleader"
 	);
 
-	private static final List<String> INVALID_ROLE_ERRORS = INVALID_ROLES.stream()
+	private static final List<String> INVALID_ROLE_INPUT_STRING_ERRORS = INVALID_ROLE_INPUT_STRINGS.stream()
 			.map(r -> "Invalid contributorRole: " + r)
 			.collect(Collectors.toList());
 
 
-	private static final List<String> INVALID_ROLES_WITH_WS_NULL = Arrays.asList(
+	private static final List<String> INVALID_ROLE_INPUT_STRINGS_WITH_WS_NULL = Arrays.asList(
 			"magical fairy princess",
 			"    ",
 			"ContributorRole:FUNDING_ACQUISITION",
@@ -574,32 +574,29 @@ public class ContributorTest {
 					.withContributorRoleStrings(WHITESPACE_STRINGS_WITH_NULL)
 					.build();
 			assertContributorFields(contributor3, ct, NAME_MAP);
-
 		}
-
-
 	}
 
 	@Test
 	public void buildOverwriteAndPruneContributorRoles() throws Exception {
 		for (final ContributorType ct : ContributorType.values()) {
-			// contrib role strings, empty list
+			// invalid contrib role strings, empty list
 			final Contributor contributor1 = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
+					.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS)
 					.withContributorRoleStrings(ELCRS)
 					.build();
 			assertContributorFields(contributor1, ct, NAME_MAP);
 
-			// contrib role strings, null
+			// invalid contrib role strings, null
 			final Contributor contributor2 = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
+					.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS_WITH_WS_NULL)
 					.withContributorRoleStrings(null)
 					.build();
 			assertContributorFields(contributor2, ct, NAME_MAP);
 
-			// contrib role strings, all are null or ws
+			// invalid contrib role strings, all are null or ws
 			final Contributor contributor3 = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
+					.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS)
 					.withContributorRoleStrings(WHITESPACE_STRINGS_WITH_NULL)
 					.build();
 			assertContributorFields(contributor3, ct, NAME_MAP);
@@ -649,21 +646,21 @@ public class ContributorTest {
 
 			// empty list
 			final Contributor contributor4m = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
+					.withContributorRoleStrings(ROLE_INPUT_STRINGS_DUPES_NULLS)
 					.withContributorRoles(ELCR)
 					.build();
 			assertContributorFields(contributor4m, ct, NAME_MAP);
 
 			// null
 			final Contributor contributor5m = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
+					.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS_WITH_WS_NULL)
 					.withContributorRoles(null)
 					.build();
 			assertContributorFields(contributor5m, ct, NAME_MAP);
 
 			// list of nulls
 			final Contributor contributor6m = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
+					.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS)
 					.withContributorRoles(Arrays.asList((ContributorRole) null, null))
 					.build();
 			assertContributorFields(contributor6m, ct, NAME_MAP);
@@ -671,14 +668,14 @@ public class ContributorTest {
 			// overwrite with values
 			// overwrite role strings with roles
 			final Contributor contributor1o = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
+					.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS_WITH_WS_NULL)
 					.withContributorRoles(ALT_ROLES_WITH_DUPES_NULLS)
 					.build();
 			assertContributorFields(contributor1o, ct, NAME_MAP, ELO, ALT_ROLES, ALT_ROLES_AS_STRINGS);
 
 			// strings overwrite strings
 			final Contributor contributor2o = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorRoleStrings(ROLE_INPUT_STRINGS)
+					.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS)
 					.withContributorRoleStrings(ALT_ROLE_INPUT_STRINGS_DUPES_NULLS)
 					.build();
 			assertContributorFields(contributor2o, ct, NAME_MAP, ELO, ALT_ROLES, ALT_ROLES_AS_STRINGS);
@@ -781,14 +778,14 @@ public class ContributorTest {
 		for (final ContributorType ct : ContributorType.values()) {
 			buildContributorFailWithError(
 					Contributor.getBuilder(ct, NAME_STRING)
-							.withContributorRoleStrings(INVALID_ROLES),
-					INVALID_ROLE_ERRORS);
+							.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS),
+					INVALID_ROLE_INPUT_STRING_ERRORS);
 
 			// same thing plus whitespace and nulls
 			buildContributorFailWithError(
 					Contributor.getBuilder(ct, NAME_STRING)
-							.withContributorRoleStrings(INVALID_ROLES_WITH_WS_NULL),
-					INVALID_ROLE_ERRORS);
+							.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS_WITH_WS_NULL),
+					INVALID_ROLE_INPUT_STRING_ERRORS);
 		}
 	}
 
@@ -831,20 +828,20 @@ public class ContributorTest {
 							.withContributorID(invalidPid),
 					"contributorType cannot be null" + "\n" + errorString);
 
-			final String errorWithInvalidRoles = errorString + "\n" + String.join("\n", INVALID_ROLE_ERRORS);
+			final String errorWithInvalidRoles = errorString + "\n" + String.join("\n", INVALID_ROLE_INPUT_STRING_ERRORS);
 			for (final ContributorType ct : ContributorType.values()) {
 				// valid contributorType, invalid contributor role strings
 				buildContributorFailWithError(
 						Contributor.getBuilder(ct, "")
 								.withContributorID(invalidPid)
-								.withContributorRoleStrings(INVALID_ROLES),
+								.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS),
 								errorWithInvalidRoles);
 
 				// same thing plus whitespace and nulls
 				buildContributorFailWithError(
 						Contributor.getBuilder(ct, null)
 							.withContributorID(invalidPid)
-							.withContributorRoleStrings(INVALID_ROLES_WITH_WS_NULL),
+							.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS_WITH_WS_NULL),
 								errorWithInvalidRoles);
 			}
 		}
