@@ -9,6 +9,7 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -34,7 +35,27 @@ class Common {
 		return isNullOrWhitespace(input) ? null : input.trim();
 	}
 
-	static URL processURL(final String url, final String name) {
+	/**
+	 * Trim strings and remove empty lines in a multi-line string
+	 * @param input
+	 *                string to be parsed as a multi-line string
+	 * @return
+	 *                string comprised of the input lines, joined with "\n",
+	 *                with empty and whitespace-only lines removed
+	 */
+	static String processMultilineString(final String input) {
+		if (input == null) {
+			return null;
+		}
+		final String[] lines = input.split("\n");
+		final String joined = Arrays.stream(lines)
+			.map(String::trim)
+			.filter(item -> !item.isEmpty())
+			.collect(Collectors.joining("\n"));
+		return processString(joined);
+	}
+
+	public static URL processURL(final String url, final String name) {
 		return isNullOrWhitespace(url) ? null : checkURL(url, name);
 	}
 
