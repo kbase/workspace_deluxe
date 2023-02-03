@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 import us.kbase.workspace.database.Util;
-
+/*
+ * A class representing the credit metadata for a workspace object.
+ */
 public class CreditMetadata {
 
 	public enum ResourceType {
@@ -146,14 +148,16 @@ public class CreditMetadata {
 	 *
 	 * @param identifier unique persistent ID for the resource
 	 * @param resourceType type of the resource, as a {@link ResourceType}
+	 * @param contributors list of {@link Contributor} objects
 	 * @param titles list of {@link Title} objects
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(
 			final String identifier,
 			final ResourceType resourceType,
+			final List<Contributor> contributors,
 			final List<Title> titles) {
-		return new Builder(identifier, resourceType, titles, new ArrayList<>());
+		return new Builder(identifier, resourceType, contributors, titles, new ArrayList<>());
 	}
 
 	/**
@@ -161,12 +165,14 @@ public class CreditMetadata {
 	 *
 	 * @param identifier unique persistent ID for the resource
 	 * @param resourceType type of the resource as a string
+	 * @param contributors list of {@link Contributor} objects
 	 * @param titles list of {@link Title} objects
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(
 			final String identifier,
 			final String resourceType,
+			final List<Contributor> contributors,
 			final List<Title> titles) {
 		final List<String> errorList = new ArrayList<>();
 
@@ -187,7 +193,7 @@ public class CreditMetadata {
 				errorList.add(errorMessage);
 			}
 		}
-		return new Builder(identifier, rt, titles, errorList);
+		return new Builder(identifier, rt, contributors, titles, errorList);
 	}
 
 	/** A builder for {@link CreditMetadata}. */
@@ -197,7 +203,7 @@ public class CreditMetadata {
 		private String license = null;
 		private String version = null;
 		private ResourceType resourceType = ResourceType.DATASET;
-		private List<Contributor> contributors = null;
+		private List<Contributor> contributors;
 		private List<EventDate> dates = null;
 		private List<FundingReference> funding = null;
 		private List<PermanentID> relatedIdentifiers = null;
@@ -207,6 +213,7 @@ public class CreditMetadata {
 		private Builder(
 				final String identifier,
 				final ResourceType resourceType,
+				final List<Contributor> contributors,
 				final List<Title> titles,
 				final List<String> errorList) {
 
@@ -224,6 +231,12 @@ public class CreditMetadata {
 				this.identifier = Common.checkPid(identifier, "identifier", false);
 			} catch (IllegalArgumentException e) {
 				this.errorList.add(e.getMessage());
+			}
+
+			// must be at least one contributor
+			this.contributors = Common.dedupeSimpleList(contributors);
+			if (this.contributors == null || this.contributors.isEmpty()) {
+				this.errorList.add("at least one contributor must be provided");
 			}
 
 			// must be at least one title
@@ -260,16 +273,6 @@ public class CreditMetadata {
 		 */
 		public Builder withVersion(final String version) {
 			this.version = Common.processString(version);
-			return this;
-		}
-
-		/**
-		 * Sets the contributor(s)
-		 * @param withContributors list of {@link Contributor}s.
-		 * @return this builder
-		 */
-		public Builder withContributors(final List<Contributor> contributors) {
-			this.contributors = Common.dedupeSimpleList(contributors);
 			return this;
 		}
 
@@ -315,12 +318,12 @@ public class CreditMetadata {
 			}
 
 			// If the license looks like a URL, ensure it's properly formatted and seems valid.
-			// For these purposes, if it starts with http, assume it's an URL.
-			if (license != null && license.toLowerCase().startsWith("http")) {
+			// For these purposes, if it starts with http or contains '://', assume it's an URL.
+			if (license != null && (license.toLowerCase().startsWith("http") || license.contains("://"))) {
 				try {
 					final URL licenseURL = Common.processURL(license, "license");
 					if (licenseURL != null) {
-						license = licenseURL.toString();
+						license = licenseURL.toURI().normalize().toString();
 					}
 					else {
 						license = null;
