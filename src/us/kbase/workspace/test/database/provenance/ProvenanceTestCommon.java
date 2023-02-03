@@ -26,7 +26,6 @@ public class ProvenanceTestCommon {
 			" \f ",
 			"\r",
 			"\n",
-
 			" \n \n \n \n \n ",
 			WHITESPACE));
 

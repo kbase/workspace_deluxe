@@ -322,12 +322,8 @@ public class CreditMetadata {
 			if (license != null && (license.toLowerCase().startsWith("http") || license.contains("://"))) {
 				try {
 					final URL licenseURL = Common.processURL(license, "license");
-					if (licenseURL != null) {
-						license = licenseURL.toURI().normalize().toString();
-					}
-					else {
-						license = null;
-					}
+					// license field is a string, so convert the URL back to string form
+					license = licenseURL.toURI().normalize().toString();
 				}
 				catch (Exception e) {
 					errorList.add(e.getMessage());
