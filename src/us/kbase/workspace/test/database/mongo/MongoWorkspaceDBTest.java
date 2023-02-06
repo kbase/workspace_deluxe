@@ -79,12 +79,12 @@ import us.kbase.workspace.database.provenance.ProvenanceAction;
 //TODO TEST start moving a bunch of the tests from Workspace test to here, and use mocks in workspace test.
 
 public class MongoWorkspaceDBTest {
-	
+
 	private static final Optional<ByteArrayFileCache> OC = Optional.empty();
 
 	private static MongoController MONGO;
 	private static MongoDatabase MONGO_DB;
-	
+
 	// has no hashCode(), so identity equality
 	// shouldn't have hashCode() anyway, data could be huge
 	private static ByteArrayFileCache getBAFC(final String json) {
@@ -95,7 +95,7 @@ public class MongoWorkspaceDBTest {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	@BeforeClass
 	public static void setup() throws Exception {
 		TestCommon.stfuLoggers();
@@ -105,13 +105,13 @@ public class MongoWorkspaceDBTest {
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		System.out.println("Started test mongo instance at localhost:" +
 				MONGO.getServerPort());
-		
+
 		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient("localhost:" + MONGO.getServerPort());
 		MONGO_DB = mc.getDatabase("test_" + MongoWorkspaceDBTest.class.getSimpleName());
-		
+
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (MONGO != null) {
@@ -119,31 +119,31 @@ public class MongoWorkspaceDBTest {
 			MONGO.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
-	
+
 	@Before
 	public void clearDB() throws Exception {
 		TestCommon.destroyDB(MONGO_DB);
 	}
-	
+
 	@Test
 	public void getProvenanceWithNullFields() throws Exception {
 		// check that older provenance records with missing fields don't throw NPEs.
-		
+
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		when(mocks.clockmock.instant()).thenReturn(Instant.now());
-		
+
 		final WorkspaceUser u = new WorkspaceUser("u");
 		mocks.mdb.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
-		
+
 		final Provenance p = Provenance.getBuilder(u, inst(10000))
 				.withWorkspaceID(1L)
 				.withAction(ProvenanceAction.getBuilder().withCaller("call").build())
 				.build();
-		
+
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		mocks.saveTestObject(wsid, u, p, "newobj", "Mod.Type-5.1",
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
-		
+
 		final Document v = MONGO_DB.getCollection("workspaceObjVersions").find().first();
 		final ObjectId i = (ObjectId) v.get("provenance");
 		MONGO_DB.getCollection("provenance").updateOne(
@@ -153,51 +153,51 @@ public class MongoWorkspaceDBTest {
 						.append("actions.0.subActions", null)
 						.append("actions.0.custom", null)
 						.append("actions.0.wsobjs", null)));
-		
-		
+
+
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> res = mocks.mdb.getObjects(
 				set(new ObjectIDResolvedWS(wsid, 1)), true, false, true);
-		
+
 		final Provenance pgot = res.get(new ObjectIDResolvedWS(wsid, 1))
 				.build().getProvenance();
-		
+
 		//TODO TEST add equals methods to provenance classes & test & use here
 		assertThat("incorrect user", pgot.getUser(), is(new WorkspaceUser("u")));
 		assertThat("incorrect date", pgot.getDate(), is(inst(10000)));
 		assertThat("incorrect wsid", pgot.getWorkspaceID(), is(Optional.empty()));
 		assertThat("incorrect action count", pgot.getActions().size(), is(1));
 		final ProvenanceAction pagot = pgot.getActions().get(0);
-		
+
 		assertThat("incorrect caller", pagot.getCaller(), is(opt("call")));
 	}
-	
+
 	@Test
 	public void getObjectWithoutExternalIDsField() throws Exception {
 		// check that older objects without external ID fields in the document don't cause NPEs
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		when(mocks.clockmock.instant()).thenReturn(Instant.now());
-		
+
 		final WorkspaceUser u = new WorkspaceUser("u");
 		mocks.mdb.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
-		
+
 		final Provenance p = Provenance.getBuilder(u, inst(10000)).withWorkspaceID(1L).build();
-		
+
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		mocks.saveTestObject(wsid, u, p, "newobj", "Mod.Type-5.1",
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
-		
+
 		MONGO_DB.getCollection("workspaceObjVersions").updateOne(
 				new Document(),
 				new Document("$unset", new Document(Fields.VER_EXT_IDS, "")));
-		
+
 		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> res = mocks.mdb.getObjects(
 				set(new ObjectIDResolvedWS(wsid, 1)), true, false, true);
-		
+
 		final WorkspaceObjectData wod = res.get(new ObjectIDResolvedWS(wsid, 1)).build();
 		assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
 	}
-	
+
 	@Test
 	public void deleteAndUndeleteObjects() throws Exception {
 		// a basic happy path test for un/deleting objects
@@ -205,7 +205,7 @@ public class MongoWorkspaceDBTest {
 		// the setup for undelete is basically the delete test
 		// TODO TEST add deeper un/delete unit tests, including unhappy path. Scan code paths
 		// Most tests are in WorkspaceTest.java which is an integration test
-		
+
 		// setup mocks
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		when(mocks.clockmock.instant()).thenReturn(
@@ -221,7 +221,7 @@ public class MongoWorkspaceDBTest {
 				inst(80000), // undelete objects in other ws
 				inst(90000)  // update other ws date
 				);
-		
+
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		final ResolvedWorkspaceID wsid2 = new ResolvedWorkspaceID(2, "ws2", false, false);
 
@@ -229,7 +229,7 @@ public class MongoWorkspaceDBTest {
 
 		// don't care about the object times, they're set by the save code
 		checkObjectDeletionState(false, set(), 3);
-		
+
 		deleteOrUndeleteAndCheck(mocks.mdb, objectIDs, true, wsid, wsid2,
 				set(inst(20000), inst(40000)),
 				set(inst(30000), inst(50000)));
@@ -237,7 +237,7 @@ public class MongoWorkspaceDBTest {
 				set(inst(60000), inst(80000)),
 				set(inst(70000), inst(90000)));
 	}
-	
+
 	private void deleteOrUndeleteAndCheck(
 			final MongoWorkspaceDB db,
 			final Set<ObjectIDResolvedWS> objs,
@@ -268,7 +268,7 @@ public class MongoWorkspaceDBTest {
 		checkObjectDeletionState(delete, objectTimes, objs.size());
 		checkWorkspaceUpdateTimes(wsTimes);
 	}
-	
+
 	private void checkObjectDeletionState(
 			final boolean deleted,
 			final Set<Instant> objectTimes,
@@ -293,7 +293,7 @@ public class MongoWorkspaceDBTest {
 				is(objectTimes));
 		assertThat("incorrect object count", count, is(expectedCount));
 	}
-	
+
 	private void checkWorkspaceUpdateTimes(final Set<Instant> wsTimes) {
 		final List<Instant> gotTimes = new ArrayList<>();
 		for (final Document obj: MONGO_DB.getCollection("workspaces").find(new Document())) {
@@ -305,7 +305,7 @@ public class MongoWorkspaceDBTest {
 		// won't work if the workspaces have the same time
 		assertThat("incorrect workspace count", gotTimes.size(), is(wsTimes.size()));
 	}
-	
+
 	private Set<ObjectIDResolvedWS> setupTestDataForHideDelete(
 			final PartialMock mocks,
 			final ResolvedWorkspaceID wsid,
@@ -315,23 +315,23 @@ public class MongoWorkspaceDBTest {
 		final WorkspaceUser u = new WorkspaceUser("u");
 		mocks.mdb.createWorkspace(u, "ws1", false, null, new WorkspaceUserMetadata());
 		mocks.mdb.createWorkspace(u, "ws2", false, null, new WorkspaceUserMetadata());
-		
+
 		// save objects
 		final Provenance p = basicProv(u);
 		final String type = "Mod.Type-5.1";
-		
+
 		mocks.saveTestObject(wsid, u, p, "newobj", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		mocks.saveTestObject(wsid, u, p, "newobj2", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", 22L);
 		mocks.saveTestObject(
 				wsid2, u, p, "newobj3", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", 22L);
-		
+
 		final ObjectIDResolvedWS oid1 = new ObjectIDResolvedWS(wsid, "newobj");
 		final ObjectIDResolvedWS oid2 = new ObjectIDResolvedWS(wsid, "newobj2");
 		final ObjectIDResolvedWS oid3 = new ObjectIDResolvedWS(wsid2, "newobj3");
 		final Set<ObjectIDResolvedWS> objectIDs = set(oid1, oid2, oid3);
 		return objectIDs;
 	}
-	
+
 	@Test
 	public void hideAndUnhideObjects() throws Exception {
 		// a basic happy path test for un/hiding objects
@@ -339,7 +339,7 @@ public class MongoWorkspaceDBTest {
 		// the setup for unhide is basically the hide test
 		// TODO TEST add deeper un/hide unit tests, including unhappy path. Scan code paths
 		// Most tests are in WorkspaceTest.java which is an integration test
-		
+
 		// setup mocks
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		when(mocks.clockmock.instant()).thenReturn(
@@ -351,7 +351,7 @@ public class MongoWorkspaceDBTest {
 				inst(60000), // unhide objects in one ws
 				inst(80000)  // unhide objects in other ws
 				);
-		
+
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		final ResolvedWorkspaceID wsid2 = new ResolvedWorkspaceID(2, "ws2", false, false);
 
@@ -362,7 +362,7 @@ public class MongoWorkspaceDBTest {
 		hideOrUnhideAndCheck(
 				mocks.mdb, objectIDs, false, wsid, wsid2, set(inst(60000), inst(80000)));
 	}
-	
+
 	private void hideOrUnhideAndCheck(
 			final MongoWorkspaceDB db,
 			final Set<ObjectIDResolvedWS> objs,
@@ -391,7 +391,7 @@ public class MongoWorkspaceDBTest {
 				)));
 		checkObjectHideState(hide, objs.size());
 	}
-	
+
 	private void checkObjectHideState(
 			final boolean hidden,
 			final int expectedCount) {
@@ -404,12 +404,12 @@ public class MongoWorkspaceDBTest {
 		}
 		assertThat("incorrect object count", count, is(expectedCount));
 	}
-	
+
 	@Test
 	public void addDataToObjectsNoop() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
-		
+
 		// nothing should happen
 		mocks.mdb.addDataToObjects(Collections.emptyList(), bafcMock, 1);
 	}
@@ -443,36 +443,36 @@ public class MongoWorkspaceDBTest {
 				);
 		return objects;
 	}
-	
+
 	@Test
 	public void addDataToObjects() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
 		final List<WorkspaceObjectData.Builder> objects = addDataToObjectsSetup();
-		
+
 		// BAFC does not override equals (which makes sense) so we do all tests based on equality
 		// that means the contents don't matter
 		final ByteArrayFileCache bafc1 = getBAFC("{}");
 		final ByteArrayFileCache bafc2 = getBAFC("{}");
 		final ByteArrayFileCache bafc1sub = getBAFC("{}");
 		final ByteArrayFileCache bafc2sub = getBAFC("{}");
-		
+
 		when(mocks.bsmock.getBlob(new MD5("c6b87e665ecd549c082db04f0979f551"), bafcMock))
 				.thenReturn(bafc1, (ByteArrayFileCache) null); // cause a failure if called 2x
 		when(mocks.bsmock.getBlob(new MD5("a06ab5aadd3e058c7236bd6b681eefc7"), bafcMock))
 			.thenReturn(bafc2, (ByteArrayFileCache) null); // cause a failure if called 2x
-		
+
 		when(bafcMock.getSubdataExtraction(bafc1, new SubsetSelection(list("/bar"))))
 				.thenReturn(bafc1sub, (ByteArrayFileCache) null); // cause a failure if called 2x
 		when(bafcMock.getSubdataExtraction(bafc2, new SubsetSelection(list("/foo"))))
 				.thenReturn(bafc2sub, (ByteArrayFileCache) null); // cause a failure if called 2x
-		
+
 		mocks.mdb.addDataToObjects(objects, bafcMock, 1);
-		
+
 		final ByteArrayFileCache got1 = objects.get(0).build().getSerializedData().get();
 		final ByteArrayFileCache got2 = objects.get(1).build().getSerializedData().get();
 		final ByteArrayFileCache got3 = objects.get(2).build().getSerializedData().get();
-		
+
 		assertThat("incorrect data", got1, is(bafc1));
 		assertThat("data is destroyed", got1.isDestroyed(), is(false));
 		assertThat("incorrect data", got2, is(bafc1sub));
@@ -480,16 +480,16 @@ public class MongoWorkspaceDBTest {
 		assertThat("incorrect data", got3, is(bafc2sub));
 		assertThat("data is destroyed", got3.isDestroyed(), is(false));
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailBadArgs() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
-		
+
 		final ByteArrayFileCacheManager m = new ByteArrayFileCacheManager();
 		final List<WorkspaceObjectData.Builder> objs = addDataToObjectsSetup();
 		final List<WorkspaceObjectData.Builder> badobjs = new LinkedList<>(objs);
 		badobjs.set(1, null);
-		
+
 		failAddDataToObjects(mocks, null, m, new NullPointerException("objects"));
 		failAddDataToObjects(mocks, badobjs, m, new NullPointerException("null found in objects"));
 		failAddDataToObjects(mocks, objs, null, new NullPointerException("dataManager"));
@@ -498,20 +498,20 @@ public class MongoWorkspaceDBTest {
 		failAddDataToObjects(mocks, objs, m, -100, new IllegalArgumentException(
 				"backendScaling must be > 0"));
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailGetBlobFileIOException() throws Exception {
 		failAddDataToObjectsGetBlobException(
 				new IOException("foo"), new WorkspaceCommunicationException("foo"));
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailGetBlobCommException() throws Exception {
 		failAddDataToObjectsGetBlobException(
 				new BlobStoreCommunicationException("bar"),
 				new WorkspaceCommunicationException("bar"));
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailGetBlobAuthException() throws Exception {
 		failAddDataToObjectsGetBlobException(
@@ -519,18 +519,18 @@ public class MongoWorkspaceDBTest {
 				new WorkspaceCommunicationException(
 						"Authorization error communicating with the backend storage system"));
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailGetBlobNoBlobException() throws Exception {
 		final Exception got = failAddDataToObjectsGetBlobException(
 				new NoSuchBlobException(
 						"no MD5 or whatever", new MD5("a06ab5aadd3e058c7236bd6b681eefc7")),
 				new NoObjectDataException("No data present for object 1/2/1"));
-		
+
 		TestCommon.assertExceptionCorrect(got.getCause().getCause(), new NoSuchBlobException(
 				"no MD5 or whatever", new MD5("a06ab5aadd3e058c7236bd6b681eefc7")));
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailGetBlobRuntimeException() throws Exception {
 		// test that data is cleaned up correctly with a runtime exception
@@ -546,20 +546,20 @@ public class MongoWorkspaceDBTest {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
 		final List<WorkspaceObjectData.Builder> objects = addDataToObjectsSetup();
-		
+
 		final ByteArrayFileCache bafc1 = getBAFC("{}");
 		final ByteArrayFileCache bafc1sub = getBAFC("{}");
-		
+
 		when(mocks.bsmock.getBlob(new MD5("c6b87e665ecd549c082db04f0979f551"), bafcMock))
 				.thenReturn(bafc1, (ByteArrayFileCache) null); // cause a failure if called 2x
 		when(mocks.bsmock.getBlob(new MD5("a06ab5aadd3e058c7236bd6b681eefc7"), bafcMock))
 				.thenThrow(blobErr);
-		
+
 		when(bafcMock.getSubdataExtraction(bafc1, new SubsetSelection(list("/bar"))))
 				.thenReturn(bafc1sub, (ByteArrayFileCache) null); // cause a failure if called 2x
-		
+
 		final Exception got = failAddDataToObjects(mocks, objects, bafcMock, expected);
-		
+
 		for (final WorkspaceObjectData.Builder b: objects) {
 			assertThat("expected no data", b.build().getSerializedData(), is(OC));
 		}
@@ -567,13 +567,13 @@ public class MongoWorkspaceDBTest {
 		assertThat("expected destroyed", bafc1sub.isDestroyed(), is(true));
 		return got;
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailSubsetFileIOException() throws Exception {
 		addDataToObjectsFailSubsetFileIOException(
 				new IOException("foo"), new WorkspaceCommunicationException("foo"));
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailSubsetExtractionException() throws Exception {
 		// test that data is removed
@@ -581,7 +581,7 @@ public class MongoWorkspaceDBTest {
 				new TypedObjectExtractionException("foo"),
 				new TypedObjectExtractionException("foo"));
 	}
-	
+
 	private Exception addDataToObjectsFailSubsetFileIOException(
 			final Exception subsetErr,
 			final Exception expected)
@@ -589,24 +589,24 @@ public class MongoWorkspaceDBTest {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
 		final List<WorkspaceObjectData.Builder> objects = addDataToObjectsSetup();
-		
+
 		final ByteArrayFileCache bafc1 = getBAFC("{}");
-		
+
 		when(mocks.bsmock.getBlob(new MD5("c6b87e665ecd549c082db04f0979f551"), bafcMock))
 				.thenReturn(bafc1, (ByteArrayFileCache) null); // cause a failure if called 2x
-		
+
 		when(bafcMock.getSubdataExtraction(bafc1, new SubsetSelection(list("/bar"))))
 				.thenThrow(subsetErr);
-		
+
 		final Exception got = failAddDataToObjects(mocks, objects, bafcMock, expected);
-		
+
 		for (final WorkspaceObjectData.Builder b: objects) {
 			assertThat("expected no data", b.build().getSerializedData(), is(OC));
 		}
 		assertThat("expected destroyed", bafc1.isDestroyed(), is(true));
 		return got;
 	}
-	
+
 	@Test
 	public void addDataToObjectsFailSubsetExtractionExceptionWithInvisibleParent()
 			throws Exception {
@@ -621,17 +621,17 @@ public class MongoWorkspaceDBTest {
 		final List<WorkspaceObjectData.Builder> objects = new LinkedList<>(
 				addDataToObjectsSetup());
 		objects.remove(0); // remove the object without a subset selection
-		
+
 		final ByteArrayFileCache bafc1 = getBAFC("{}");
-		
+
 		when(mocks.bsmock.getBlob(new MD5("c6b87e665ecd549c082db04f0979f551"), bafcMock))
 				.thenReturn(bafc1, (ByteArrayFileCache) null); // cause a failure if called 2x
-		
+
 		when(bafcMock.getSubdataExtraction(bafc1, new SubsetSelection(list("/bar"))))
 				.thenThrow(new TypedObjectExtractionException("dang"));
-		
+
 		failAddDataToObjects(mocks, objects, bafcMock, new TypedObjectExtractionException("dang"));
-		
+
 		for (final WorkspaceObjectData.Builder b: objects) {
 			assertThat("expected no data", b.build().getSerializedData(), is(OC));
 		}
@@ -645,7 +645,7 @@ public class MongoWorkspaceDBTest {
 			final Exception expected) {
 		return failAddDataToObjects(mocks, objects, bafcMock, 1, expected);
 	}
-	
+
 	private Exception failAddDataToObjects(
 			final PartialMock mocks,
 			final List<WorkspaceObjectData.Builder> objects,
@@ -661,7 +661,7 @@ public class MongoWorkspaceDBTest {
 			return got;
 		}
 	}
-	
+
 	@Test
 	public void addDataToObjectsBackendScaling() throws Exception {
 		/* The scaling factor is really just an implementation detail and doesn't affect the
@@ -672,19 +672,19 @@ public class MongoWorkspaceDBTest {
 		 * Furthermore, in automated tests like this where network speed is not an issue
 		 * little to no benefit will be seen from parallelizing the requests as IO should be
 		 * local disk bound.
-		 * 
+		 *
 		 * Hence, this test just tries different scaling factors and prints out the speed
 		 * for informational purposes. Any rigorous speed testing should take place outside the
 		 * context of unit or even integration tests.
 		 */
-		
+
 		// make a real MongoWSDB environment vs mocks
 		final MongoWorkspaceDB db = new MongoWorkspaceDB(MONGO_DB, new GridFSBlobStore(MONGO_DB));
 		final WorkspaceUser u = new WorkspaceUser("u1");
 		final ResolvedWorkspaceID ws = new ResolvedWorkspaceID(1, "one", false, false);
 		db.createWorkspace(u, "one", false, null, new WorkspaceUserMetadata());
 		final List<ResolvedSaveObject> objs = saveObjects(db, ws, 100);
-		
+
 		final List<WorkspaceObjectData.Builder> wods = new LinkedList<>();
 		int counter = 1;
 		for (final ResolvedSaveObject o: objs) {
@@ -711,7 +711,7 @@ public class MongoWorkspaceDBTest {
 		}
 		System.out.println(scaling2elapsed);
 	}
-	
+
 	private long timeAddDataToObjects(
 			final MongoWorkspaceDB db,
 			final List<WorkspaceObjectData.Builder> wods,
@@ -722,7 +722,7 @@ public class MongoWorkspaceDBTest {
 		db.addDataToObjects(wods, man, backendScaling);
 		return System.currentTimeMillis() - start;
 	}
-	
+
 	private List<ResolvedSaveObject> saveObjects(
 			final MongoWorkspaceDB db,
 			final ResolvedWorkspaceID ws,
@@ -743,7 +743,7 @@ public class MongoWorkspaceDBTest {
 			dummy.calculateRelabeledSize();
 			dummy.sort(new UTF8JsonSorterFactory(100000));
 			objects.add(wso.resolve(ws, dummy, set(), list(), Collections.emptyMap()));
-			
+
 		}
 		db.saveObjects(new WorkspaceUser("u1"), ws, objects);
 		return objects;
@@ -752,47 +752,47 @@ public class MongoWorkspaceDBTest {
 	@Test
 	public void dynamicConfigSetAndGetNoop() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
-		
+
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder().build();
 		mocks.mdb.setConfig(dcu, false);
-		
+
 		final DynamicConfig expected = DynamicConfig.getBuilder().build();
 		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
 	}
-	
+
 	@Test
 	public void dynamicConfigSetAndGet() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
-		
+
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
 				.withBackendScaling(42).build();
 		mocks.mdb.setConfig(dcu, false);
-		
+
 		final DynamicConfig expected = DynamicConfig.getBuilder().withBackendScaling(42).build();
 		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
-		
+
 		final DynamicConfigUpdate dcu2 = DynamicConfigUpdate.getBuilder()
 				.withBackendScaling(8).build();
 		mocks.mdb.setConfig(dcu2, false);
 		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
-		
+
 		mocks.mdb.setConfig(dcu2, true); // overwrite
 		final DynamicConfig expected2 = DynamicConfig.getBuilder().withBackendScaling(8).build();
 		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected2));
 	}
-	
+
 	@Test
 	public void dynamicConfigSetAndGetWithIniticalOverwrite() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
-		
+
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
 				.withBackendScaling(42).build();
 		mocks.mdb.setConfig(dcu, true);
-		
+
 		final DynamicConfig expected = DynamicConfig.getBuilder().withBackendScaling(42).build();
 		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
 	}
-	
+
 	@Test
 	public void dynamicConfigIllegalKeysAndRemove() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
@@ -809,19 +809,19 @@ public class MongoWorkspaceDBTest {
 			TestCommon.assertExceptionCorrect(got.getCause(), new IllegalArgumentException(
 					"Unexpected key in configuration map: illegal"));
 		}
-		
+
 		// since currently the remove method does nothing
 		final DynamicConfigUpdate update = mock(DynamicConfigUpdate.class);
 		when(update.toSet()).thenReturn(Collections.emptyMap());
 		// foo should be a noop
 		when(update.toRemove()).thenReturn(set("foo", "illegal"));
-		
+
 		mocks.mdb.setConfig(update, false);
-		
+
 		final DynamicConfig expected = DynamicConfig.getBuilder().withBackendScaling(89).build();
 		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
 	}
-	
+
 	@Test
 	public void failDynamicConfigSet() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);

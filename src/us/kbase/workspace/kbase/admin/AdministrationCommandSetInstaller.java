@@ -87,9 +87,9 @@ public class AdministrationCommandSetInstaller {
 
 	private final static ObjectMapper MAPPER = new ObjectMapper()
 			.registerModule(new JacksonTupleModule());
-	
+
 	private AdministrationCommandSetInstaller() {};
-	
+
 	/** Install the handlers.
 	 * @param builder an administration interface builder.
 	 * @param wsmeth a workspace server methods instance.
@@ -103,7 +103,7 @@ public class AdministrationCommandSetInstaller {
 			// possible - e.g. if it's not an admin-only command.
 			final WorkspaceServerMethods wsmeth,
 			final LocalTypeServerMethods types) {
-		
+
 		requireNonNull(wsmeth, "wsmeth");
 		installTypeHandlers(requireNonNull(types, "type"), requireNonNull(builder, "builder"));
 		installTypeDelegationTargetHandler(null, builder);
@@ -115,7 +115,7 @@ public class AdministrationCommandSetInstaller {
 		installObjectHandlers(wsmeth, builder);
 		return builder;
 	}
-	
+
 	/** Install the handlers, delegating type related commands to another workspace service.
 	 * @param builder an administration interface builder.
 	 * @param wsmeth a workspace server methods instance.
@@ -140,7 +140,7 @@ public class AdministrationCommandSetInstaller {
 		installObjectHandlers(wsmeth, builder);
 		return builder;
 	}
-	
+
 	private static void installTypeDelegationTargetHandler(
 			final TypeClient delegator,
 			final Builder builder) {
@@ -264,7 +264,7 @@ public class AdministrationCommandSetInstaller {
 			},
 			true));
 	}
-	
+
 	private static void installDynamicConfigHandlers(
 			final WorkspaceServerMethods wsmeth,
 			final WorkspaceAdministration.Builder builder) {
@@ -341,7 +341,7 @@ public class AdministrationCommandSetInstaller {
 				return perms;
 			}));
 	}
-	
+
 	private static void installWorkspaceHandlers(
 			final WorkspaceServerMethods wsmeth,
 			final WorkspaceAdministration.Builder builder) {
@@ -371,7 +371,7 @@ public class AdministrationCommandSetInstaller {
 				getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
 						info.getOwner().getUser());
 				return wsInfoToTuple(info);
-			}, 
+			},
 			true));
 		builder.withCommand(new AdminCommandSpecification(
 			SET_WORKSPACE_DESCRIPTION,
@@ -460,7 +460,7 @@ public class AdministrationCommandSetInstaller {
 				return wsmeth.listObjects(params, user, user == null);
 			}));
 	}
-	
+
 	private static void installListWorkspaceHandlers(
 			final WorkspaceServerMethods wsmeth,
 			final WorkspaceAdministration.Builder builder) {
@@ -514,23 +514,23 @@ public class AdministrationCommandSetInstaller {
 			},
 			true));
 	}
-	
+
 	private static class SetConfigParams {
 		public Map<String, Object> set;
-		
+
 		@SuppressWarnings("unused")
 		public SetConfigParams() {}; // for jackson
 	}
-	
+
 	private static class SetWorkspaceOwnerParams {
 		public WorkspaceIdentity wsi;
 		public String new_user;
 		public String new_name;
-		
+
 		@SuppressWarnings("unused")
 		public SetWorkspaceOwnerParams() {}; //for jackson
 	}
-	
+
 	private static <T> T getParams(final AdminCommand input, final Class<T> clazz)
 			throws IOException {
 		final UObject p = input.getParams();
@@ -545,11 +545,11 @@ public class AdministrationCommandSetInstaller {
 					+ clazz.getSimpleName() + " out of params field: " + e.getMessage(), e);
 		}
 	}
-	
+
 	private static Logger getLogger() {
 		return LoggerFactory.getLogger(AdministrationCommandSetInstaller.class);
 	}
-	
+
 	private static WorkspaceUser validateNullableUser(
 			final WorkspaceServerMethods wsmeth,
 			final AdminCommand cmd,
@@ -560,5 +560,5 @@ public class AdministrationCommandSetInstaller {
 		}
 		return wsmeth.validateUser(cmd.getUser(), token);
 	}
-	
+
 }
