@@ -55,7 +55,7 @@ class Common {
 		return processString(joined);
 	}
 
-	public static URL processURL(final String url, final String name) {
+	static URL processURL(final String url, final String name) {
 		return isNullOrWhitespace(url) ? null : checkURL(url, name);
 	}
 
