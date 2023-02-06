@@ -269,7 +269,7 @@ public class CreditMetadata {
 	/** A builder for {@link CreditMetadata}. */
 	public static class Builder {
 		private String comments = null;
-		private String identifier;
+		private String identifier = null;
 		private String license = null;
 		private String version = null;
 		private ResourceType resourceType = ResourceType.DATASET;
