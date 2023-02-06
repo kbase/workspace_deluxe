@@ -268,16 +268,16 @@ public class CreditMetadata {
 
 	/** A builder for {@link CreditMetadata}. */
 	public static class Builder {
-		private String comments;
+		private String comments = null;
 		private String identifier;
 		private String license = null;
 		private String version = null;
 		private ResourceType resourceType = ResourceType.DATASET;
-		private List<Contributor> contributors;
+		private final List<Contributor> contributors;
 		private List<EventDate> dates = null;
 		private List<FundingReference> funding = null;
 		private List<PermanentID> relatedIdentifiers = null;
-		private List<Title> titles;
+		private final List<Title> titles;
 		private List<String> errorList;
 
 		private Builder(
