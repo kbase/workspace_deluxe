@@ -58,10 +58,12 @@ public class CreditMetadataTest {
 	private static final String LICENSE_URL_STRING_UNTRIMMED = "\n\n\n   HTTPS://jgi.doe.gov/user-programs/pmo-overview/policies/\t\r\n";
 	private static final String VERSION_STRING = "1.2.3.4.c";
 	private static final String VERSION_STRING_UNTRIMMED = "\n\r\n1.2.3.4.c";
-	private static final String COMMENTS_STRING = "An Airport For Aliens Currently Run By Dogs\n" +
-			"Space Warlord Organ Trading Simulator\nEl Paso Elsewhere";
-	private static final String COMMENTS_STRING_UNTRIMMED = "\n\n\n\t\tAn Airport For Aliens Currently Run By " +
-			"Dogs\n\n\n\t\fSpace Warlord Organ Trading Simulator\t\t\r\f\n\r\t\tEl Paso Elsewhere\n\n   ";
+	private static final String COMMENTS_STRING = "An Airport For Aliens Currently Run By "
+			+ "Dogs\nSpace Warlord Organ Trading Simulator\nEl Paso Elsewhere";
+	private static final String COMMENTS_STRING_UNTRIMMED = "\n\n\n\t\t" +
+			"An Airport For Aliens Currently Run By Dogs\n\n\n\t\f" +
+			"Space Warlord Organ Trading Simulator\t\t\r\f\n\r" +
+			"\t\tEl Paso Elsewhere\n\n   ";
 
 	// test error strings
 	private static final String INCORRECT_COMMENTS = INCORRECT + COMMENTS;
@@ -81,31 +83,38 @@ public class CreditMetadataTest {
 	private static final String RESOURCE_TYPE_NON_WS = "resourceType cannot be whitespace only";
 	private static final String RESOURCE_TYPE_NON_WS_NULL = "resourceType cannot be null or whitespace only";
 	private static final String TITLE_AT_LEAST_ONE = "at least one title must be provided";
-	private static final String VERSIONING_DATES_REQUIRED = "must provide either 'version' or one or more 'dates', ideally indicating when the resource was published or when it was last updated";
+	private static final String VERSIONING_DATES_REQUIRED = "must provide either 'version' " +
+			"or one or more 'dates', ideally indicating when the resource was " +
+			"published or when it was last updated";
 
 	private static final String IDENTIFIER_STRING = "SOME:identifier";
-        private static final Map<String, String> VERSION_MAP = ImmutableMap.of(VERSION, VERSION_STRING);
-        private static final Map<String, String> LICENSE_VERSION_MAP = ImmutableMap.of(VERSION, VERSION_STRING, LICENSE, LICENSE_URL_STRING);
-	private static final Map<String, String> COMMENTS_VERSION_MAP = ImmutableMap.of(COMMENTS, COMMENTS_STRING, VERSION, VERSION_STRING);
-        private static final Map<String, String> ALL_MAP = ImmutableMap.of(COMMENTS, COMMENTS_STRING, LICENSE, LICENSE_STRING, VERSION, VERSION_STRING);
+	private static final Map<String, String> VERSION_MAP = ImmutableMap.of(VERSION,
+			VERSION_STRING);
+	private static final Map<String, String> LICENSE_VERSION_MAP = ImmutableMap.of(VERSION,
+			VERSION_STRING, LICENSE, LICENSE_URL_STRING);
+	private static final Map<String, String> COMMENTS_VERSION_MAP = ImmutableMap.of(COMMENTS,
+			COMMENTS_STRING, VERSION, VERSION_STRING);
+	private static final Map<String, String> ALL_MAP = ImmutableMap.of(COMMENTS,
+			COMMENTS_STRING, LICENSE, LICENSE_STRING, VERSION, VERSION_STRING);
 
 	private static final String[] VALID_RESOURCE_TYPE_STRINGS = {
-		"Dataset",
-		"DATA_SET",
-		"\t\rdAtA SeT \n\n",
+			"Dataset",
+			"DATA_SET",
+			"\t\rdAtA SeT \n\n",
 	};
 
 	private static final String[] INVALID_RESOURCE_TYPE_STRINGS = {
-		"data sets",
-		TYPE,
-		"DATAZET"
+			"data sets",
+			TYPE,
+			"DATAZET"
 	};
 
 	private static final String TITLE_STRING = "A Series of Unfortunate Elephants";
 
 	private static final List<Contributor> CONTRIBUTOR_LIST = Arrays.asList(
 			Contributor.getBuilder(ContributorType.PERSON, "Mr Blobby").build(),
-			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention").build());
+			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
+					.build());
 
 	private static final List<EventDate> DATE_LIST = Arrays.asList(
 			EventDate.build("0000-12-15", Event.CREATED),
@@ -139,7 +148,8 @@ public class CreditMetadataTest {
 	@Test
 	public void getResourceTypePass() throws Exception {
 		for (final String rt : VALID_RESOURCE_TYPE_STRINGS) {
-			assertThat(INCORRECT_TYPE, ResourceType.getResourceType(rt), is(ResourceType.DATASET));
+			assertThat(INCORRECT_TYPE, ResourceType.getResourceType(rt),
+					is(ResourceType.DATASET));
 		}
 	}
 
@@ -164,11 +174,10 @@ public class CreditMetadataTest {
 				fail(EXP_EXC);
 			} catch (Exception got) {
 				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-					RESOURCE_TYPE_NON_WS_NULL));
+						RESOURCE_TYPE_NON_WS_NULL));
 			}
 		}
 	}
-
 
 	/**
 	 * Check the CreditMetadata has the expected fields
@@ -226,11 +235,15 @@ public class CreditMetadataTest {
 				is(titles));
 
 		assertThat(INCORRECT_LICENSE, creditMetadata.getLicense(),
-				is(expectedMap.containsKey(LICENSE) ? opt(expectedMap.get(LICENSE)) : ES));
+				is(expectedMap.containsKey(LICENSE) ? opt(expectedMap.get(LICENSE))
+						: ES));
 		assertThat(INCORRECT_VERSION, creditMetadata.getVersion(),
-				is(expectedMap.containsKey(VERSION) ? opt(expectedMap.get(VERSION)) : ES));
+				is(expectedMap.containsKey(VERSION) ? opt(expectedMap.get(VERSION))
+						: ES));
 		assertThat(INCORRECT_COMMENTS, creditMetadata.getComments(),
-				is(expectedMap.containsKey(COMMENTS) ? opt(expectedMap.get(COMMENTS)) : ES));
+				is(expectedMap.containsKey(COMMENTS)
+						? opt(expectedMap.get(COMMENTS))
+						: ES));
 	}
 
 	private void assertCreditMetadataFields(
@@ -240,7 +253,8 @@ public class CreditMetadataTest {
 			final List<Contributor> contributors,
 			final List<Title> titles,
 			final Map<String, String> expectedMap) {
-		assertCreditMetadataFields(creditMetadata, identifier, rt, contributors, titles, expectedMap, ELD, ELF, ELRI);
+		assertCreditMetadataFields(creditMetadata, identifier, rt, contributors, titles,
+				expectedMap, ELD, ELF, ELRI);
 	}
 
 	@Test
@@ -248,10 +262,12 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 				final CreditMetadata creditMetadata = CreditMetadata
-						.getBuilder(entry.getKey(), rt, CONTRIBUTOR_LIST, TITLE_LIST)
+						.getBuilder(entry.getKey(), rt, CONTRIBUTOR_LIST,
+								TITLE_LIST)
 						.withVersion(VERSION_STRING)
 						.build();
-				assertCreditMetadataFields(creditMetadata, entry.getValue(), rt, CONTRIBUTOR_LIST, TITLE_LIST, VERSION_MAP);
+				assertCreditMetadataFields(creditMetadata, entry.getValue(), rt,
+						CONTRIBUTOR_LIST, TITLE_LIST, VERSION_MAP);
 			}
 		}
 	}
@@ -261,10 +277,12 @@ public class CreditMetadataTest {
 		for (final String rts : VALID_RESOURCE_TYPE_STRINGS) {
 			for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 				final CreditMetadata creditMetadata = CreditMetadata
-						.getBuilder(entry.getKey(), rts, CONTRIBUTOR_LIST, TITLE_LIST)
+						.getBuilder(entry.getKey(), rts, CONTRIBUTOR_LIST,
+								TITLE_LIST)
 						.withVersion(VERSION_STRING)
 						.build();
-				assertCreditMetadataFields(creditMetadata, entry.getValue(), ResourceType.DATASET,
+				assertCreditMetadataFields(creditMetadata, entry.getValue(),
+						ResourceType.DATASET,
 						CONTRIBUTOR_LIST, TITLE_LIST, VERSION_MAP);
 			}
 		}
@@ -272,25 +290,29 @@ public class CreditMetadataTest {
 
 	// Note: since there is currently only one ResourceType, not supplying a value
 	// for the field currently results in the default (only) value being used.
-	// This behaviour will change when more resource types are added, and these tests
+	// This behaviour will change when more resource types are added, and these
+	// tests
 	// will need to be updated.
 	@Test
 	public void buildMinimalDefaultResourceType() throws Exception {
 		final CreditMetadata creditMetadata = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, (String) null, CONTRIBUTOR_LIST, TITLE_LIST)
+				.getBuilder(IDENTIFIER_STRING, (String) null, CONTRIBUTOR_LIST,
+						TITLE_LIST)
 				.withVersion(VERSION_STRING)
 				.build();
 
-		assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, ResourceType.DATASET, CONTRIBUTOR_LIST,
+		assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, ResourceType.DATASET,
+				CONTRIBUTOR_LIST,
 				TITLE_LIST, VERSION_MAP);
 
-
 		final CreditMetadata creditMetadata2 = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, (ResourceType) null, CONTRIBUTOR_LIST, TITLE_LIST)
+				.getBuilder(IDENTIFIER_STRING, (ResourceType) null,
+						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withVersion(VERSION_STRING)
 				.build();
 
-		assertCreditMetadataFields(creditMetadata2, IDENTIFIER_STRING, ResourceType.DATASET, CONTRIBUTOR_LIST,
+		assertCreditMetadataFields(creditMetadata2, IDENTIFIER_STRING, ResourceType.DATASET,
+				CONTRIBUTOR_LIST,
 				TITLE_LIST, VERSION_MAP);
 
 	}
@@ -299,12 +321,14 @@ public class CreditMetadataTest {
 	public void buildCleanAndTrimComments() throws Exception {
 		for (final ResourceType rt : ResourceType.values()) {
 			final CreditMetadata creditMetadata = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+							TITLE_LIST)
 					.withComments(COMMENTS_STRING_UNTRIMMED)
 					.withVersion(VERSION_STRING_UNTRIMMED)
 					.build();
 
-			assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST,
+			assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt,
+					CONTRIBUTOR_LIST, TITLE_LIST,
 					COMMENTS_VERSION_MAP);
 		}
 	}
@@ -314,22 +338,27 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			for (final String licenseURL : VALID_URL_LIST) {
 				final CreditMetadata creditMetadata2 = CreditMetadata
-						.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+						.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+								TITLE_LIST)
 						.withLicense(licenseURL)
 						.withDates(DATE_LIST)
 						.build();
-				assertCreditMetadataFields(creditMetadata2, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
-				TITLE_LIST, ImmutableMap.of(LICENSE, licenseURL), DATE_LIST, ELF, ELRI);
+				assertCreditMetadataFields(creditMetadata2, IDENTIFIER_STRING, rt,
+						CONTRIBUTOR_LIST,
+						TITLE_LIST, ImmutableMap.of(LICENSE, licenseURL),
+						DATE_LIST, ELF, ELRI);
 			}
 
 			// trim and tidy the URL
 			final CreditMetadata creditMetadata = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+							TITLE_LIST)
 					.withLicense(LICENSE_URL_STRING_UNTRIMMED)
 					.withVersion(VERSION_STRING_UNTRIMMED)
 					.build();
 
-			assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST,
+			assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt,
+					CONTRIBUTOR_LIST, TITLE_LIST,
 					LICENSE_VERSION_MAP);
 		}
 	}
@@ -339,35 +368,42 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			// empty list inputs
 			final CreditMetadata creditMetadata1 = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+							TITLE_LIST)
 					.withVersion(VERSION_STRING)
 					.withDates(ELD)
 					.withFunding(ELF)
 					.withRelatedIdentifiers(ELRI)
 					.build();
-			assertCreditMetadataFields(creditMetadata1, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+			assertCreditMetadataFields(creditMetadata1, IDENTIFIER_STRING, rt,
+					CONTRIBUTOR_LIST,
 					TITLE_LIST, VERSION_MAP);
 
 			// list of nulls
 			final CreditMetadata creditMetadata2 = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+							TITLE_LIST)
 					.withVersion(VERSION_STRING)
 					.withDates(Arrays.asList(null, null, null, null, null))
 					.withFunding(Arrays.asList(null, null, null, null, null))
-					.withRelatedIdentifiers(Arrays.asList(null, null, null, null, null))
+					.withRelatedIdentifiers(
+							Arrays.asList(null, null, null, null, null))
 					.build();
-			assertCreditMetadataFields(creditMetadata2, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+			assertCreditMetadataFields(creditMetadata2, IDENTIFIER_STRING, rt,
+					CONTRIBUTOR_LIST,
 					TITLE_LIST, VERSION_MAP);
 
 			// plain nulls
 			final CreditMetadata creditMetadata3 = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+							TITLE_LIST)
 					.withVersion(VERSION_STRING)
 					.withDates(null)
 					.withFunding(null)
 					.withRelatedIdentifiers(null)
 					.build();
-			assertCreditMetadataFields(creditMetadata3, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+			assertCreditMetadataFields(creditMetadata3, IDENTIFIER_STRING, rt,
+					CONTRIBUTOR_LIST,
 					TITLE_LIST, VERSION_MAP);
 		}
 	}
@@ -377,13 +413,15 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 				final CreditMetadata creditMetadata = CreditMetadata
-						.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+						.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+								TITLE_LIST)
 						.withComments(nullOrWs)
 						.withLicense(nullOrWs)
 						.withVersion(nullOrWs)
 						.withDates(DATE_LIST)
 						.build();
-				assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+				assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt,
+						CONTRIBUTOR_LIST,
 						TITLE_LIST, EM, DATE_LIST, ELF, ELRI);
 			}
 		}
@@ -394,7 +432,8 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 				final CreditMetadata creditMetadata = CreditMetadata
-						.getBuilder(entry.getKey(), rt, CONTRIBUTOR_LIST, TITLE_LIST)
+						.getBuilder(entry.getKey(), rt, CONTRIBUTOR_LIST,
+								TITLE_LIST)
 						.withComments(COMMENTS_STRING_UNTRIMMED)
 						.withLicense(LICENSE_STRING_UNTRIMMED)
 						.withVersion(VERSION_STRING_UNTRIMMED)
@@ -402,8 +441,10 @@ public class CreditMetadataTest {
 						.withFunding(FUNDING_LIST)
 						.withRelatedIdentifiers(RELATED_ID_LIST)
 						.build();
-				assertCreditMetadataFields(creditMetadata, entry.getValue(), rt, CONTRIBUTOR_LIST,
-						TITLE_LIST, ALL_MAP, DATE_LIST, FUNDING_LIST, RELATED_ID_LIST);
+				assertCreditMetadataFields(creditMetadata, entry.getValue(), rt,
+						CONTRIBUTOR_LIST,
+						TITLE_LIST, ALL_MAP, DATE_LIST, FUNDING_LIST,
+						RELATED_ID_LIST);
 			}
 		}
 	}
@@ -413,7 +454,8 @@ public class CreditMetadataTest {
 		for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			for (final ResourceType rt : ResourceType.values()) {
 				final CreditMetadata creditMetadata = CreditMetadata
-						.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+						.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+								TITLE_LIST)
 						.withComments(COMMENTS_STRING_UNTRIMMED)
 						.withComments(nullOrWs)
 						.withLicense(LICENSE_STRING_UNTRIMMED)
@@ -422,8 +464,9 @@ public class CreditMetadataTest {
 						.withVersion(nullOrWs)
 						.withDates(DATE_LIST)
 						.build();
-				assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
-				TITLE_LIST, EM, DATE_LIST, ELF, ELRI);
+				assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt,
+						CONTRIBUTOR_LIST,
+						TITLE_LIST, EM, DATE_LIST, ELF, ELRI);
 			}
 		}
 	}
@@ -432,7 +475,8 @@ public class CreditMetadataTest {
 	public void buildMaximalOverwriteNullEmptyLists() throws Exception {
 		for (final ResourceType rt : ResourceType.values()) {
 			final CreditMetadata creditMetadata = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+					.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+							TITLE_LIST)
 					.withDates(DATE_LIST)
 					.withDates(Arrays.asList(null, null, null, null))
 					.withFunding(FUNDING_LIST)
@@ -441,7 +485,8 @@ public class CreditMetadataTest {
 					.withRelatedIdentifiers(ELRI)
 					.withVersion(VERSION_STRING_UNTRIMMED)
 					.build();
-			assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST,
+			assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, rt,
+					CONTRIBUTOR_LIST, TITLE_LIST,
 					VERSION_MAP);
 		}
 	}
@@ -454,7 +499,8 @@ public class CreditMetadataTest {
 	 * @param error
 	 *                the expected error
 	 */
-	private void buildCreditMetadataFailWithError(final CreditMetadata.Builder builder, final String errorString) {
+	private void buildCreditMetadataFailWithError(final CreditMetadata.Builder builder,
+			final String errorString) {
 		try {
 			builder.build();
 			fail(EXP_EXC);
@@ -469,16 +515,19 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 				buildCreditMetadataFailWithError(
-						CreditMetadata.getBuilder(nullOrWs, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+						CreditMetadata.getBuilder(nullOrWs, rt,
+								CONTRIBUTOR_LIST, TITLE_LIST)
 								.withVersion(VERSION_STRING),
 						IDENTIFIER_NON_NULL_WS);
 			}
 
 			for (String invalidPid : INVALID_PID_LIST) {
 				buildCreditMetadataFailWithError(
-						CreditMetadata.getBuilder(invalidPid, rt, CONTRIBUTOR_LIST, TITLE_LIST)
+						CreditMetadata.getBuilder(invalidPid, rt,
+								CONTRIBUTOR_LIST, TITLE_LIST)
 								.withVersion(VERSION_STRING),
-						"Illegal format for identifier: \"" + invalidPid + "\"\n" +
+						"Illegal format for identifier: \"" + invalidPid
+								+ "\"\n" +
 								"It should match the pattern "
 								+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 			}
@@ -489,15 +538,17 @@ public class CreditMetadataTest {
 	public void buildFailInvalidResourceType() throws Exception {
 		for (final String rt : INVALID_RESOURCE_TYPE_STRINGS) {
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-					.withVersion(VERSION_STRING),
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, TITLE_LIST)
+							.withVersion(VERSION_STRING),
 					"Invalid resourceType: " + rt);
 		}
 
 		for (final String ws : WHITESPACE_STRINGS) {
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, ws, CONTRIBUTOR_LIST, TITLE_LIST)
-					.withVersion(VERSION_STRING),
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, ws,
+							CONTRIBUTOR_LIST, TITLE_LIST)
+							.withVersion(VERSION_STRING),
 					RESOURCE_TYPE_NON_WS);
 		}
 	}
@@ -509,21 +560,25 @@ public class CreditMetadataTest {
 			// these all start with http
 			for (Map.Entry<String, String> entry : INVALID_URL_MAP.entrySet()) {
 				buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withDates(DATE_LIST)
-						.withLicense(entry.getKey()),
-					"Illegal license url '" + entry.getKey() + "': " + entry.getValue());
+						CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+								CONTRIBUTOR_LIST, TITLE_LIST)
+								.withDates(DATE_LIST)
+								.withLicense(entry.getKey()),
+						"Illegal license url '" + entry.getKey() + "': "
+								+ entry.getValue());
 			}
 
 			// these contain ://
-			for (Map.Entry<String, String> entry : INVALID_URL_BAD_PROTOCOL_MAP.entrySet()) {
+			for (Map.Entry<String, String> entry : INVALID_URL_BAD_PROTOCOL_MAP
+					.entrySet()) {
 				buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withDates(DATE_LIST)
-						.withLicense(entry.getKey()),
-					"Illegal license url '" + entry.getKey() + "': " + entry.getValue());
+						CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+								CONTRIBUTOR_LIST, TITLE_LIST)
+								.withDates(DATE_LIST)
+								.withLicense(entry.getKey()),
+						"Illegal license url '" + entry.getKey() + "': "
+								+ entry.getValue());
 			}
-
 
 		}
 	}
@@ -534,61 +589,72 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			// no version or dates at all
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST),
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, TITLE_LIST),
 					VERSIONING_DATES_REQUIRED);
 
 			for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 				// version is null or whitespace
 				buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withVersion(nullOrWs),
+						CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+								CONTRIBUTOR_LIST, TITLE_LIST)
+								.withVersion(nullOrWs),
 						VERSIONING_DATES_REQUIRED);
 
 				// overwrite valid version with null or whitespace
 				buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withVersion(VERSION_STRING)
-						.withVersion(nullOrWs),
+						CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+								CONTRIBUTOR_LIST, TITLE_LIST)
+								.withVersion(VERSION_STRING)
+								.withVersion(nullOrWs),
 						VERSIONING_DATES_REQUIRED);
 			}
 
 			// null date list
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withDates(null),
-						VERSIONING_DATES_REQUIRED);
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, TITLE_LIST)
+							.withDates(null),
+					VERSIONING_DATES_REQUIRED);
 
 			// empty date list
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withDates(ELD),
-						VERSIONING_DATES_REQUIRED);
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, TITLE_LIST)
+							.withDates(ELD),
+					VERSIONING_DATES_REQUIRED);
 			// list of nulls
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withDates(Arrays.asList(null, null, null, null)),
-						VERSIONING_DATES_REQUIRED);
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, TITLE_LIST)
+							.withDates(Arrays.asList(null, null, null,
+									null)),
+					VERSIONING_DATES_REQUIRED);
 
 			// overwrite valid dates
 			// null date list
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withDates(DATE_LIST)
-						.withDates(null),
-						VERSIONING_DATES_REQUIRED);
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, TITLE_LIST)
+							.withDates(DATE_LIST)
+							.withDates(null),
+					VERSIONING_DATES_REQUIRED);
 
 			// empty date list
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withDates(DATE_LIST)
-						.withDates(ELD),
-						VERSIONING_DATES_REQUIRED);
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, TITLE_LIST)
+							.withDates(DATE_LIST)
+							.withDates(ELD),
+					VERSIONING_DATES_REQUIRED);
 			// list of nulls
 			buildCreditMetadataFailWithError(
-				CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, TITLE_LIST)
-						.withDates(DATE_LIST)
-						.withDates(Arrays.asList(null, null, null, null)),
-						VERSIONING_DATES_REQUIRED);
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, TITLE_LIST)
+							.withDates(DATE_LIST)
+							.withDates(Arrays.asList(null, null, null,
+									null)),
+					VERSIONING_DATES_REQUIRED);
 
 		}
 	}
@@ -598,19 +664,22 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			// null title list
 			buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, null, TITLE_LIST)
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, null,
+							TITLE_LIST)
 							.withVersion(VERSION_STRING),
 					CONTRIBUTOR_AT_LEAST_ONE);
 
 			// empty title list
 			buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, ELC, TITLE_LIST)
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, ELC,
+							TITLE_LIST)
 							.withVersion(VERSION_STRING),
 					CONTRIBUTOR_AT_LEAST_ONE);
 			// list of nulls
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
-							Arrays.asList(null, null, null, null), TITLE_LIST)
+							Arrays.asList(null, null, null, null),
+							TITLE_LIST)
 							.withVersion(VERSION_STRING),
 					CONTRIBUTOR_AT_LEAST_ONE);
 		}
@@ -621,18 +690,21 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			// null title list
 			buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, null)
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, null)
 							.withVersion(VERSION_STRING),
 					TITLE_AT_LEAST_ONE);
 
 			// empty title list
 			buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST, ELT)
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST, ELT)
 							.withVersion(VERSION_STRING),
 					TITLE_AT_LEAST_ONE);
 			// list of nulls
 			buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt, CONTRIBUTOR_LIST,
+					CreditMetadata.getBuilder(IDENTIFIER_STRING, rt,
+							CONTRIBUTOR_LIST,
 							Arrays.asList(null, null, null, null))
 							.withVersion(VERSION_STRING),
 					TITLE_AT_LEAST_ONE);
@@ -643,10 +715,10 @@ public class CreditMetadataTest {
 	public void buildMinimalFailAllFields() throws Exception {
 		final ResourceType rt = null;
 		final String[] errs = {
-			IDENTIFIER_NON_NULL_WS,
-			CONTRIBUTOR_AT_LEAST_ONE,
-			TITLE_AT_LEAST_ONE,
-			VERSIONING_DATES_REQUIRED
+				IDENTIFIER_NON_NULL_WS,
+				CONTRIBUTOR_AT_LEAST_ONE,
+				TITLE_AT_LEAST_ONE,
+				VERSIONING_DATES_REQUIRED
 		};
 		final String errorString = String.join("\n", errs);
 
@@ -664,28 +736,28 @@ public class CreditMetadataTest {
 			// list of nulls
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(nullOrWs, rt,
-						Arrays.asList(null, null, null, null),
-						Arrays.asList(null, null, null, null)),
+							Arrays.asList(null, null, null, null),
+							Arrays.asList(null, null, null, null)),
 					errorString);
 		}
 
-
 		for (String invalidPid : INVALID_PID_LIST) {
 			final String[] errs2 = {
-				RESOURCE_TYPE_NON_WS,
-				"Illegal format for identifier: \"" + invalidPid + "\"\n" +
-						"It should match the pattern "
-						+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"",
-				CONTRIBUTOR_AT_LEAST_ONE,
-				TITLE_AT_LEAST_ONE,
-				VERSIONING_DATES_REQUIRED
+					RESOURCE_TYPE_NON_WS,
+					"Illegal format for identifier: \"" + invalidPid + "\"\n" +
+							"It should match the pattern "
+							+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"",
+					CONTRIBUTOR_AT_LEAST_ONE,
+					TITLE_AT_LEAST_ONE,
+					VERSIONING_DATES_REQUIRED
 
 			};
 			final String errorStringWithRegex = String.join("\n", errs2);
-				for (String ws : WHITESPACE_STRINGS) {
+			for (String ws : WHITESPACE_STRINGS) {
 				// null lists
 				buildCreditMetadataFailWithError(
-						CreditMetadata.getBuilder(invalidPid, ws, null, null),
+						CreditMetadata.getBuilder(invalidPid, ws, null,
+								null),
 						errorStringWithRegex);
 
 				// empty lists
@@ -696,8 +768,10 @@ public class CreditMetadataTest {
 				// list of nulls
 				buildCreditMetadataFailWithError(
 						CreditMetadata.getBuilder(invalidPid, ws,
-								Arrays.asList(null, null, null, null),
-								Arrays.asList(null, null, null, null)),
+								Arrays.asList(null, null, null,
+										null),
+								Arrays.asList(null, null, null,
+										null)),
 						errorStringWithRegex);
 			}
 		}

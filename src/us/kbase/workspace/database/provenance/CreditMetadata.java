@@ -26,14 +26,16 @@ public class CreditMetadata {
 		 *                 related to the input string.
 		 */
 		public static ResourceType getResourceType(final String resourceType) {
-			final String lowercaseInput = Util.checkString(resourceType, "resourceType").toLowerCase();
+			final String lowercaseInput = Util.checkString(resourceType, "resourceType")
+					.toLowerCase();
 			switch (lowercaseInput) {
 				case "dataset":
 				case "data_set":
 				case "data set":
 					return ResourceType.DATASET;
 				default:
-					throw new IllegalArgumentException("Invalid resourceType: " + resourceType);
+					throw new IllegalArgumentException(
+							"Invalid resourceType: " + resourceType);
 			}
 		}
 	}
@@ -74,49 +76,105 @@ public class CreditMetadata {
 		this.version = version;
 	}
 
+	/**
+	 * Gets the identifier for the resource.
+	 *
+	 * @return identifier
+	 */
 	public String getIdentifier() {
 		return identifier;
 	}
 
+	/*
+	 * Gets the comments for the resource.
+	 *
+	 * @return comments (if present)
+	 */
 	public Optional<String> getComments() {
 		return Optional.ofNullable(comments);
 	}
 
+	/*
+	 * Gets the license for the resource.
+	 *
+	 * @return resource license (if present)
+	 */
 	public Optional<String> getLicense() {
 		return Optional.ofNullable(license);
 	}
 
+	/*
+	 * Gets the version information for the resource.
+	 *
+	 * @return resource version (if present)
+	 */
 	public Optional<String> getVersion() {
 		return Optional.ofNullable(version);
 	}
 
+	/*
+	 * Gets the resource type.
+	 *
+	 * @return resource type as a {@link ResourceType}
+	 */
 	public ResourceType getResourceType() {
 		return resourceType;
 	}
 
+	/*
+	 * Gets the contributor list.
+	 *
+	 * @return list of {@link Contributor} objects.
+	 */
 	public List<Contributor> getContributors() {
 		return Common.getList(contributors);
 	}
 
+	/*
+	 * Gets any lifecycle dates.
+	 *
+	 * @return list of {@link EventDate} objects (if present)
+	 */
 	public List<EventDate> getDates() {
 		return Common.getList(dates);
 	}
 
+	/*
+	 * Gets the funding information.
+	 *
+	 * @return list of {@link FundingReference} objects (if present)
+	 */
 	public List<FundingReference> getFunding() {
 		return Common.getList(funding);
 	}
 
+	/*
+	 * Gets the list of related identifiers.
+	 *
+	 * @return list of {@link PermanentID} objects (if present)
+	 */
 	public List<PermanentID> getRelatedIdentifiers() {
 		return Common.getList(relatedIdentifiers);
 	}
 
+	/*
+	 * Gets the list of titles used for the resource.
+	 *
+	 * @return list of {@link Title} objects
+	 */
 	public List<Title> getTitles() {
 		return Common.getList(titles);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(comments, contributors, dates, funding, identifier, license, relatedIdentifiers,
+		return Objects.hash(comments,
+				contributors,
+				dates,
+				funding,
+				identifier,
+				license,
+				relatedIdentifiers,
 				resourceType,
 				titles,
 				version);
@@ -146,10 +204,14 @@ public class CreditMetadata {
 	/**
 	 * Gets a builder for the {@link CreditMetadata}.
 	 *
-	 * @param identifier unique persistent ID for the resource
-	 * @param resourceType type of the resource, as a {@link ResourceType}
-	 * @param contributors list of {@link Contributor} objects
-	 * @param titles list of {@link Title} objects
+	 * @param identifier
+	 *                unique persistent ID for the resource
+	 * @param resourceType
+	 *                type of the resource, as a {@link ResourceType}
+	 * @param contributors
+	 *                list of {@link Contributor} objects; at least one contributor is required
+	 * @param titles
+	 *                list of {@link Title} objects; at least one title is required
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(
@@ -157,16 +219,21 @@ public class CreditMetadata {
 			final ResourceType resourceType,
 			final List<Contributor> contributors,
 			final List<Title> titles) {
-		return new Builder(identifier, resourceType, contributors, titles, new ArrayList<>());
+		return new Builder(identifier, resourceType, contributors, titles,
+				new ArrayList<>());
 	}
 
 	/**
 	 * Gets a builder for the {@link CreditMetadata}.
 	 *
-	 * @param identifier unique persistent ID for the resource
-	 * @param resourceType type of the resource as a string
-	 * @param contributors list of {@link Contributor} objects
-	 * @param titles list of {@link Title} objects
+	 * @param identifier
+	 *                unique persistent ID for the resource
+	 * @param resourceType
+	 *                type of the resource as a string
+	 * @param contributors
+	 *                list of {@link Contributor} objects; at least one contributor is required
+	 * @param titles
+	 *                list of {@link Title} objects; at least one title is required
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(
@@ -182,12 +249,15 @@ public class CreditMetadata {
 				rt = ResourceType.getResourceType(resourceType);
 			} catch (IllegalArgumentException e) {
 				// TEMPORARY HACK
-				// As there is only one resource type at present (ResourceType.DATASET), null input
-				// in the resourceType field will be automatically set to that value.
-				// The error message "resourceType cannot be null or whitespace only" thus
-				// needs to be edited to say "resourceType cannot be whitespace only".
+				// As there is only one resource type at present
+				// (ResourceType.DATASET), null input in the resourceType field
+				// will be automatically set to that value.
+				// The error message "resourceType cannot be null or whitespace
+				// only" thus needs to be edited to say "resourceType cannot be
+				// whitespace only".
 				String errorMessage = e.getMessage();
-				if ("resourceType cannot be null or whitespace only".equals(errorMessage)) {
+				if ("resourceType cannot be null or whitespace only"
+						.equals(errorMessage)) {
 					errorMessage = "resourceType cannot be whitespace only";
 				}
 				errorList.add(errorMessage);
@@ -221,8 +291,8 @@ public class CreditMetadata {
 			this.resourceType = resourceType;
 
 			// TEMPORARY HACK
-			// as there is only one resource type at present, the field defaults to being set
-			// to ResourceType.DATASET if the input is null
+			// as there is only one resource type at present, the field defaults to
+			// being set to ResourceType.DATASET if the input is null
 			if (this.resourceType == null && errorList.isEmpty()) {
 				this.resourceType = DEFAULT_RESOURCE_TYPE;
 			}
@@ -248,7 +318,9 @@ public class CreditMetadata {
 
 		/**
 		 * Sets comments for the resource
-		 * @param comments comments as a string
+		 *
+		 * @param comments
+		 *                comments as a string
 		 * @return this builder
 		 */
 		public Builder withComments(final String comments) {
@@ -258,7 +330,9 @@ public class CreditMetadata {
 
 		/**
 		 * Sets the license for the resource
-		 * @param license license as a string
+		 *
+		 * @param license
+		 *                license as a string
 		 * @return this builder
 		 */
 		public Builder withLicense(final String license) {
@@ -268,7 +342,9 @@ public class CreditMetadata {
 
 		/**
 		 * Sets the version
-		 * @param withVersion version string
+		 *
+		 * @param withVersion
+		 *                version string
 		 * @return this builder
 		 */
 		public Builder withVersion(final String version) {
@@ -278,7 +354,9 @@ public class CreditMetadata {
 
 		/**
 		 * Sets the dates of various resource life cycle events
-		 * @param withDates list of {@link EventDate}s.
+		 *
+		 * @param withDates
+		 *                list of {@link EventDate}s.
 		 * @return this builder
 		 */
 		public Builder withDates(final List<EventDate> dates) {
@@ -288,7 +366,9 @@ public class CreditMetadata {
 
 		/**
 		 * Sets the funding source(s)
-		 * @param withFunding list of {@link FundingReference}s.
+		 *
+		 * @param withFunding
+		 *                list of {@link FundingReference}s.
 		 * @return this builder
 		 */
 		public Builder withFunding(final List<FundingReference> funding) {
@@ -298,7 +378,9 @@ public class CreditMetadata {
 
 		/**
 		 * Sets the related identifiers
-		 * @param withRelatedIdentifiers list of {@link PermanentID}s.
+		 *
+		 * @param withRelatedIdentifiers
+		 *                list of {@link PermanentID}s.
 		 * @return this builder
 		 */
 		public Builder withRelatedIdentifiers(final List<PermanentID> relatedIdentifiers) {
@@ -314,31 +396,44 @@ public class CreditMetadata {
 		public CreditMetadata build() {
 
 			if (version == null && (dates == null || dates.isEmpty())) {
-				errorList.add("must provide either 'version' or one or more 'dates', ideally indicating when the resource was published or when it was last updated");
+				errorList.add("must provide either 'version' or one or more " +
+				"'dates', ideally indicating when the resource was published or " +
+				"when it was last updated");
 			}
 
-			// If the license looks like a URL, ensure it's properly formatted and seems valid.
-			// For these purposes, if it starts with http or contains '://', assume it's an URL.
-			if (license != null && (license.toLowerCase().startsWith("http") || license.contains("://"))) {
+			// If the license looks like a URL, ensure it's properly formatted and seems
+			// valid. For these purposes, if it starts with http or contains '://',
+			// assume it's an URL.
+			if (license != null && (license.toLowerCase().startsWith("http")
+					|| license.contains("://"))) {
 				try {
-					final URL licenseURL = Common.processURL(license, "license");
-					// license field is a string, so convert the URL back to string form
+					final URL licenseURL = Common.processURL(license,
+							"license");
+					// license field is a string, so convert the URL back to
+					// string form
 					license = licenseURL.toURI().normalize().toString();
-				}
-				catch (Exception e) {
+				} catch (Exception e) {
 					errorList.add(e.getMessage());
 				}
 			}
 
-
 			if (errorList.isEmpty()) {
 				return new CreditMetadata(
-						identifier, comments, license, version, resourceType,
-						contributors, dates, funding, relatedIdentifiers, titles);
+						identifier,
+						comments,
+						license,
+						version,
+						resourceType,
+						contributors,
+						dates,
+						funding,
+						relatedIdentifiers,
+						titles);
 			}
 
-			throw new IllegalArgumentException("Errors in CreditMetadata construction:\n" +
-					String.join("\n", errorList));
+			throw new IllegalArgumentException(
+					"Errors in CreditMetadata construction:\n" +
+							String.join("\n", errorList));
 		}
 
 	}
