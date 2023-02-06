@@ -31,7 +31,6 @@ RUN mkdir -p /var/lib/apt/lists/partial && \
     update-ca-certificates && \
     apt-get clean && \
     useradd -c "KBase user" -rd /kb/deployment/ -u 998 -s /bin/bash kbase && \
-    mkdir -p /kb/deployment/services/workspace/tomcat/logs && \
     mkdir -p /kb/deployment/bin && \
     chown -R kbase /kb/deployment && \
     cd /kb/deployment/bin && \
