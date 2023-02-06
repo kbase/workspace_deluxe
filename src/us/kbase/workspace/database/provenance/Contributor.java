@@ -41,7 +41,7 @@ public class Contributor {
 	}
 
 	private final ContributorType contributorType;
-	private final String contributorID;
+	private final String contributorId;
 	private final String name;
 	private final String creditName;
 	private final List<Organization> affiliations;
@@ -51,13 +51,13 @@ public class Contributor {
 			final ContributorType contributorType,
 			final String name,
 			final String creditName,
-			final String contributorID,
+			final String contributorId,
 			final List<Organization> affiliations,
 			final List<ContributorRole> contributorRoles) {
 		this.contributorType = contributorType;
 		this.name = name;
 		this.creditName = creditName;
-		this.contributorID = contributorID;
+		this.contributorId = contributorId;
 		this.affiliations = affiliations;
 		this.contributorRoles = contributorRoles;
 	}
@@ -94,8 +94,8 @@ public class Contributor {
 	 *
 	 * @return the contributor ID, if present
 	 */
-	public Optional<String> getContributorID() {
-		return Optional.ofNullable(contributorID);
+	public Optional<String> getContributorId() {
+		return Optional.ofNullable(contributorId);
 	}
 
 	/**
@@ -131,7 +131,7 @@ public class Contributor {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(affiliations, contributorID, contributorRoles, contributorType, name, creditName);
+		return Objects.hash(affiliations, contributorId, contributorRoles, contributorType, name, creditName);
 	}
 
 	@Override
@@ -144,7 +144,7 @@ public class Contributor {
 			return false;
 		Contributor other = (Contributor) obj;
 		return Objects.equals(affiliations, other.affiliations)
-				&& Objects.equals(contributorID, other.contributorID)
+				&& Objects.equals(contributorId, other.contributorId)
 				&& Objects.equals(contributorRoles, other.contributorRoles)
 				&& Objects.equals(contributorType, other.contributorType)
 				&& Objects.equals(name, other.name)
@@ -190,10 +190,10 @@ public class Contributor {
 	/** A builder for a {@link Contributor}. */
 	public static class Builder {
 
-		private ContributorType contributorType;
-		private String name;
+		private final ContributorType contributorType;
+		private final String name;
 		private String creditName = null;
-		private String contributorID = null;
+		private String contributorId = null;
 		private List<Organization> affiliations = null;
 		private List<ContributorRole> contributorRoles = null;
 		private List<String> contributorRoleStrings = null;
@@ -210,12 +210,12 @@ public class Contributor {
 
 		/**
 		 * Sets the ID for the contributor
-		 * @param contributorID a persistent unique ID for the contributor
+		 * @param contributorId a persistent unique ID for the contributor
 		 * @return this builder
 		 */
-		public Builder withContributorID(final String contributorID) {
+		public Builder withContributorId(final String contributorId) {
 			try {
-				this.contributorID = Common.checkPid(contributorID, "contributorID", true);
+				this.contributorId = Common.checkPid(contributorId, "contributorId", true);
 			} catch (Exception e) {
 				this.errorList.add(e.getMessage());
 			}
@@ -305,7 +305,7 @@ public class Contributor {
 						contributorType,
 						name,
 						creditName,
-						contributorID,
+						contributorId,
 						Common.dedupeSimpleList(affiliations),
 						Common.dedupeSimpleList(contributorRoles));
 			}

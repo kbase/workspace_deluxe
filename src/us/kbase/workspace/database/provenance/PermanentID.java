@@ -28,7 +28,7 @@ public class PermanentID {
 	 *
 	 * @return the id.
 	 */
-	public String getID() {
+	public String getId() {
 		return id;
 	}
 

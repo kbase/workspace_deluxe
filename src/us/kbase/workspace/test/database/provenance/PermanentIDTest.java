@@ -40,7 +40,7 @@ public class PermanentIDTest {
 	}
 
 	private void assertTitleStringAndOptionalNulls(final PermanentID pid, final String pidString) {
-		assertThat(INCORRECT_PID, pid.getID(), is(pidString));
+		assertThat(INCORRECT_PID, pid.getId(), is(pidString));
 		assertThat(INCORRECT_DESC, pid.getDescription(), is(ES));
 		assertThat(INCORRECT_REL_TYPE, pid.getRelationshipType(), is(ES));
 	}
@@ -60,7 +60,7 @@ public class PermanentIDTest {
 					.withDescription(DESC_STRING)
 					.withRelationshipType(REL_STRING)
 					.build();
-			assertThat(INCORRECT_PID, pid1.getID(), is(entry.getValue()));
+			assertThat(INCORRECT_PID, pid1.getId(), is(entry.getValue()));
 			assertThat(INCORRECT_DESC, pid1.getDescription(), is(opt(DESC_STRING)));
 			assertThat(INCORRECT_REL_TYPE, pid1.getRelationshipType(), is(opt(REL_TYPE)));
 		}
@@ -73,7 +73,7 @@ public class PermanentIDTest {
 					.withDescription(DESC_STRING)
 					.withRelationshipType(REL_TYPE)
 					.build();
-			assertThat(INCORRECT_PID, pid1.getID(), is(entry.getValue()));
+			assertThat(INCORRECT_PID, pid1.getId(), is(entry.getValue()));
 			assertThat(INCORRECT_DESC, pid1.getDescription(), is(opt(DESC_STRING)));
 			assertThat(INCORRECT_REL_TYPE, pid1.getRelationshipType(), is(opt(REL_TYPE)));
 		}
@@ -98,7 +98,7 @@ public class PermanentIDTest {
 					.withDescription(DESC_STRING)
 					.withRelationshipType(relType)
 					.build();
-			assertThat(INCORRECT_PID, pid1.getID(), is(PID_STRING));
+			assertThat(INCORRECT_PID, pid1.getId(), is(PID_STRING));
 			assertThat(INCORRECT_DESC, pid1.getDescription(), is(opt(DESC_STRING)));
 			assertThat(INCORRECT_REL_TYPE, pid1.getRelationshipType(), is(opt(expectedRelType)));
 		}
@@ -112,7 +112,7 @@ public class PermanentIDTest {
 					.withDescription(DESC_STRING_UNTRIMMED)
 					.withRelationshipType(REL_STRING_UNTRIMMED)
 					.build();
-			assertThat(INCORRECT_PID, pid1.getID(), is(entry.getValue()));
+			assertThat(INCORRECT_PID, pid1.getId(), is(entry.getValue()));
 			assertThat(INCORRECT_DESC, pid1.getDescription(), is(opt(DESC_STRING)));
 			assertThat(INCORRECT_REL_TYPE, pid1.getRelationshipType(), is(opt(REL_TYPE)));
 		}

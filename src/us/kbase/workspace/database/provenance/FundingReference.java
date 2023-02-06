@@ -13,23 +13,23 @@ import us.kbase.workspace.database.Util;
  */
 public class FundingReference {
 
-	private final String funderID;
+	private final String funderId;
 	private final String funderName;
-	private final String awardID;
+	private final String awardId;
 	private final String awardTitle;
-	private final URL awardURL;
+	private final URL awardUrl;
 
 	private FundingReference(
-			final String funderID,
+			final String funderId,
 			final String funderName,
-			final String awardID,
+			final String awardId,
 			final String awardTitle,
-			final URL awardURL) {
-		this.funderID = funderID;
+			final URL awardUrl) {
+		this.funderId = funderId;
 		this.funderName = funderName;
-		this.awardID = awardID;
+		this.awardId = awardId;
 		this.awardTitle = awardTitle;
-		this.awardURL = awardURL;
+		this.awardUrl = awardUrl;
 	}
 
 	/**
@@ -37,8 +37,8 @@ public class FundingReference {
 	 *
 	 * @return the funder ID, if present.
 	 */
-	public Optional<String> getFunderID() {
-		return Optional.ofNullable(funderID);
+	public Optional<String> getFunderId() {
+		return Optional.ofNullable(funderId);
 	}
 
 	/**
@@ -56,8 +56,8 @@ public class FundingReference {
 	 *
 	 * @return the award ID, if present.
 	 */
-	public Optional<String> getAwardID() {
-		return Optional.ofNullable(awardID);
+	public Optional<String> getAwardId() {
+		return Optional.ofNullable(awardId);
 	}
 
 	/**
@@ -75,13 +75,13 @@ public class FundingReference {
 	 *
 	 * @return the award URL, if present.
 	 */
-	public Optional<URL> getAwardURL() {
-		return Optional.ofNullable(awardURL);
+	public Optional<URL> getAwardUrl() {
+		return Optional.ofNullable(awardUrl);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(awardID, awardTitle, awardURL, funderID, funderName);
+		return Objects.hash(awardId, awardTitle, awardUrl, funderId, funderName);
 	}
 
 	@Override
@@ -93,8 +93,8 @@ public class FundingReference {
 		if (getClass() != obj.getClass())
 			return false;
 		FundingReference other = (FundingReference) obj;
-		return Objects.equals(awardID, other.awardID) && Objects.equals(awardTitle, other.awardTitle)
-				&& Objects.equals(awardURL, other.awardURL) && Objects.equals(funderID, other.funderID)
+		return Objects.equals(awardId, other.awardId) && Objects.equals(awardTitle, other.awardTitle)
+				&& Objects.equals(awardUrl, other.awardUrl) && Objects.equals(funderId, other.funderId)
 				&& Objects.equals(funderName, other.funderName);
 	}
 
@@ -113,11 +113,11 @@ public class FundingReference {
 	/** A builder for an {@link FundingReference}. */
 	public static class Builder {
 
-		private String funderID = null;
+		private String funderId = null;
 		private String funderName;
-		private String awardID = null;
+		private String awardId = null;
 		private String awardTitle = null;
-		private URL awardURL = null;
+		private URL awardUrl = null;
 		private List<String> errorList = new ArrayList<>();
 
 		private Builder(final String funderName) {
@@ -131,14 +131,14 @@ public class FundingReference {
 		/**
 		 * Sets the ID of the funder, for example ROR:04xm1d337.
 		 *
-		 * @param funderID
+		 * @param funderId
 		 *                the ID of the funder. Null or the empty string removes any
 		 *                current ID in the builder.
 		 * @return this builder.
 		 */
-		public Builder withFunderID(final String funderID) {
+		public Builder withFunderId(final String funderId) {
 			try {
-				this.funderID = Common.checkPid(funderID, "funderID", true);
+				this.funderId = Common.checkPid(funderId, "funderId", true);
 			} catch (Exception e) {
 				this.errorList.add(e.getMessage());
 			}
@@ -149,13 +149,13 @@ public class FundingReference {
 		 * Sets the ID of the award, for example DOI:10.46936/10.25585/60000745.
 		 * N.b. not all award IDs conform to the standard PID syntax.
 		 *
-		 * @param awardID
+		 * @param awardId
 		 *                the ID of the award. Null or the empty string removes any
 		 *                current ID in the builder.
 		 * @return this builder.
 		 */
-		public Builder withAwardID(final String awardID) {
-			this.awardID = Common.processString(awardID);
+		public Builder withAwardId(final String awardId) {
+			this.awardId = Common.processString(awardId);
 			return this;
 		}
 
@@ -176,14 +176,14 @@ public class FundingReference {
 		/**
 		 * Sets the URL for the award.
 		 *
-		 * @param awardURL
+		 * @param awardUrl
 		 *                the URL for the award. Null or the empty string removes any
 		 *                current url in the builder.
 		 * @return this builder.
 		 */
-		public Builder withAwardURL(final String awardURL) {
+		public Builder withAwardUrl(final String awardUrl) {
 			try {
-				this.awardURL = Common.processURL(awardURL, "awardURL");
+				this.awardUrl = Common.processURL(awardUrl, "awardUrl");
 			} catch (Exception e) {
 				this.errorList.add(e.getMessage());
 			}
@@ -193,14 +193,14 @@ public class FundingReference {
 		/**
 		 * Sets the URL for the award.
 		 *
-		 * @param awardURL
+		 * @param awardUrl
 		 *                the URL of the award. Null removes any current url in the
 		 *                builder.
 		 * @return this builder.
 		 */
-		public Builder withAwardURL(final URL awardURL) {
+		public Builder withAwardUrl(final URL awardUrl) {
 			try {
-				this.awardURL = Common.processURL(awardURL, "awardURL");
+				this.awardUrl = Common.processURL(awardUrl, "awardUrl");
 			} catch (Exception e) {
 				this.errorList.add(e.getMessage());
 			}
@@ -214,7 +214,7 @@ public class FundingReference {
 		 */
 		public FundingReference build() {
 			if (errorList.isEmpty()) {
-				return new FundingReference(funderID, funderName, awardID, awardTitle, awardURL);
+				return new FundingReference(funderId, funderName, awardId, awardTitle, awardUrl);
 			}
 			throw new IllegalArgumentException("Errors in FundingReference construction:\n" +
 					String.join("\n", errorList));

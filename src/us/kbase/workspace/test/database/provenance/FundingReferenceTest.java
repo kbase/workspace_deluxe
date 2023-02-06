@@ -71,21 +71,21 @@ public class FundingReferenceTest {
 	 * @param expectedMap
 	 *                key/value pairs are the field names and values for the
 	 *                string fields that are expected not to be null
-	 * @param awardURL
-	 *                expected awardURL field
+	 * @param awardUrl
+	 *                expected awardUrl field
 	 */
 	private void assertFundingReferenceFields(
 			final FundingReference fr,
 			final Map<String, String> expectedMap,
 			final URL awardUrl) {
 		assertThat(INCORRECT_FUNDER_NAME, fr.getFunderName(), is(expectedMap.get(FUNDER_NAME)));
-		assertThat(INCORRECT_FUNDER_ID, fr.getFunderID(),
+		assertThat(INCORRECT_FUNDER_ID, fr.getFunderId(),
 				is(expectedMap.containsKey(FUNDER_ID) ? opt(expectedMap.get(FUNDER_ID)) : ES));
-		assertThat(INCORRECT_AWARD_ID, fr.getAwardID(),
+		assertThat(INCORRECT_AWARD_ID, fr.getAwardId(),
 				is(expectedMap.containsKey(AWARD_ID) ? opt(expectedMap.get(AWARD_ID)) : ES));
 		assertThat(INCORRECT_AWARD_TITLE, fr.getAwardTitle(),
 				is(expectedMap.containsKey(AWARD_TITLE) ? opt(expectedMap.get(AWARD_TITLE)) : ES));
-		assertThat(INCORRECT_AWARD_URL, fr.getAwardURL(), is(optn(awardUrl)));
+		assertThat(INCORRECT_AWARD_URL, fr.getAwardUrl(), is(optn(awardUrl)));
 	}
 
 	@Test
@@ -97,7 +97,7 @@ public class FundingReferenceTest {
 	@Test
 	public void buildMinimalWithNullURL() throws Exception {
 		final FundingReference fr = FundingReference.getBuilder(FUNDER_NAME_STRING)
-			.withAwardURL((URL) null)
+			.withAwardUrl((URL) null)
 			.build();
 		assertFundingReferenceFields(fr, MINIMAL_MAP, null);
 	}
@@ -105,34 +105,34 @@ public class FundingReferenceTest {
 	@Test
 	public void buildMaximal() throws Exception {
 		final FundingReference fr = FundingReference.getBuilder(FUNDER_NAME_STRING)
-				.withFunderID(FUNDER_ID_STRING)
-				.withAwardID(AWARD_ID_STRING)
+				.withFunderId(FUNDER_ID_STRING)
+				.withAwardId(AWARD_ID_STRING)
 				.withAwardTitle(AWARD_TITLE_STRING)
-				.withAwardURL(AWARD_URL_STRING)
+				.withAwardUrl(AWARD_URL_STRING)
 				.build();
 		assertFundingReferenceFields(fr, ALL_MAP, new URL(AWARD_URL_STRING));
 	}
 
 	@Test
 	public void buildMaximalWithURL() throws Exception {
-		final URL awardURL = new URL(AWARD_URL_STRING);
+		final URL awardUrl = new URL(AWARD_URL_STRING);
 		final FundingReference fr = FundingReference.getBuilder(FUNDER_NAME_STRING)
-				.withFunderID(FUNDER_ID_STRING)
-				.withAwardID(AWARD_ID_STRING)
+				.withFunderId(FUNDER_ID_STRING)
+				.withAwardId(AWARD_ID_STRING)
 				.withAwardTitle(AWARD_TITLE_STRING)
-				.withAwardURL(awardURL)
+				.withAwardUrl(awardUrl)
 				.build();
-		assertFundingReferenceFields(fr, ALL_MAP, awardURL);
+		assertFundingReferenceFields(fr, ALL_MAP, awardUrl);
 	}
 
 	@Test
 	public void buildAndTrimMaximal() throws Exception {
 		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 			final FundingReference fr = FundingReference.getBuilder(FUNDER_NAME_STRING_UNTRIMMED)
-					.withFunderID(entry.getKey())
-					.withAwardID(AWARD_ID_STRING_UNTRIMMED)
+					.withFunderId(entry.getKey())
+					.withAwardId(AWARD_ID_STRING_UNTRIMMED)
 					.withAwardTitle(AWARD_TITLE_STRING_UNTRIMMED)
-					.withAwardURL(AWARD_URL_STRING_UNTRIMMED)
+					.withAwardUrl(AWARD_URL_STRING_UNTRIMMED)
 					.build();
 			final Map<String, String> expectedMap = ImmutableMap.of(
 				FUNDER_NAME, FUNDER_NAME_STRING,
@@ -147,10 +147,10 @@ public class FundingReferenceTest {
 	public void buildWithNullOrWhitespace() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final FundingReference fr = FundingReference.getBuilder(FUNDER_NAME_STRING)
-					.withFunderID(nullOrWs)
-					.withAwardID(nullOrWs)
+					.withFunderId(nullOrWs)
+					.withAwardId(nullOrWs)
 					.withAwardTitle(nullOrWs)
-					.withAwardURL(nullOrWs)
+					.withAwardUrl(nullOrWs)
 					.build();
 			assertFundingReferenceFields(fr, MINIMAL_MAP, null);
 		}
@@ -160,10 +160,10 @@ public class FundingReferenceTest {
 	public void buildAndOverwrite() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final FundingReference fr = FundingReference.getBuilder(FUNDER_NAME_STRING)
-					.withFunderID(FUNDER_ID_STRING).withFunderID(nullOrWs)
-					.withAwardID(AWARD_ID_STRING).withAwardID(nullOrWs)
+					.withFunderId(FUNDER_ID_STRING).withFunderId(nullOrWs)
+					.withAwardId(AWARD_ID_STRING).withAwardId(nullOrWs)
 					.withAwardTitle(AWARD_TITLE_STRING).withAwardTitle(nullOrWs)
-					.withAwardURL(AWARD_URL_STRING).withAwardURL(nullOrWs)
+					.withAwardUrl(AWARD_URL_STRING).withAwardUrl(nullOrWs)
 					.build();
 			assertFundingReferenceFields(fr, MINIMAL_MAP, null);
 		}
@@ -192,33 +192,33 @@ public class FundingReferenceTest {
 	public void buildFailInvalidPIDs() throws Exception {
 		for (String invalidPid : INVALID_PID_LIST) {
 			buildFundingRefFailWithError(
-					FundingReference.getBuilder(FUNDER_NAME_STRING).withFunderID(invalidPid),
-					"Illegal format for funderID: \"" + invalidPid + "\"\n" +
+					FundingReference.getBuilder(FUNDER_NAME_STRING).withFunderId(invalidPid),
+					"Illegal format for funderId: \"" + invalidPid + "\"\n" +
 							"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 		}
 	}
 
 	@Test
-	public void buildFailInvalidAwardURL() throws Exception {
+	public void buildFailInvalidAwardUrl() throws Exception {
 		buildFundingRefFailWithError(
-				FundingReference.getBuilder(FUNDER_NAME_STRING).withAwardURL(FUNDER_ID_STRING),
-				"Illegal awardURL url '" + FUNDER_ID_STRING + "': unknown protocol: ror");
+				FundingReference.getBuilder(FUNDER_NAME_STRING).withAwardUrl(FUNDER_ID_STRING),
+				"Illegal awardUrl url '" + FUNDER_ID_STRING + "': unknown protocol: ror");
 
 		buildFundingRefFailWithError(
 				FundingReference.getBuilder(FUNDER_NAME_STRING)
-						.withAwardURL("a random string with no protocol"),
-				"Illegal awardURL url 'a random string with no protocol': no protocol: a random string with no protocol");
+						.withAwardUrl("a random string with no protocol"),
+				"Illegal awardUrl url 'a random string with no protocol': no protocol: a random string with no protocol");
 
 		buildFundingRefFailWithError(
-				FundingReference.getBuilder(FUNDER_NAME_STRING).withAwardURL("https://kb^ase.us/"),
-				"Illegal awardURL url 'https://kb^ase.us/': Illegal character in authority at " +
+				FundingReference.getBuilder(FUNDER_NAME_STRING).withAwardUrl("https://kb^ase.us/"),
+				"Illegal awardUrl url 'https://kb^ase.us/': Illegal character in authority at " +
 						"index 8: https://kb^ase.us/");
 
 		// class input
 		buildFundingRefFailWithError(
 				FundingReference.getBuilder(FUNDER_NAME_STRING)
-						.withAwardURL(new URL("https://kb^ase.us/")),
-				"Illegal awardURL url 'https://kb^ase.us/': Illegal character in authority at " +
+						.withAwardUrl(new URL("https://kb^ase.us/")),
+				"Illegal awardUrl url 'https://kb^ase.us/': Illegal character in authority at " +
 						"index 8: https://kb^ase.us/");
 	}
 
@@ -237,14 +237,14 @@ public class FundingReferenceTest {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			for (String invalidPid : INVALID_PID_LIST) {
 				buildFundingRefFailWithError(
-						FundingReference.getBuilder(nullOrWs).withFunderID(invalidPid)
-								.withAwardURL(notAnURL),
+						FundingReference.getBuilder(nullOrWs).withFunderId(invalidPid)
+								.withAwardUrl(notAnURL),
 						"funderName cannot be null or whitespace only\n" +
-								"Illegal format for funderID: \"" + invalidPid + "\"\n"
+								"Illegal format for funderId: \"" + invalidPid + "\"\n"
 								+
 								"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"\n"
 								+
-								"Illegal awardURL url '" + notAnURL + "': no protocol: "
+								"Illegal awardUrl url '" + notAnURL + "': no protocol: "
 								+ notAnURL);
 			}
 		}

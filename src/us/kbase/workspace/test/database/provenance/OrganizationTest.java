@@ -34,23 +34,23 @@ public class OrganizationTest {
 	public void buildMinimal() throws Exception {
 		final Organization org1 = Organization.getBuilder(ORG_NAME).build();
 		assertThat(INCORRECT_NAME, org1.getOrganizationName(), is(ORG_NAME));
-		assertThat(INCORRECT_ID, org1.getOrganizationID(), is(ES));
+		assertThat(INCORRECT_ID, org1.getOrganizationId(), is(ES));
 	}
 
 	@Test
 	public void buildMaximal() throws Exception {
-		final Organization org1 = Organization.getBuilder(ORG_NAME).withOrganizationID(PID_STRING).build();
+		final Organization org1 = Organization.getBuilder(ORG_NAME).withOrganizationId(PID_STRING).build();
 		assertThat(INCORRECT_NAME, org1.getOrganizationName(), is(ORG_NAME));
-		assertThat(INCORRECT_ID, org1.getOrganizationID(), is(opt(PID_STRING)));
+		assertThat(INCORRECT_ID, org1.getOrganizationId(), is(opt(PID_STRING)));
 	}
 
 	@Test
 	public void buildTrimOrgNameAndId() throws Exception {
 		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 			final Organization org1 = Organization.getBuilder(ORG_NAME_WITH_WHITESPACE)
-					.withOrganizationID(entry.getKey()).build();
+					.withOrganizationId(entry.getKey()).build();
 			assertThat(INCORRECT_NAME, org1.getOrganizationName(), is(ORG_NAME));
-			assertThat(INCORRECT_ID, org1.getOrganizationID(), is(opt(entry.getValue())));
+			assertThat(INCORRECT_ID, org1.getOrganizationId(), is(opt(entry.getValue())));
 		}
 	}
 
@@ -58,10 +58,10 @@ public class OrganizationTest {
 	public void buildWithNullOrWhitespaceOrgId() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final Organization org1 = Organization.getBuilder(ORG_NAME)
-					.withOrganizationID(nullOrWs)
+					.withOrganizationId(nullOrWs)
 					.build();
 			assertThat(INCORRECT_NAME, org1.getOrganizationName(), is(ORG_NAME));
-			assertThat(INCORRECT_ID, org1.getOrganizationID(), is(ES));
+			assertThat(INCORRECT_ID, org1.getOrganizationId(), is(ES));
 		}
 	}
 
@@ -69,11 +69,11 @@ public class OrganizationTest {
 	public void buildAndOverwriteOrgIdWithNullOrWhitespace() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final Organization org1 = Organization.getBuilder(ORG_NAME)
-					.withOrganizationID(PID_STRING)
-					.withOrganizationID(nullOrWs)
+					.withOrganizationId(PID_STRING)
+					.withOrganizationId(nullOrWs)
 					.build();
 			assertThat(INCORRECT_NAME, org1.getOrganizationName(), is(ORG_NAME));
-			assertThat(INCORRECT_ID, org1.getOrganizationID(), is(ES));
+			assertThat(INCORRECT_ID, org1.getOrganizationId(), is(ES));
 		}
 	}
 
@@ -90,8 +90,8 @@ public class OrganizationTest {
 	@Test
 	public void buildFailInvalidPID() throws Exception {
 		for (String invalidPid : INVALID_PID_LIST) {
-			buildOrganizationFailWithError(Organization.getBuilder(ORG_NAME).withOrganizationID(invalidPid),
-					"Illegal format for organizationID: \"" + invalidPid + "\"\n" +
+			buildOrganizationFailWithError(Organization.getBuilder(ORG_NAME).withOrganizationId(invalidPid),
+					"Illegal format for organizationId: \"" + invalidPid + "\"\n" +
 							"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 		}
 	}
@@ -109,9 +109,9 @@ public class OrganizationTest {
 		for (String invalidPid : INVALID_PID_LIST) {
 			for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 				buildOrganizationFailWithError(
-						Organization.getBuilder(nullOrWs).withOrganizationID(invalidPid),
+						Organization.getBuilder(nullOrWs).withOrganizationId(invalidPid),
 						"organizationName cannot be null or whitespace only\n" +
-								"Illegal format for organizationID: \"" + invalidPid
+								"Illegal format for organizationId: \"" + invalidPid
 								+ "\"\n" +
 								"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 			}
