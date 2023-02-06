@@ -3,6 +3,8 @@ version: '3.4'
 services:
   workspace:
     build: .
+    # or use the latest docker image
+    # image: kbase/workspace_deluxe:latest
     ports:
       - "7058:7058"
     depends_on: ["auth2"]
