@@ -2,10 +2,11 @@ version: '3.4'
 
 services:
   workspace:
-    # build: .
+    # build the workspace docker image locally
+    build: .
     # to use the latest docker image from ghcr.io (see the readme file for more details),
     # uncomment the next line and comment out the build line
-    image: ghcr.io/kbase/workspace_deluxe:latest
+    # image: ghcr.io/kbase/workspace_deluxe:latest
     ports:
       - "7058:7058"
     depends_on: ["auth2"]
