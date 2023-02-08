@@ -18,7 +18,7 @@ on:
 # TODO split tests into mongo related & non mongo related. Run the former once.
 jobs:
 
-  workspace_integration_tests:
+  workspace_container_tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,14 +33,11 @@ jobs:
         run: |
           # set up python dependencies
           pip install pytest requests
-          # move relevant files to appropriate directory
-          mv scripts/workspace_container_test.py .
-          mv scripts/run_tests.sh .
 
       - name: Run tests
         shell: bash
         run: |
-          sh run_tests.sh
+          sh scripts/run_tests.sh
 
   workspace_deluxe_tests:
     runs-on: ubuntu-latest

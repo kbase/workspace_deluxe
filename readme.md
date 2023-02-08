@@ -35,7 +35,7 @@ isn't available.
 The better but slightly harder alternative is to build the documentation
 yourself.
 
-## Building documentation
+### Building documentation
 
 This documentation assumes the documentation build occurs on Ubuntu 12.04LTS,
 but things should work similarly on other distributions. It does **not**
@@ -91,6 +91,13 @@ The GHA tests do not run the WorkspaceLongTest or JSONRPCLongTest test classes
 because they take too long to run.
 
 Therefore, run the full test suite locally at least prior to every release.
+
+### Downloading the Docker image
+
+The latest `workspace_deluxe` image is available from the GitHub Container Repository; it can be downloaded [from the repository releases page](https://github.com/kbase/workspace_deluxe/releases/latest) or on the command line:
+
+    docker login ghcr.io
+    docker pull ghcr.io/kbase/workspace_deluxe:latest
 
 ### Setting up a local instance
 

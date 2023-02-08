@@ -2,9 +2,10 @@ version: '3.4'
 
 services:
   workspace:
-    build: .
-    # or use the latest docker image
-    # image: kbase/workspace_deluxe:latest
+    # build: .
+    # to use the latest docker image from ghcr.io (see the readme file for more details),
+    # uncomment the next line and comment out the build line
+    image: ghcr.io/kbase/workspace_deluxe:latest
     ports:
       - "7058:7058"
     depends_on: ["auth2"]
@@ -36,7 +37,7 @@ services:
       - "run"
 
   auth2:
-    image: kbase/kb_auth2:latest
+    image: ghcr.io/kbase/auth2:latest
     ports:
       - "8080:8080"
     environment:

@@ -1,4 +1,4 @@
-from lib.biokbase.workspace.client import Workspace
+from .lib.biokbase.workspace.client import Workspace
 import pytest
 import requests
 import json
@@ -8,18 +8,12 @@ import json
 Very simple tests to ensure that local workspace and auth2 servers are functioning correctly.
 Requires the python libraries `pytest` and `requests` to be installed.
 
-To run:
-- move this script to the `workspace_deluxe` (i.e. the parent) directory
+Assumes that the workspace and auth2 are running locally on ports 8080 and 7058 respectively.
 
-- run `docker compose build` and then `docker compose up` to mount auth2, workspace, and mongo
-docker containers.
+Use the wrapper shell script, `run_tests.sh`, to create the necessary set up and run the tests:
 
-- wait for the workspace container to start up -- logs should stop being generated and the
-last line of the logs should be something like
+sh scripts/run_tests.sh
 
-<timestamp> INFO [main] org.apache.catalina.startup.Catalina.start Server startup in 3811 ms
-
-- run these tests with the command `python -m pytest workspace_container_test.py`
 """
 
 WORKSPACE_VERSION = "0.14.1"
