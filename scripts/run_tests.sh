@@ -31,7 +31,7 @@ while [ $counter -lt $max_retries ]; do
     # wait for the workspace container to start up
     # logs should stop being generated and the last line of the logs should be something like
     # <timestamp> INFO [main] org.apache.catalina.startup.Catalina.start Server startup in 3811 ms
-    if docker logs -n 5 "workspace_deluxe-workspace-1" 2>&1 | grep -q -F -m 1 'org.apache.catalina.startup.Catalina.start Server startup in' > /dev/null; then
+    if docker logs -n 5 "workspace_deluxe-workspace-1" 2>&1 | grep -q -F -m 1 'org.apache.catalina.startup.Catalina.start Bored now!' > /dev/null; then
         # get the path to the 'scripts' directory and add it to the python execution path
         current_dir="$( dirname -- "$( readlink -f -- "$0"; )"; )"
         PYTHONPATH="$current_dir":$PYTHONPATH python -m pytest scripts/workspace_container_test.py
