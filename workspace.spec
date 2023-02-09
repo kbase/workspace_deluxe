@@ -963,14 +963,18 @@ module Workspace {
 
 		Required fields are:
 		- identifier
-		- resource_type
 		- versioning information: if the resource does not have an explicit version number,
 		one or more dates should be supplied: ideally the date of resource publication and
 		the last update (if applicable).
 		- contributors (one or more required)
 		- titles (one or more required)
 
-		comments - freeform text providing extra information about this credit metadata.
+		The resource_type field is required, but as there is currently only a single valid
+		value, 'dataset', it is automatically populated if no value is supplied.
+
+
+		comments - list of strings of freeform text providing extra information about this
+			credit metadata.
 			Examples:
 				- Credit metadata generated automatically from DOI:10.13039/100000015
 
@@ -1018,11 +1022,11 @@ module Workspace {
 
 	*/
 	typedef structure {
-		string comments;
 		string identifier;
 		string license;
 		string resource_type;
 		string version;
+		list<string> comments;
 		list<Contributor> contributors;
 		list<EventDate> dates;
 		list<FundingReference> funding;
