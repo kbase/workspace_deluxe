@@ -39,10 +39,6 @@ jobs:
         run: |
           sh scripts/run_tests.sh
 
-      - name: debug
-        uses: mxschmitt/action-tmate@v3
-        if: always()
-
   workspace_deluxe_tests:
     runs-on: ubuntu-latest
     strategy:
