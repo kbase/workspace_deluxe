@@ -1,4 +1,4 @@
-from .lib.biokbase.workspace.client import Workspace
+from lib.biokbase.workspace.client import Workspace
 import pytest
 import requests
 import json
