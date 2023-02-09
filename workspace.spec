@@ -972,7 +972,6 @@ module Workspace {
 		The resource_type field is required, but as there is currently only a single valid
 		value, 'dataset', it is automatically populated if no value is supplied.
 
-
 		comments - list of strings of freeform text providing extra information about this
 			credit metadata.
 			Examples:
@@ -988,7 +987,8 @@ module Workspace {
 
 		license (optional) - usage license for the resource. May be a text string or an
 			URL. Abbreviations should be spelled out where possible (e.g. 'Creative
-			Commons 4.0' instead of 'CC-BY-4.0').
+			Commons 4.0' instead of 'CC-BY-4.0'). The license is interpreted as an URL
+			and checked for well-formedness if it starts with a series of letters, a colon, and slashes, e.g. "http://"; "https://"; "ftp://".
 			Examples:
 				- Creative Commons 4.0
 				- MIT
