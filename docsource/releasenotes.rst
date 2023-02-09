@@ -3,6 +3,14 @@
 Workspace service release notes
 ===============================
 
+VERSION: unreleased
+------------------------------------
+
+UPDATES:
+
+* Update to using Java 11 for building, running, and testing the workspace.
+
+
 VERSION: 0.14.1 (Released 6/21/2022)
 ------------------------------------
 
@@ -73,7 +81,7 @@ UPDATES:
 VERSION: 0.12.1 (Released 1/25/2022)
 ------------------------------------
 
-UPDATES: 
+UPDATES:
 
 * The ``skip_external_system_updates`` option has been added to ``get_objects2``.
 * Added the ``--print-stacktrace`` option to the schema updater.
@@ -104,7 +112,7 @@ BACKWARDS INCOMPATIBILITIES:
 * ``list_objects`` now requires that at least one and no more than 10000 workspaces are
   specified.
 * As such, the ``excludeGlobal`` and ``perm`` parameters no longer have any use and are
-  deprecated. 
+  deprecated.
 * The WorkspaceEventListener interface now includes a setObjectHidden method. Code using this
   interface must be updated to implement this method.
 
@@ -185,7 +193,7 @@ BACKWARDS INCOMPATIBILITES:
   owned by the user or by the workspace service. If the user owns the node, the node's owner
   will be changed to the workspace service and write and delete ACLs will be cleared. The
   node is no longer copied.
-  
+
 UPDATES:
 
 * Storage systems that support the AWS S3 API can now be used as backend file storage systems
