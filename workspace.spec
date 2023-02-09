@@ -1068,7 +1068,7 @@ module Workspace {
 		username saved_by;
 		string credit_metadata_schema_version;
 		epoch timestamp;
-	} CreditMetadataContainer;
+	} CreditMetadataEntry;
 
 	/*
 		Returns the version of the workspace service.
@@ -1521,7 +1521,7 @@ module Workspace {
 		list<obj_ref> path - the path to the object through the object reference graph. All the
 			references in the path are absolute.
 		list<ProvenanceAction> provenance - the object's provenance.
-		CreditMetadataContainer credit_metadata - the credit information for the object.
+		CreditMetadataEntry credit_metadata - the credit information for the object.
 		username creator - the user that first saved the object to the workspace.
 		ws_id orig_wsid - the id of the workspace in which this object was
 				originally saved. Missing for objects saved prior to version
@@ -1551,7 +1551,7 @@ module Workspace {
 		object_info info;
 		list<obj_ref> path;
 		list<ProvenanceAction> provenance;
-		CreditMetadataContainer credit_metadata;
+		CreditMetadataEntry credit_metadata;
 		username creator;
 		ws_id orig_wsid;
 		timestamp created;
