@@ -101,8 +101,6 @@ public class ProvenanceTestCommon {
 	public static final Map<String, String> INVALID_URL_BAD_PROTOCOL_MAP;
 	static {
 		Map<String, String> invalidUrlMap = new HashMap<>();
-
-		invalidUrlMap.put(":// should fail", "no protocol: :// should fail");
 		invalidUrlMap.put("h://test.com", "unknown protocol: h");
 		invalidUrlMap.put("htpp://test.com", "unknown protocol: htpp");
 		invalidUrlMap.put("sftp://test.com", "unknown protocol: sftp");
@@ -123,7 +121,6 @@ public class ProvenanceTestCommon {
 				"Illegal character in path at index 26: http://foo.bar/foo(bar)baz quux");
 		invalidUrlMap.put("https://kb^ase.us/",
 				"Illegal character in authority at index 8: https://kb^ase.us/");
-
 		INVALID_URL_MAP = Collections.unmodifiableMap(invalidUrlMap);
 	}
 }

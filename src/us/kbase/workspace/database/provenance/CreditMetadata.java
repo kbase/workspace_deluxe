@@ -5,6 +5,9 @@ import java.util.Objects;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import us.kbase.workspace.database.Util;
 /*
@@ -40,11 +43,11 @@ public class CreditMetadata {
 		}
 	}
 
-	private final String comments;
 	private final String identifier;
 	private final String license;
 	private final String version;
 	private final ResourceType resourceType;
+	private final List<String> comments;
 	private final List<Contributor> contributors;
 	private final List<EventDate> dates;
 	private final List<FundingReference> funding;
@@ -55,10 +58,10 @@ public class CreditMetadata {
 
 	private CreditMetadata(
 			final String identifier,
-			final String comments,
 			final String license,
 			final String version,
 			final ResourceType resourceType,
+			final List<String> comments,
 			final List<Contributor> contributors,
 			final List<EventDate> dates,
 			final List<FundingReference> funding,
@@ -86,16 +89,8 @@ public class CreditMetadata {
 	}
 
 	/*
-	 * Gets the comments for the resource.
-	 *
-	 * @return comments (if present)
-	 */
-	public Optional<String> getComments() {
-		return Optional.ofNullable(comments);
-	}
-
-	/*
-	 * Gets the license for the resource.
+	 * Gets the license for the resource; may be a string like 'Apache 2.0' or an URL in string
+	 * form.
 	 *
 	 * @return resource license (if present)
 	 */
@@ -122,6 +117,15 @@ public class CreditMetadata {
 	}
 
 	/*
+	 * Gets the comments for the resource.
+	 *
+	 * @return list of comments (strings)
+	 */
+	public List<String> getComments() {
+		return Common.getList(comments);
+	}
+
+	/*
 	 * Gets the contributor list.
 	 *
 	 * @return list of {@link Contributor} objects.
@@ -133,7 +137,7 @@ public class CreditMetadata {
 	/*
 	 * Gets any lifecycle dates.
 	 *
-	 * @return list of {@link EventDate} objects (if present)
+	 * @return list of {@link EventDate} objects
 	 */
 	public List<EventDate> getDates() {
 		return Common.getList(dates);
@@ -142,7 +146,7 @@ public class CreditMetadata {
 	/*
 	 * Gets the funding information.
 	 *
-	 * @return list of {@link FundingReference} objects (if present)
+	 * @return list of {@link FundingReference} objects
 	 */
 	public List<FundingReference> getFunding() {
 		return Common.getList(funding);
@@ -151,7 +155,7 @@ public class CreditMetadata {
 	/*
 	 * Gets the list of related identifiers.
 	 *
-	 * @return list of {@link PermanentID} objects (if present)
+	 * @return list of {@link PermanentID} objects
 	 */
 	public List<PermanentID> getRelatedIdentifiers() {
 		return Common.getList(relatedIdentifiers);
@@ -221,11 +225,11 @@ public class CreditMetadata {
 
 	/** A builder for {@link CreditMetadata}. */
 	public static class Builder {
-		private String comments = null;
-		private String identifier = null;
+		private final String identifier;
 		private String license = null;
 		private String version = null;
 		private ResourceType resourceType = ResourceType.DATASET;
+		private List<String> comments = null;
 		private final List<Contributor> contributors;
 		private List<EventDate> dates = null;
 		private List<FundingReference> funding = null;
@@ -238,11 +242,13 @@ public class CreditMetadata {
 				final List<Contributor> contributors,
 				final List<Title> titles) {
 
+			String checkedPid = identifier;
 			try {
-				this.identifier = Common.checkPid(identifier, "identifier", false);
+				checkedPid = Common.checkPid(identifier, "identifier", false);
 			} catch (IllegalArgumentException e) {
 				this.errorList.add(e.getMessage());
 			}
+			this.identifier = checkedPid;
 
 			// must be at least one contributor
 			this.contributors = Common.dedupeSimpleList(contributors);
@@ -258,8 +264,10 @@ public class CreditMetadata {
 		}
 
 		/**
-		 * Sets the resource type for the resource; if the resourceType value is null,
-		 * sets the value to the DEFAULT_RESOURCE_TYPE.
+		 * Sets the resource type for the resource.
+		 *
+		 * As there is currently only one resource type, entering null will set the
+		 * resource type value to DEFAULT_RESOURCE_TYPE in the resultant object.
 		 *
 		 * @param resourceType
 		 *                resource type as a string
@@ -272,11 +280,11 @@ public class CreditMetadata {
 				} catch (IllegalArgumentException e) {
 					// TEMPORARY HACK
 					// As there is only one resource type at present
-					// (ResourceType.DATASET), null input in the resourceType field
-					// will be automatically set to that value.
-					// The error message "resourceType cannot be null or whitespace
-					// only" thus needs to be edited to say "resourceType cannot be
-					// whitespace only".
+					// (ResourceType.DATASET), null input in the resourceType
+					// field will be automatically set to that value.
+					// The error message "resourceType cannot be null or
+					// whitespace only" thus needs to be edited to say
+					// "resourceType cannot be whitespace only".
 					String errorMessage = e.getMessage();
 					if ("resourceType cannot be null or whitespace only"
 							.equals(errorMessage)) {
@@ -292,8 +300,10 @@ public class CreditMetadata {
 		}
 
 		/**
-		 * Sets the resource type for the resource; if the resourceType value is null,
-		 * sets the value to the DEFAULT_RESOURCE_TYPE.
+		 * Sets the resource type for the resource.
+		 *
+		 * As there is currently only one resource type, entering null will set the
+		 * resource type value to DEFAULT_RESOURCE_TYPE in the resultant object.
 		 *
 		 * @param resourceType
 		 *                resource type as a {@link ResourceType}
@@ -306,19 +316,33 @@ public class CreditMetadata {
 		}
 
 		/**
-		 * Sets comments for the resource
+		 * Sets comments for the resource.
 		 *
 		 * @param comments
-		 *                comments as a string
+		 *                comments as a list of strings
 		 * @return this builder
 		 */
-		public Builder withComments(final String comments) {
-			this.comments = Common.processMultilineString(comments);
+		public Builder withComments(final List<String> comments) {
+			if (comments != null) {
+				this.comments = comments.stream()
+						.filter(Objects::nonNull)
+						.map(String::trim)
+						.filter(c -> !Util.isNullOrWhitespace(c))
+						.distinct()
+						.collect(Collectors.toList());
+			}
+			else {
+				this.comments = comments;
+			}
 			return this;
 		}
 
 		/**
-		 * Sets the license for the resource
+		 * Sets the license for the resource; can be a string like 'Apache 2.0' or an
+		 * URL-like string; URL-like strings will be checked for well-formedness.
+		 * For these purposes, a license string that starts with a series of letters
+		 * followed by one or more colons and one or more slashes (e.g. "https://") is
+		 * considered URL-like.
 		 *
 		 * @param license
 		 *                license as a string
@@ -330,7 +354,9 @@ public class CreditMetadata {
 		}
 
 		/**
-		 * Sets the version
+		 * Sets the version.
+		 *
+		 * Valid credit metadata objects require either a version or one or more dates.
 		 *
 		 * @param withVersion
 		 *                version string
@@ -342,7 +368,9 @@ public class CreditMetadata {
 		}
 
 		/**
-		 * Sets the dates of various resource life cycle events
+		 * Sets the dates of various resource life cycle events.
+		 *
+		 * Valid credit metadata objects require either a version or one or more dates.
 		 *
 		 * @param withDates
 		 *                list of {@link EventDate}s.
@@ -354,7 +382,7 @@ public class CreditMetadata {
 		}
 
 		/**
-		 * Sets the funding source(s)
+		 * Sets the funding source(s).
 		 *
 		 * @param withFunding
 		 *                list of {@link FundingReference}s.
@@ -366,7 +394,7 @@ public class CreditMetadata {
 		}
 
 		/**
-		 * Sets the related identifiers
+		 * Sets the related identifiers.
 		 *
 		 * @param withRelatedIdentifiers
 		 *                list of {@link PermanentID}s.
@@ -380,39 +408,47 @@ public class CreditMetadata {
 		/**
 		 * Build the {@link CreditMetadata}.
 		 *
+		 * In addition to the required fields set in getBuilder(), credit metadata
+		 * requires some sort of versioning information -- either an explicit version
+		 * identifier or one or more dates.
+		 *
 		 * @return the credit metadata.
 		 */
 		public CreditMetadata build() {
 
+			// ensure there is either a version or a non-empty list of dates
 			if (version == null && (dates == null || dates.isEmpty())) {
 				errorList.add("must provide either 'version' or one or more " +
-				"'dates', ideally indicating when the resource was published or " +
-				"when it was last updated");
+						"'dates', ideally indicating when the resource " +
+						"was published or when it was last updated");
 			}
 
 			// If the license looks like a URL, ensure it's properly formatted and seems
-			// valid. For these purposes, if it starts with http or contains '://',
-			// assume it's an URL.
-			if (license != null && (license.toLowerCase().startsWith("http")
-					|| license.contains("://"))) {
-				try {
-					final URL licenseURL = Common.processURL(license,
-							"license");
-					// license field is a string, so convert the URL back to
-					// string form
-					license = licenseURL.toURI().normalize().toString();
-				} catch (Exception e) {
-					errorList.add(e.getMessage());
+			// valid. For these purposes, a license string that starts with a series
+			// of letters followed by one or more colons and one or more slashes is
+			// considered URL-like.
+			Pattern pattern = Pattern.compile("^[a-zA-Z]+:+/+");
+			if (license != null) {
+				Matcher matcher = pattern.matcher(license);
+				if (matcher.find()){
+					try {
+						final URL licenseURL = Common.processURL(license, "license");
+						// license field is a string, so convert the URL back to
+						// string form
+						license = licenseURL.toURI().normalize().toString();
+					} catch (Exception e) {
+						errorList.add(e.getMessage());
+					}
 				}
 			}
 
 			if (errorList.isEmpty()) {
 				return new CreditMetadata(
 						identifier,
-						comments,
 						license,
 						version,
 						resourceType,
+						comments,
 						contributors,
 						dates,
 						funding,
