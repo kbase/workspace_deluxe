@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #
 # script to run the python workspace_container_test.py locally or on GitHub Actions.
-# builds and mounts auth2, workspace, and mongo docker containers.
+# builds and mounts auth2, workspace, and mongo docker containers, and then calls
+# the python script.
 #
-# see .github/workflows/test.yml
+# see .github/workflows/test.yml for GitHub Actions implementation
 
 docker compose build
 docker compose up -d
@@ -11,11 +12,11 @@ docker compose up -d
 compose_up_exit_code=$?
 
 if [ $compose_up_exit_code -ne 0 ]; then
-  echo "Error: docker-compose up command failed with exit code $compose_up_exit_code."
-  exit $compose_up_exit_code
+    echo "Error: docker-compose up command failed with exit code $compose_up_exit_code."
+    exit $compose_up_exit_code
 fi
 
-max_retries=30
+max_retries=50
 counter=0
 exit_code=666
 
@@ -37,9 +38,10 @@ while [ $counter -lt $max_retries ]; do
 done
 
 if [ $counter -eq $max_retries ]; then
-        echo "Workspace server start up not detected after $max_retries retries. Workspace container logs:"
-        docker logs -n 5 "workspace_deluxe-workspace-1"
-        exit_code=1
+    echo "Workspace server start up not detected after $max_retries retries. "
+    echo "Last 20 lines of workspace container logs:"
+    docker logs -n 20 "workspace_deluxe-workspace-1"
+    exit_code=1
 fi
 
 docker compose down
