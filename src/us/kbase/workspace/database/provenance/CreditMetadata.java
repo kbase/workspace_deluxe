@@ -206,8 +206,6 @@ public class CreditMetadata {
 	 *
 	 * @param identifier
 	 *                unique persistent ID for the resource
-	 * @param resourceType
-	 *                type of the resource, as a {@link ResourceType}
 	 * @param contributors
 	 *                list of {@link Contributor} objects; at least one contributor is required
 	 * @param titles
@@ -216,54 +214,9 @@ public class CreditMetadata {
 	 */
 	public static Builder getBuilder(
 			final String identifier,
-			final ResourceType resourceType,
 			final List<Contributor> contributors,
 			final List<Title> titles) {
-		return new Builder(identifier, resourceType, contributors, titles,
-				new ArrayList<>());
-	}
-
-	/**
-	 * Gets a builder for the {@link CreditMetadata}.
-	 *
-	 * @param identifier
-	 *                unique persistent ID for the resource
-	 * @param resourceType
-	 *                type of the resource as a string
-	 * @param contributors
-	 *                list of {@link Contributor} objects; at least one contributor is required
-	 * @param titles
-	 *                list of {@link Title} objects; at least one title is required
-	 * @return the builder.
-	 */
-	public static Builder getBuilder(
-			final String identifier,
-			final String resourceType,
-			final List<Contributor> contributors,
-			final List<Title> titles) {
-		final List<String> errorList = new ArrayList<>();
-
-		ResourceType rt = null;
-		if (resourceType != null) {
-			try {
-				rt = ResourceType.getResourceType(resourceType);
-			} catch (IllegalArgumentException e) {
-				// TEMPORARY HACK
-				// As there is only one resource type at present
-				// (ResourceType.DATASET), null input in the resourceType field
-				// will be automatically set to that value.
-				// The error message "resourceType cannot be null or whitespace
-				// only" thus needs to be edited to say "resourceType cannot be
-				// whitespace only".
-				String errorMessage = e.getMessage();
-				if ("resourceType cannot be null or whitespace only"
-						.equals(errorMessage)) {
-					errorMessage = "resourceType cannot be whitespace only";
-				}
-				errorList.add(errorMessage);
-			}
-		}
-		return new Builder(identifier, rt, contributors, titles, errorList);
+		return new Builder(identifier, contributors, titles);
 	}
 
 	/** A builder for {@link CreditMetadata}. */
@@ -278,24 +231,12 @@ public class CreditMetadata {
 		private List<FundingReference> funding = null;
 		private List<PermanentID> relatedIdentifiers = null;
 		private final List<Title> titles;
-		private List<String> errorList;
+		private List<String> errorList = new ArrayList<>();
 
 		private Builder(
 				final String identifier,
-				final ResourceType resourceType,
 				final List<Contributor> contributors,
-				final List<Title> titles,
-				final List<String> errorList) {
-
-			this.errorList = errorList;
-			this.resourceType = resourceType;
-
-			// TEMPORARY HACK
-			// as there is only one resource type at present, the field defaults to
-			// being set to ResourceType.DATASET if the input is null
-			if (this.resourceType == null && errorList.isEmpty()) {
-				this.resourceType = DEFAULT_RESOURCE_TYPE;
-			}
+				final List<Title> titles) {
 
 			try {
 				this.identifier = Common.checkPid(identifier, "identifier", false);
@@ -314,6 +255,54 @@ public class CreditMetadata {
 			if (this.titles == null || this.titles.isEmpty()) {
 				this.errorList.add("at least one title must be provided");
 			}
+		}
+
+		/**
+		 * Sets the resource type for the resource; if the resourceType value is null,
+		 * sets the value to the DEFAULT_RESOURCE_TYPE.
+		 *
+		 * @param resourceType
+		 *                resource type as a string
+		 * @return this builder
+		 */
+		public Builder withResourceTypeString(final String resourceType) {
+			if (resourceType != null) {
+				try {
+					this.resourceType = ResourceType.getResourceType(resourceType);
+				} catch (IllegalArgumentException e) {
+					// TEMPORARY HACK
+					// As there is only one resource type at present
+					// (ResourceType.DATASET), null input in the resourceType field
+					// will be automatically set to that value.
+					// The error message "resourceType cannot be null or whitespace
+					// only" thus needs to be edited to say "resourceType cannot be
+					// whitespace only".
+					String errorMessage = e.getMessage();
+					if ("resourceType cannot be null or whitespace only"
+							.equals(errorMessage)) {
+						errorMessage = "resourceType cannot be whitespace only";
+					}
+					errorList.add(errorMessage);
+				}
+			}
+			else {
+				this.resourceType = DEFAULT_RESOURCE_TYPE;
+			}
+			return this;
+		}
+
+		/**
+		 * Sets the resource type for the resource; if the resourceType value is null,
+		 * sets the value to the DEFAULT_RESOURCE_TYPE.
+		 *
+		 * @param resourceType
+		 *                resource type as a {@link ResourceType}
+		 * @return this builder
+		 */
+		public Builder withResourceType(final ResourceType resourceType) {
+			// TEMPORARY HACK - only one resource type at present
+			this.resourceType = resourceType == null ? DEFAULT_RESOURCE_TYPE : resourceType;
+			return this;
 		}
 
 		/**
