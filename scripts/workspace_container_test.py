@@ -19,7 +19,7 @@ sh scripts/run_tests.sh
 WORKSPACE_VERSION = "0.14.1"
 
 AUTH_URL = "http://localhost:8080"
-WS_URL = "http://localhost:7058"
+WS_URL = "http://localhost:10538"
 USER_NAME = "some_dull_user"
 WS_NAME = "my_cool_new_workspace"
 
