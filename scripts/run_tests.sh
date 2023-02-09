@@ -37,7 +37,8 @@ while [ $counter -lt $max_retries ]; do
 done
 
 if [ $counter -eq $max_retries ]; then
-        echo "Workspace server start up not detected after $max_retries retries. Please check the logs for the docker container workspace_deluxe-workspace-1"
+        echo "Workspace server start up not detected after $max_retries retries. Workspace container logs:"
+        docker logs -n 5 "workspace_deluxe-workspace-1"
         exit_code=1
 fi
 
