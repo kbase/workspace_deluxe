@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.database.provenance;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import us.kbase.workspace.database.provenance.Event;
 
@@ -10,6 +11,7 @@ import static org.junit.Assert.fail;
 import us.kbase.common.test.TestCommon;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class EventTest {
 
 	@Test

@@ -24,6 +24,7 @@ import java.util.zip.GZIPInputStream;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.SubsetSelection;
@@ -45,8 +46,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+@Category(us.kbase.common.test.SlowTests.class)
 public class WorkspaceLongTest extends WorkspaceTester {
-	
+
 	public WorkspaceLongTest(String config, String backend,
 			Integer maxMemoryUsePerCall) throws Exception {
 		super(config, backend, maxMemoryUsePerCall);
@@ -57,7 +59,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 //		System.gc();
 //		printMem("*** starting saveWithBigData, ran gc ***");
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		
+
 		WorkspaceIdentifier bigdataws = new WorkspaceIdentifier("bigdata");
 		ws.createWorkspace(userfoo, bigdataws.getName(), false, null, null);
 		File tempFile = ws.getTempFilesManager().generateTempFile("clreq", "json");
@@ -93,9 +95,9 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		data = null;
 		subdata = null;*/
 		//System.gc();
-		
+
 		//printMem("*** released refs ***");
-		
+
 		final ByteArrayFileCache newdata = getObjects(
 				ws,
 				userfoo,
@@ -123,7 +125,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 //		System.gc();
 //		printMem("*** ran gc, exiting saveWithBigMeta ***");
 	}
-	
+
 	@Test(timeout=120000)
 	public void tenKrefs() throws Exception {
 		final String specRef =
@@ -138,7 +140,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 					"typedef string reference;\n" +
 					"typedef structure {\n" +
 						"mapping<reference, string> map;\n" +
-					"} FromRefType;\n" + 
+					"} FromRefType;\n" +
 				"};\n";
 		String mod = "Test10KRefs";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
@@ -148,7 +150,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				Arrays.asList("ToRefType", "FromRefType"), null, null, false, null);
 		TypeDefId toRef = new TypeDefId(new TypeDefName(mod, "ToRefType"), 0, 1);
 		TypeDefId fromRef = new TypeDefId(new TypeDefName(mod, "FromRefType"), 0, 1);
-		
+
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("tenKrefs");
 		WorkspaceInformation wi = ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
 		long wsid = wi.getId();
@@ -165,12 +167,12 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		inner1.put("string1", inner2);
 		inner1.put("string2", inner2);
 		torefdata.put("map", inner1);
-		
+
 		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();
 		Map<String, Object> refdata = new HashMap<String, Object>();
 		Map<String, String> refs = new HashMap<String, String>();
 		refdata.put("map", refs);
-		
+
 		Set<String> expectedRefs = new HashSet<String>();
 		for (int i = 1; i < 10001; i++) {
 			wsos.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto" + i), torefdata,
@@ -183,7 +185,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("last"), refdata, fromRef, null,
 						emptyprov, false)),
 				getIdFactory());
-		
+
 		WorkspaceObjectData wod = getObjects(
 				ws,
 				userfoo,
@@ -207,11 +209,11 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		assertThat("returned refs correct", new HashSet<String>(wod.getReferences()),
 				is(expectedRefs));
 	}
-	
+
 	@Test(timeout=60000)
 	public void unicode() throws Exception {
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		
+
 		WorkspaceIdentifier unicode = new WorkspaceIdentifier("unicode");
 		ws.createWorkspace(userfoo, unicode.getName(), false, null, null);
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -226,9 +228,9 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		sb.appendCodePoint(0x0A90);
 		sb.appendCodePoint(0x6A);
 		String test = sb.toString();
-		
+
 		int count = 4347900;
-		
+
 		data.put("subset", subdata);
 		for (int i = 0; i < count; i++) {
 			subdata.add(test);
@@ -256,7 +258,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		for (String s: newsd) {
 			assertThat("correct string in subdata", s, is(test));
 		}
-		
+
 		data.clear();
 		data.put(test, "foo");
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
@@ -276,20 +278,20 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			destroyGetObjectsResources(objects2);
 		}
 	}
-	
+
 	@Test
 	public void listObjectsLimit() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("pagUser");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("pagination");
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
-		
+
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 20000; i++) {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, basicProv(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, getIdFactory());
-		
+
 		//this depends on the natural sort order of mongo
 		checkObjectLimit(user, wsi, 0, 1, 10000);
 		checkObjectLimit(user, wsi, 1, 1, 1);
@@ -298,7 +300,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		checkObjectLimit(user, wsi, 1000000, 1, 10000);
 		checkObjectLimit(user, wsi, 5000, 1, 5000);
 	}
-	
+
 	//this test takes FOREVER and doesn't actually test anything, it's a performance measurement
 	@Ignore
 	@SuppressWarnings("unchecked")
@@ -338,7 +340,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		Provenance emptyprov = basicProv(userfoo);
 		InputStream is = new GZIPInputStream(this.getClass().getResourceAsStream("long_test_get_object_subset.json.gz.properties"));
 		Map<String, Object> data = UObject.getMapper().readValue(is, Map.class);
-		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();		
+		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();
 		wsos.add(new WorkspaceSaveObject(getRandomName(), data, daType, null, emptyprov, false));
 		ObjectInformation oi = ws.saveObjects(userfoo, wspace, wsos, getIdFactory()).get(0);
 		/////////////////////////////////////////// get_objects /////////////////////////////////////////////
@@ -389,7 +391,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			System.out.println("[WorkspaceLongTest] objects saved: " + savedObejcts);
 			estimateGetSubsetTime(userfoo, wspace, oi, contigId, featureCount,
 					rnd, numberOfIncludedPaths, "get_object_subset with many objects");
-		}		
+		}
 	}
 
 	private void estimateGetSubsetTime(WorkspaceUser userfoo,

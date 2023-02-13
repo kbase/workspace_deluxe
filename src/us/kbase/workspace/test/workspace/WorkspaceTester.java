@@ -42,6 +42,7 @@ import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.experimental.categories.Category;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.common.test.TestCommon;
@@ -100,33 +101,34 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 @RunWith(Parameterized.class)
+@Category(us.kbase.common.test.TestHelpers.class)
 public class WorkspaceTester {
-	
+
 	protected static final ObjectMapper MAPPER = new ObjectMapper();
-	
+
 	static {
 		//stfu EasyStream
 		((Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
 				.setLevel(Level.OFF);
 	}
-	
+
 	protected static final Map<String, String> MT_MAP = new HashMap<>();
 	protected static final List<String> MT_LIST = new LinkedList<>();
-	
+
 	public static final String DB_WS_NAME = "WorkspaceBackendTest";
 	public static final String DB_TYPE_NAME = "WorkspaceBackendTest_types";
-			
-	
+
+
 	private static MongoController mongo = null;
 	private static MinioController minio = null;
 	protected static TempFilesManager tfm;
-	
+
 	protected static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
 	protected static final WorkspaceUser AUSER = new WorkspaceUser("a");
 	protected static final WorkspaceUser BUSER = new WorkspaceUser("b");
 	protected static final WorkspaceUser CUSER = new WorkspaceUser("c");
 	protected static final AllUsers STARUSER = new AllUsers('*');
-	
+
 	protected static final TypeDefId SAFE_TYPE1 = ATYPE_0_1;
 	protected static final TypeDefId SAFE_TYPE2 = ATYPE2_0_1;
 	protected static final TypeDefId SAFE_TYPE1_10 = ATYPE_1_0;
@@ -134,14 +136,14 @@ public class WorkspaceTester {
 	protected static final TypeDefId SAFE_TYPE1_20 = ATYPE_2_0;
 	protected static final TypeDefId SAFE_TYPE2_20 = ATYPE2_2_0;
 	protected static final TypeDefId SAFE_TYPE2_21 = ATYPE2_2_1;
-	
+
 	protected static final TypeDefId REF_TYPE =
 			new TypeDefId(new TypeDefName("CopyRev", "RefType"), 0, 1);
 
 	static {
 		JsonTokenStreamOCStat.register();
 	}
-	
+
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
 		printMem("*** startup ***");
@@ -154,7 +156,7 @@ public class WorkspaceTester {
 		printMem("*** startup complete ***");
 		return tests;
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (minio != null) {
@@ -167,7 +169,7 @@ public class WorkspaceTester {
 		tfm.cleanup();
 		JsonTokenStreamOCStat.showStat();
 	}
-	
+
 	@Before
 	public void clearDB() throws Exception {
 		try (final MongoClient cli = new MongoClient("localhost:" + mongo.getServerPort())) {
@@ -175,16 +177,16 @@ public class WorkspaceTester {
 		}
 		ws.setConfig(DynamicConfigUpdate.getDefault());
 	}
-	
+
 	@After
 	public void after() throws Exception {
 		TestCommon.assertNoTempFilesExist(tfm);
 	}
-	
+
 	private static final Map<String, WSandTypes> CONFIGS = new HashMap<String, WSandTypes>();
 	protected final Workspace ws;
 	protected final Types types;
-	
+
 	public WorkspaceTester(
 			final String config,
 			final String backend,
@@ -220,7 +222,7 @@ public class WorkspaceTester {
 		ws = CONFIGS.get(config).ws;
 		types = CONFIGS.get(config).types;
 	}
-	
+
 	private static class WSandTypes {
 		public Workspace ws;
 		public Types types;
@@ -230,7 +232,7 @@ public class WorkspaceTester {
 			this.types = types;
 		}
 	}
-	
+
 	private WSandTypes setUpMongo(
 			final MongoDatabase wsdb,
 			final MongoDatabase tdb,
@@ -238,7 +240,7 @@ public class WorkspaceTester {
 			throws Exception {
 		return setUpWorkspaces(wsdb, tdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
 	}
-	
+
 	private WSandTypes setUpMinio(
 			final MongoDatabase wsdb,
 			final MongoDatabase tdb,
@@ -262,17 +264,17 @@ public class WorkspaceTester {
 		final BlobStore bs = new S3BlobStore(wsdb.getCollection("s3_map"), cli, "test-bucket");
 		return setUpWorkspaces(wsdb, tdb, bs, maxMemoryUsePerCall);
 	}
-	
+
 	private WSandTypes setUpWorkspaces(
 			final MongoDatabase wsdb,
 			final MongoDatabase tdb,
 			final BlobStore bs,
 			final Integer maxMemoryUsePerCall)
 			throws Exception {
-		
+
 		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		tfm.cleanup();
-		
+
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
@@ -289,11 +291,11 @@ public class WorkspaceTester {
 		installSpecs(t);
 		return new WSandTypes(work, t);
 	}
-		
+
 	private void installSpecs(final Types t) throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceTestCommon.installBasicSpecs(foo, t);
-		
+
 		//spec that simply references another object
 		final String specRefType =
 				"module CopyRev {" +
@@ -303,7 +305,7 @@ public class WorkspaceTester {
 						"list<reference> refs;" +
 					"} RefType;" +
 				"};";
-		
+
 		String mod = "CopyRev";
 		t.requestModuleRegistration(foo, mod);
 		t.resolveModuleRegistration(mod, true);
@@ -314,7 +316,7 @@ public class WorkspaceTester {
 		// registration tests
 		t.requestModuleRegistration(foo, "TestModule");
 		t.resolveModuleRegistration("TestModule", true);
-		t.compileNewTypeSpec(foo, 
+		t.compileNewTypeSpec(foo,
 				"module TestModule { " +
 						"typedef structure {string name; string seq;} Feature; "+
 						"typedef structure {string name; list<Feature> features;} Genome; "+
@@ -323,7 +325,7 @@ public class WorkspaceTester {
 						"};",
 						Arrays.asList("Feature","Genome"), null, null, false, null);
 		t.releaseTypes(foo, "TestModule");
-		t.compileNewTypeSpec(foo, 
+		t.compileNewTypeSpec(foo,
 				"module TestModule { " +
 						"typedef structure {string name; string seq;} Feature; "+
 						"typedef structure {string name; list<Feature> feature_list;} Genome; "+
@@ -331,7 +333,7 @@ public class WorkspaceTester {
 						"funcdef getFeature(string fid) returns (Feature);" +
 						"};",
 						null, null, null, false, null);
-		t.compileNewTypeSpec(foo, 
+		t.compileNewTypeSpec(foo,
 				"module TestModule { " +
 						"typedef structure {string name; string seq;} Feature; "+
 						"typedef structure {string name; list<Feature> feature_list;} Genome; "+
@@ -344,24 +346,24 @@ public class WorkspaceTester {
 
 		t.requestModuleRegistration(foo, "UnreleasedModule");
 		t.resolveModuleRegistration("UnreleasedModule", true);
-		t.compileNewTypeSpec(foo, 
+		t.compileNewTypeSpec(foo,
 				"module UnreleasedModule {/* @optional thing */ typedef structure {string thing;} AType; funcdef aFunc(AType param) returns ();};",
 				Arrays.asList("AType"), null, null, false, null);
 	}
-	
+
 	private static void printMem(String startmsg) {
 		System.out.println(startmsg);
 		System.out.println("free mem: " + Runtime.getRuntime().freeMemory());
 		System.out.println(" max mem: " + Runtime.getRuntime().maxMemory());
 		System.out.println(" ttl mem: " + Runtime.getRuntime().maxMemory());
 	}
-	
+
 	private static String lastRandomName = null;
-	
+
 	protected static String getLastRandomName() {
 		return lastRandomName;
 	}
-	
+
 	protected static ObjectIDNoWSNoVer getRandomName() {
 		//since UUIDs can be all #s
 		lastRandomName = "a" + UUID.randomUUID().toString().replace("-", "");
@@ -376,18 +378,18 @@ public class WorkspaceTester {
 		}
 		return ret;
 	}
-	
+
 	protected IdReferenceHandlerSetFactory getIdFactory() {
 		return getIdFactory(100000);
 	}
 	protected IdReferenceHandlerSetFactory getIdFactory(final int maxIDs) {
 		return IdReferenceHandlerSetFactoryBuilder.getBuilder(maxIDs).build().getFactory(null);
 	}
-	
+
 	protected Object getData(final WorkspaceObjectData wod) throws Exception {
 		return wod.getSerializedData().get().getUObject().asClassInstance(Object.class);
 	}
-	
+
 	public static List<WorkspaceObjectData> getObjects(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -395,7 +397,7 @@ public class WorkspaceTester {
 			throws Exception {
 		return getObjects(ws, user, objects, false);
 	}
-	
+
 	public static List<WorkspaceObjectData> getObjects(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -404,7 +406,7 @@ public class WorkspaceTester {
 			throws Exception {
 		return ws.getObjects(user, objects, false, false, asAdmin);
 	}
-	
+
 	protected void failSetWSDesc(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -413,7 +415,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failSetWSDesc(ws, user, wsi, description, e);
 	}
-	
+
 	public static void failSetWSDesc(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -444,7 +446,7 @@ public class WorkspaceTester {
 		checkWSInfo(ws.getWorkspaceInformation(owner, wsi), owner, name, objs,
 				perm, globalread, id, moddate, lockstate, meta);
 	}
-	
+
 	protected Instant checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id,
 			String lockstate, Map<String, String> meta) throws Exception {
@@ -453,7 +455,7 @@ public class WorkspaceTester {
 		assertThat("ws id correct", info.getId(), is(id));
 		return info.getModDate();
 	}
-	
+
 	protected void checkWSInfo(
 			final WorkspaceInformation info,
 			final WorkspaceUser owner,
@@ -469,7 +471,7 @@ public class WorkspaceTester {
 		assertThat("ws id correct", info.getId(), is(id));
 		assertThat("ws mod date correct", info.getModDate(), is(moddate));
 	}
-	
+
 	protected void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, String lockstate,
 			Map<String, String> meta) {
@@ -482,13 +484,13 @@ public class WorkspaceTester {
 		assertThat("ws lockstate correct", info.getLockState(), is(lockstate));
 		assertThat("ws meta correct", info.getUserMeta().getMetadata(), is(meta));
 	}
-	
+
 	protected void assertDatesAscending(final Instant... dates) {
 		for (int i = 1; i < dates.length; i++) {
 			assertTrue("dates are ascending", dates[i-1].isBefore(dates[i]));
 		}
 	}
-	
+
 	protected void failWSMeta(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -498,7 +500,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failWSMeta(ws, user, wsi, key, value, e);
 	}
-	
+
 	public static void failWSMeta(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -520,7 +522,7 @@ public class WorkspaceTester {
 			final Exception e) {
 		failWSRemoveMeta(ws, user, wsi, key, e);
 	}
-	
+
 	public static void failWSRemoveMeta(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -542,7 +544,7 @@ public class WorkspaceTester {
 			final Exception e) {
 		failWSSetMeta(ws, user, wsi, meta, Collections.emptyList(), e);
 	}
-	
+
 	public static void failWSSetMeta(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -557,7 +559,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failCreateWorkspace(WorkspaceUser user, String name,
 			boolean global, Map<String,String> meta, String description, Exception e)
 			throws Exception {
@@ -569,23 +571,23 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failSetPermissions(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final List<WorkspaceUser> users,
-			final Permission perm, 
+			final Permission perm,
 			final Exception e)
 			throws Exception {
 		failSetPermissions(ws, user, wsi, users, perm, e);
 	}
-	
+
 	public static void failSetPermissions(
 			final Workspace ws,
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final List<WorkspaceUser> users,
-			final Permission perm, 
+			final Permission perm,
 			final Exception e)
 			throws Exception {
 		try {
@@ -595,7 +597,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failGetPermissions(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis,
@@ -603,7 +605,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failGetPermissions(ws, user, wsis, e);
 	}
-	
+
 	public static void failGetPermissions(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -617,7 +619,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failGetPermissionsAsAdmin(
 			final List<WorkspaceIdentifier> wsis,
 			final Exception e) {
@@ -628,7 +630,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(got, e);
 		}
 	}
-	
+
 	protected void checkObjInfo(
 			final ObjectInformation info,
 			final long id,
@@ -642,7 +644,7 @@ public class WorkspaceTester {
 			final long size,
 			final Map<String, String> usermeta,
 			final List<Reference> refpath) {
-		
+
 		assertDateisRecent(info.getSavedDate());
 		assertThat("Object id incorrect", info.getObjectId(), is(id));
 		assertThat("Object name is incorrect", info.getObjectName(), is(name));
@@ -658,11 +660,11 @@ public class WorkspaceTester {
 		assertThat("Object user meta is incorrect", meta, is(usermeta));
 		assertThat("Object refpath incorrect", info.getReferencePath(), is(refpath));
 	}
-	
+
 	protected void assertDateisRecent(final Date orig) {
 		assertDateisRecent(orig.toInstant());
 	}
-	
+
 	protected void assertDateisRecent(final Instant orig) {
 		final Instant now = Instant.now();
 		assertThat("date is older than 1m", orig.until(now, ChronoUnit.SECONDS) < 60, is(true));
@@ -679,7 +681,7 @@ public class WorkspaceTester {
 		assertTrue(assertion, readCurrentDate.isAfter(lastDate));
 		return readCurrentDate;
 	}
-	
+
 	protected void failSave(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -692,10 +694,10 @@ public class WorkspaceTester {
 		final WorkspaceSaveObject wso = new WorkspaceSaveObject(id, data, type, null, prov, false);
 		failSave(user, wsi, Arrays.asList(wso), exception);
 	}
-	
+
 	protected void failSave(
 			final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, 
+			final WorkspaceIdentifier wsi,
 			final String objectName,
 			final Map<String, Object> data,
 			final TypeDefId type,
@@ -704,7 +706,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failSave(user, wsi, new ObjectIDNoWSNoVer(objectName), data, type, prov, exception);
 	}
-	
+
 	protected void failSave(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -713,7 +715,7 @@ public class WorkspaceTester {
 					throws Exception {
 		failSave(user, wsi, wso, getIdFactory(), exp);
 	}
-	
+
 	protected void failSave(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -723,7 +725,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failSave(ws, user, wsi, wso, fac, exp);
 	}
-	
+
 	public static void failSave(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -739,7 +741,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(e, exp);
 		}
 	}
-	
+
 	protected void checkObjectAndInfoWithNulls(WorkspaceUser user,
 			List<ObjectIdentifier> ids, List<ObjectInformation> expected,
 			List<Map<String, Object>> expdata) throws Exception {
@@ -786,7 +788,7 @@ public class WorkspaceTester {
 	}
 
 	// only checks that the received object info->saved date is recent, doesn't directly compare to
-	// provided obj info. 
+	// provided obj info.
 	protected void checkObjectAndInfo(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> ids,
@@ -828,9 +830,9 @@ public class WorkspaceTester {
 			destroyGetObjectsResources(retdata);
 		}
 	}
-	
+
 	// only checks that the wod->object info->saved date is recent, doesn't directly compare to
-	// provided obj info. 
+	// provided obj info.
 	protected void checkObjectAndInfo(
 			final WorkspaceObjectData wod,
 			final ObjectInformation info,
@@ -850,14 +852,14 @@ public class WorkspaceTester {
 				info.getUserMetaData().getMetadata(),
 				info.getReferencePath());
 		assertThat("correct data", getData(wod), is((Object) data));
-		
+
 	}
 
 	protected void successGetObjects(WorkspaceUser user,
 			List<ObjectIdentifier> objs) throws Exception {
 		destroyGetObjectsResources(getObjects(ws, user, objs));
 	}
-	
+
 	public static void destroyGetObjectsResources(
 			final List<WorkspaceObjectData> objects) {
 		for (WorkspaceObjectData wo: objects) {
@@ -874,26 +876,26 @@ public class WorkspaceTester {
 	protected void failGetObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
-			final Exception e) 
+			final Exception e)
 			throws Exception {
 		failGetObjects(user, objs, e, false);
 	}
-	
+
 	protected void failGetObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
 			final Exception e,
-			final boolean onlyCheckReturningData) 
+			final boolean onlyCheckReturningData)
 			throws Exception {
 		failGetObjects(ws, user, objs, e, onlyCheckReturningData);
 	}
-	
+
 	public static void failGetObjects(
 			final Workspace ws,
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
 			final Exception e,
-			final boolean onlyCheckReturningData) 
+			final boolean onlyCheckReturningData)
 			throws Exception {
 		try {
 			getObjects(ws, user, objs);
@@ -924,26 +926,26 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
 			final Exception e)
 			throws Exception {
-		
+
 		failGetReferencedObjects(user, objs, e, false);
 	}
-	
+
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
 			final Exception e,
 			final Set<Integer> nulls)
 			throws Exception {
-		
+
 		failGetReferencedObjects(user, objs, e, false, nulls);
 	}
-	
+
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
@@ -958,7 +960,7 @@ public class WorkspaceTester {
 		}
 		failGetReferencedObjects(user, objs, e, onlyTestReturningData, nulls);
 	}
-	
+
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
@@ -968,7 +970,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failGetReferencedObjects(ws, user, objs, e, onlyTestReturningData, nulls);
 	}
-	
+
 	public static void failGetReferencedObjects(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1008,7 +1010,7 @@ public class WorkspaceTester {
 			}
 		}
 	}
-	
+
 	protected void failGetSubset(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
@@ -1016,7 +1018,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failGetSubset(ws, user, objs, e);
 	}
-	
+
 	public static void failGetSubset(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1030,7 +1032,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected List<Instant> checkProvenanceCorrect(
 			final WorkspaceUser foo,
 			final Provenance prov,
@@ -1046,7 +1048,7 @@ public class WorkspaceTester {
 		checkProvenanceCorrect(prov, pgot2,refmap, obj.getWorkspaceIdentifier().getId());
 		return Arrays.asList(pgot.getDate(), pgot2.getDate());
 	}
-	
+
 	//if refmap != null expected is a Provenance object. Otherwise it's a subclass
 	// with an implemented getResolvedObjects method.
 	protected void checkProvenanceCorrect(Provenance expected, Provenance got,
@@ -1060,7 +1062,7 @@ public class WorkspaceTester {
 		} else {
 			assertDateisRecent(got.getDate());
 		}
-		
+
 		Iterator<ProvenanceAction> gotAct = got.getActions().iterator();
 		Iterator<ProvenanceAction> expAct = expected.getActions().iterator();
 		while (gotAct.hasNext()) {
@@ -1140,34 +1142,34 @@ public class WorkspaceTester {
 			ws.getObjectInformation(foo, Arrays.asList(oi), false, false);
 			fail("got non-existant object");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getLocalizedMessage(), 
+			assertThat("correct exception message", nsoe.getLocalizedMessage(),
 					is(exception));
 		}
 	}
-	
+
 	private static final ResolvedWorkspaceID RWSID =
 			new ResolvedWorkspaceID(1, "foo", false, false);
-	
+
 	protected void testObjectIdentifier(String goodId) {
 		new ObjectIDResolvedWS(RWSID, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
-	
+
 	protected void testObjectIdentifier(String goodId, int version) {
 		new ObjectIDResolvedWS(RWSID, goodId, version);
 		new ObjectIDNoWSNoVer(goodId);
 	}
-	
+
 	protected void testObjectIdentifier(int goodId) {
 		new ObjectIDResolvedWS(RWSID, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
-	
+
 	protected void testObjectIdentifier(int goodId, int version) {
 		new ObjectIDResolvedWS(RWSID, goodId, version);
 		new ObjectIDNoWSNoVer(goodId);
 	}
-	
+
 	protected void testObjectIdentifier(
 			final WorkspaceIdentifier badWS,
 			final String badId,
@@ -1193,7 +1195,7 @@ public class WorkspaceTester {
 			}
 		}
 	}
-	
+
 	protected void testObjectIdentifier(
 			final WorkspaceIdentifier badWS,
 			final String badId,
@@ -1212,7 +1214,7 @@ public class WorkspaceTester {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 	}
-	
+
 	protected void testObjectIdentifier(
 			final WorkspaceIdentifier badWS,
 			final int badId,
@@ -1238,7 +1240,7 @@ public class WorkspaceTester {
 			}
 		}
 	}
-	
+
 	protected void testObjectIdentifier(
 			final WorkspaceIdentifier badWS,
 			final int badId,
@@ -1257,7 +1259,7 @@ public class WorkspaceTester {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 	}
-	
+
 	protected void testCreate(
 			final String name,
 			final Long id,
@@ -1269,7 +1271,7 @@ public class WorkspaceTester {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
 	}
-	
+
 	protected void checkNonDeletedObjs(WorkspaceUser foo,
 			Map<ObjectIdentifier, Object> idToData) throws Exception {
 		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
@@ -1303,7 +1305,7 @@ public class WorkspaceTester {
 			final Exception e) {
 		failCopy(ws, user, from, to, e);
 	}
-		
+
 	public static void failCopy(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1317,14 +1319,14 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failRevert(
 			final WorkspaceUser user,
 			final ObjectIdentifier from,
 			final Exception e) {
 		failRevert(ws, user, from, e);
 	}
-	
+
 	public static void failRevert(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1337,19 +1339,19 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected Map<String, String> makeSimpleMeta(String key, String value) {
 		Map<String, String> map = new HashMap<String, String>();
 		map.put(key, value);
 		return map;
 	}
-	
+
 	protected Map<String, Object> makeRefData(String... refs) {
 		Map<String, Object> data = new HashMap<>();
 		data.put("refs", Arrays.asList(refs));
 		return data;
 	}
-	
+
 	protected Map<String, String> makeMeta(final int id) {
 		return makeSimpleMeta("m", "" + id);
 	}
@@ -1359,23 +1361,23 @@ public class WorkspaceTester {
 			final ObjectInformation copied,
 			final WorkspaceUser user,
 			final long wsid,
-			final String wsname, 
+			final String wsname,
 			final long objectid,
 			final String objname,
 			final int version)
 			throws Exception {
 		compareObjectInfo(original, copied, user, wsid, wsname, objectid,
 				objname, version);
-		
+
 		WorkspaceObjectData orig = null;
 		WorkspaceObjectData copy = null;
-		
+
 		try {
 			final Optional<Reference> expectedCopyRef = Optional.of(new Reference(
 					original.getWorkspaceId(),
 					original.getObjectId(),
 					original.getVersion()));
-			
+
 			//getObjects
 			orig = getObjects(ws, original.getSavedBy(), Arrays.asList(
 					ObjectIdentifier.getBuilder(new WorkspaceIdentifier(original.getWorkspaceId()))
@@ -1393,7 +1395,7 @@ public class WorkspaceTester {
 			assertThat("copy ref correct", copy.getCopyReference(), is(expectedCopyRef));
 			checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(),
 					null, original.getWorkspaceId());
-			
+
 			//getObjectProvenance
 			WorkspaceObjectData originfo = ws.getObjects(original.getSavedBy(), Arrays.asList(
 					ObjectIdentifier.getBuilder(new WorkspaceIdentifier(original.getWorkspaceId()))
@@ -1420,7 +1422,7 @@ public class WorkspaceTester {
 			}
 		}
 	}
-	
+
 	protected void compareObjectAndInfo(WorkspaceObjectData got,
 			ObjectInformation info, Provenance prov, Map<String, ? extends Object> data,
 			List<String> refs, Map<String, String> refmap)
@@ -1461,7 +1463,7 @@ public class WorkspaceTester {
 			throws Exception {
 		return saveObject(user, wsi, meta, data, type, name, prov, false);
 	}
-	
+
 	protected ObjectInformation saveObject(WorkspaceUser user, WorkspaceIdentifier wsi,
 			Map<String, String> meta, Map<String, ? extends Object> data,
 			TypeDefId type, String name, Provenance prov, boolean hide)
@@ -1480,7 +1482,7 @@ public class WorkspaceTester {
 			final Exception e) {
 		failClone(user, wsi, name, meta, null, e);
 	}
-	
+
 	protected void failClone(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -1490,7 +1492,7 @@ public class WorkspaceTester {
 			final Exception e) {
 		failClone(ws, user, wsi, name, meta, exclude, e);
 	}
-	
+
 	public static void failClone(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1515,7 +1517,7 @@ public class WorkspaceTester {
 			final Exception e) {
 		failObjRename(ws, user, oi, newname, e);
 	}
-	
+
 	public static void failObjRename(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1537,7 +1539,7 @@ public class WorkspaceTester {
 			final Exception e) {
 		failWSRename(ws, user, wsi, newname, e);
 	}
-	
+
 	public static void failWSRename(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1551,7 +1553,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failDeleteWorkspace(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -1564,7 +1566,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failDeleteWorkspaceAsAdmin(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -1578,7 +1580,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failSetWorkspaceOwner(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -1589,7 +1591,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failSetWorkspaceOwner(ws, user, wsi, newuser, name, asAdmin, expected);
 	}
-	
+
 	public static void failSetWorkspaceOwner(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1606,7 +1608,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	protected void failGetWorkspaceDesc(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -1614,7 +1616,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failGetWorkspaceDesc(ws, user, wsi, e);
 	}
-	
+
 	public static void failGetWorkspaceDesc(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1628,7 +1630,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failGetWorkspaceInfoAsAdmin(
 			final WorkspaceIdentifier wsi,
 			final Exception e) {
@@ -1639,7 +1641,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(got, e);
 		}
 	}
-	
+
 	protected void failSetGlobalPerm(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -1648,7 +1650,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failSetGlobalPerm(ws, user, wsi, perm, e);
 	}
-	
+
 	public static void failSetGlobalPerm(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1663,7 +1665,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failSetHide(
 			final WorkspaceUser user,
 			final ObjectIdentifier oi,
@@ -1672,7 +1674,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failSetHide(ws, user, oi, hide, e);
 	}
-	
+
 	public static void failSetHide(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1687,7 +1689,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	//checks exact dates
 	protected void checkWSInfoList(List<WorkspaceInformation> ws,
 			List<WorkspaceInformation> expected) {
@@ -1698,7 +1700,7 @@ public class WorkspaceTester {
 		}
 		checkWSInfoList(ws, m);
 	}
-	
+
 	protected void checkWSInfoList(List<WorkspaceInformation> ws,
 			Map<WorkspaceInformation, Boolean> expected) {
 		Map<Long, WorkspaceInformation> idToInf = new HashMap<Long, WorkspaceInformation>();
@@ -1736,9 +1738,9 @@ public class WorkspaceTester {
 		assertThat("ws permissions correct", got.getUserPermission(), is(expected.getUserPermission()));
 		assertThat("ws global read correct", got.isGloballyReadable(), is(expected.isGloballyReadable()));
 		assertThat("ws lockstate correct", got.getLockState(), is(expected.getLockState()));
-		
+
 	}
-	
+
 	/* depends on inherent mongo ordering */
 	protected void checkObjectLimit(WorkspaceUser user, WorkspaceIdentifier wsi,
 			int limit, int minid, int maxid)
@@ -1746,10 +1748,10 @@ public class WorkspaceTester {
 		checkObjectLimit(user, wsi, limit, minid, maxid,
 				new HashSet<Long>());
 	}
-	
+
 	/* depends on inherent mongo ordering */
 	protected void checkObjectLimit(WorkspaceUser user, WorkspaceIdentifier wsi,
-			int limit, int minid, int maxid, Set<Long> exlude) 
+			int limit, int minid, int maxid, Set<Long> exlude)
 			throws Exception {
 		List<ObjectInformation> res = ws.listObjects(
 				ListObjectsParameters.getBuilder(Arrays.asList(wsi))
@@ -1767,14 +1769,14 @@ public class WorkspaceTester {
 			}
 		}
 	}
-	
+
 	protected void failGetObjectHistory(
 			final WorkspaceUser user,
 			final ObjectIdentifier oi,
 			final Exception e) {
 		failGetObjectHistory(ws, user, oi, e);
 	}
-	
+
 	public static void failGetObjectHistory(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1795,7 +1797,7 @@ public class WorkspaceTester {
 			final Exception e) {
 		failListObjects(ws, user, wsis, meta, e);
 	}
-	
+
 	public static void failListObjects(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1810,7 +1812,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void failGetNamesByPrefix(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis,
@@ -1821,7 +1823,7 @@ public class WorkspaceTester {
 			throws Exception {
 		failGetNamesByPrefix(ws, user, wsis, prefix, includeHidden, limit, e);
 	}
-	
+
 	public static void failGetNamesByPrefix(
 			final Workspace ws,
 			final WorkspaceUser user,
@@ -1838,7 +1840,7 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-	
+
 	protected void compareObjectInfo(List<ObjectInformation> got,
 			List<ObjectInformation> expected) {
 		HashSet<ObjectInformation> g = new HashSet<ObjectInformation>();
@@ -1850,7 +1852,7 @@ public class WorkspaceTester {
 		}
 		assertThat("listed correct objects", g, is(new HashSet<ObjectInformation>(expected)));
 	}
-	
+
 	protected void checkReferencedObject(
 			final WorkspaceUser user,
 			final ObjectIdentifier chain,
@@ -1870,7 +1872,7 @@ public class WorkspaceTester {
 		}
 		assertThat("object info same", info, is(oi));
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	protected Map<String, Object> createData(String json)
 			throws JsonParseException, JsonMappingException, IOException {
@@ -1884,7 +1886,7 @@ public class WorkspaceTester {
 		WorkspaceObjectData wod = getObjects(ws, user, o).get(0);
 		wod.destroy(); // don't need the actual data
 		WorkspaceObjectData woi = ws.getObjects(user, o, true, false, false).get(0);
-		
+
 		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));
 		assertThat("get prov correct ext ids", woi.getExtractedIds(), is(expected));
 	}

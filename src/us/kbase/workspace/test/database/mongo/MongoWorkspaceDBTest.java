@@ -34,6 +34,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import com.google.common.collect.ImmutableMap;
 import com.mongodb.MongoClient;
@@ -78,6 +79,7 @@ import us.kbase.workspace.database.provenance.ProvenanceAction;
 
 //TODO TEST start moving a bunch of the tests from Workspace test to here, and use mocks in workspace test.
 
+@Category(us.kbase.common.test.MongoTests.class)
 public class MongoWorkspaceDBTest {
 
 	private static final Optional<ByteArrayFileCache> OC = Optional.empty();

@@ -22,6 +22,7 @@ import org.bson.types.ObjectId;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -37,17 +38,18 @@ import us.kbase.workspace.database.mongo.SchemaUpdater;
 import us.kbase.workspace.database.mongo.SchemaUpdater.SchemaUpdateException;
 import us.kbase.workspace.database.provenance.Provenance;
 
+@Category(us.kbase.common.test.MongoTests.class)
 public class SchemaUpdaterTest {
-	
+
 	// these tests take a while because each one creates indexes
 	// maybe think about a way to not require that...
 
 	private static MongoController MONGO;
 	private static MongoClient MC;
-	
+
 	private final static String SOURCE_DB = SchemaUpdaterTest.class.getSimpleName() +
 			"_source_objects";
-	
+
 	private final static String USER = "user";
 	private final static String COL_WS_VER = "workspaceObjVersions";
 	private static final String MD5PRE = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -60,7 +62,7 @@ public class SchemaUpdaterTest {
 			"Processed type #4/5: Mod2.Type2-8.2, object count: 1, cumulative: 8",
 			"Processed type #5/5: Mod2.Type2-8.3, object count: 2, cumulative: 10"
 			);
-	
+
 	@BeforeClass
 	public static void setup() throws Exception {
 		TestCommon.stfuLoggers();
@@ -71,11 +73,11 @@ public class SchemaUpdaterTest {
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		System.out.println("Started test mongo instance at localhost:" +
 				MONGO.getServerPort());
-		
+
 		MC = new MongoClient("localhost:" + MONGO.getServerPort());
 		setUpTestDB();
 	}
-	
+
 	private static void setUpTestDB() throws Exception {
 		final MongoDatabase testDB = MC.getDatabase(SOURCE_DB);
 		final PartialMock pm = new PartialMock(testDB);
@@ -88,7 +90,7 @@ public class SchemaUpdaterTest {
 		final ResolvedWorkspaceID ws1 = new ResolvedWorkspaceID(1, "one", false, false);
 		final ResolvedWorkspaceID ws2 = new ResolvedWorkspaceID(2, "two", false, false);
 		final ResolvedWorkspaceID ws3 = new ResolvedWorkspaceID(3, "three", false, false);
-		
+
 		final Provenance p = basicProv(u);
 		pm.saveTestObject(ws1, u, p, "o1", "Mod1.Type1-7.2", MD5PRE + "01", 1);
 		pm.saveTestObject(ws1, u, p, "o2", "Mod1.Type1-7.2", MD5PRE + "02", 1);
@@ -101,7 +103,7 @@ public class SchemaUpdaterTest {
 		pm.saveTestObject(ws3, u, p, "o1", "Mod2.Type2-8.3", MD5PRE + "09", 1);
 		pm.saveTestObject(ws3, u, p, "o1", "Mod2.Type2-8.3", MD5PRE + "10", 1);
 	}
-	
+
 	private final static Document BASE = new Document()
 			.append("provrefs", Collections.emptyList())
 			.append("copied", null)
@@ -112,7 +114,7 @@ public class SchemaUpdaterTest {
 			.append("extids", new Document())
 			.append("savedby", USER)
 			;
-	
+
 	private final static List<Document> EXPECTED = Arrays.asList(
 			new Document(BASE)
 					.append("type", "Mod1.Type1-7.2")
@@ -215,7 +217,7 @@ public class SchemaUpdaterTest {
 					.append("savedate", Date.from(Instant.ofEpochMilli(100000)))
 					.append("chksum", MD5PRE + "10")
 			);
-	
+
 	private static List<ObjectId> copySourceTo(final MongoDatabase db, final int schemaver) {
 		// only copy versions collection, since only affected collection
 		final MongoDatabase sourceDB = MC.getDatabase(SOURCE_DB);
@@ -230,7 +232,7 @@ public class SchemaUpdaterTest {
 				.append("schemaver", schemaver).append("inupdate", false));
 		return prov;
 	}
-	
+
 	private static void checkExpected(final MongoDatabase db, final List<ObjectId> prov) {
 		final List<Document> got = new LinkedList<>();
 		db.getCollection(COL_WS_VER).find().forEach((Consumer<Document>) d -> got.add(d));
@@ -242,14 +244,14 @@ public class SchemaUpdaterTest {
 			assertThat("incorrect ws obj ver", got.get(i), is(EXPECTED.get(i)));
 		}
 	}
-	
+
 	private static void checkConfig(final MongoDatabase db, final int schemaver) {
 		final Document got = db.getCollection("config").find().first();
 		got.remove("_id");
 		assertThat("incorrect config", got, is(new Document("config", "config")
 				.append("inupdate", false).append("schemaver", schemaver)));
 	}
-	
+
 	private void assertIndexesCreated(final MongoDatabase db, final boolean oldTypeIndex) {
 		/* checks that at least some of the mongo indexes are created. Since the underlying
 		 * MongoWorkspaceDB method is already thoroughly tested elsewhere we just check a single
@@ -266,7 +268,7 @@ public class SchemaUpdaterTest {
 		db.getCollection("workspaceObjVersions").listIndexes()
 				.forEach((Consumer<Document>) indexes::add);
 		assertThat("incorrect current index", indexes.contains(currentIndex), is(true));
-		
+
 		if (oldTypeIndex) {
 			final Document typeIndex = new Document("v", 2)
 					.append("key", new Document("type", 1).append("chksum", 1))
@@ -275,7 +277,7 @@ public class SchemaUpdaterTest {
 			assertThat("incorrect old index", indexes.contains(typeIndex), is(true));
 		}
 	}
-	
+
 	private void runUpdateAndCheck(
 			final MongoDatabase db,
 			final boolean complete,
@@ -305,7 +307,7 @@ public class SchemaUpdaterTest {
 		assertIndexesCreated(db, true);
 		checkConfig(db, finalSchemaVer);
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (MONGO != null) {
@@ -313,17 +315,17 @@ public class SchemaUpdaterTest {
 			MONGO.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
-	
+
 	private MongoDatabase getDB() {
 		return MC.getDatabase("test_" + TestCommon.getMethodName(2));
 	}
-	
+
 	@Test
 	public void updateFailNullParams() throws Exception {
 		failUpdate(null, s -> {}, new NullPointerException("db"));
 		failUpdate(getDB(), null, new NullPointerException("logger"));
 	}
-	
+
 	private void failUpdate(
 			final MongoDatabase db,
 			final Consumer<String> logger,
@@ -335,7 +337,7 @@ public class SchemaUpdaterTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	@Test
 	public void updateFailTwoConfigDocs() throws Exception {
 		final MongoDatabase db = getDB();
@@ -345,7 +347,7 @@ public class SchemaUpdaterTest {
 		failUpdate(db, s -> {}, new SchemaUpdateException("Couldn't initialize database: " +
 				"Found duplicate index keys in the database, aborting startup"));
 	}
-	
+
 	@Test
 	public void updateFailInUpdate() throws Exception {
 		final MongoDatabase db = getDB();
@@ -356,18 +358,18 @@ public class SchemaUpdaterTest {
 				"The database is in the middle of an update from v1 of the schema. " +
 				"Aborting startup."));
 	}
-	
+
 	@Test
 	public void updateFailUpdateDoneEquals() throws Exception {
 		updateFailUpdateDone(getDB(), MongoWorkspaceDB.SCHEMA_VERSION);
 	}
-	
+
 	@Test
 	public void updateFailUpdateDoneGreater() throws Exception {
 		updateFailUpdateDone(getDB(), 50);
 	}
-		
-	private void updateFailUpdateDone(final MongoDatabase db, final int configver) { 
+
+	private void updateFailUpdateDone(final MongoDatabase db, final int configver) {
 		final Document cfg = new Document("config", "config")
 				.append("schemaver", configver).append("inupdate", false);
 		db.getCollection("config").insertOne(cfg);
@@ -375,7 +377,7 @@ public class SchemaUpdaterTest {
 				"Current DB schema version is %s, while the version to be updated to is 2. " +
 				"Update is already complete.", configver)));
 	}
-	
+
 	@Test
 	public void updateNewDatabaseAndCheckIndexes() throws Exception {
 		// run an update on a database that has never been used and therefore has no
@@ -389,7 +391,7 @@ public class SchemaUpdaterTest {
 		assertThat("incorrect logs", logs, is(Collections.emptyList()));
 		assertIndexesCreated(db, false);
 	}
-	
+
 	@Test
 	public void updateEmptyDatabaseAndCheckIndexes() throws Exception {
 		// run an update on a database that has never had any objects saved
@@ -410,22 +412,22 @@ public class SchemaUpdaterTest {
 	public void updateFull() throws Exception {
 		runUpdateAndCheck(getDB(), false, false, 1, 1, new Document(), 10L, FULL_LOGS);
 	}
-	
+
 	@Test
 	public void updateFullWithComplete() throws Exception {
 		runUpdateAndCheck(getDB(), true, false, 1, 2, new Document(), 10L, FULL_LOGS);
 	}
-	
+
 	@Test
 	public void updateFullWithOverrideVerCheck() throws Exception {
 		runUpdateAndCheck(getDB(), false, true, 4, 4, new Document(), 10L, FULL_LOGS);
 	}
-	
+
 	@Test
 	public void updateFullWithCompleteAndOverrideVerCheck() throws Exception {
 		runUpdateAndCheck(getDB(), true, true, 4, 4, new Document(), 10L, FULL_LOGS);
 	}
-	
+
 	@Test
 	public void updatePartialMissingWorkspace1() throws Exception {
 		final Document query = new Document("ws", new Document("$ne", 1));
@@ -438,7 +440,7 @@ public class SchemaUpdaterTest {
 				);
 		runUpdateAndCheck(getDB(), false, false, 1, 1, query, 5L, expectedLogs);
 	}
-	
+
 	@Test
 	public void updatePartialMissingWorkspace2() throws Exception {
 		final Document query = new Document("ws", new Document("$ne", 2));
@@ -451,7 +453,7 @@ public class SchemaUpdaterTest {
 				);
 		runUpdateAndCheck(getDB(), true, false, 1, 2, query, 7L, expectedLogs);
 	}
-	
+
 	@Test
 	public void updatePartialMissingRandomObjects() throws Exception {
 		final Document query = new Document("chksum", new Document("$nin", Arrays.asList(
@@ -476,7 +478,7 @@ public class SchemaUpdaterTest {
 				);
 		runUpdateAndCheck(getDB(), false, false, 1, 1, query, 0L, expectedLogs);
 	}
-	
+
 	@Test
 	public void updateOnCompleteDatabaseWithOverrideVerCheck() throws Exception {
 		final Document query = new Document("ws", new Document("$gt", 100));

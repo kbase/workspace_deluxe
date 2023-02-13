@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.opt;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import java.util.Optional;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -16,6 +17,7 @@ import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.W
 import us.kbase.workspace.database.provenance.Title;
 import us.kbase.workspace.database.provenance.Title.TitleType;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class TitleTest {
 	static final String INCORRECT_TITLE = "incorrect title string";
 	static final String INCORRECT_TYPE = "incorrect title type";

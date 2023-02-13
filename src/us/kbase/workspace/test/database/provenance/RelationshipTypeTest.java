@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.database.provenance;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import us.kbase.workspace.database.provenance.RelationshipType;
 
@@ -11,6 +12,7 @@ import us.kbase.common.test.TestCommon;
 
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class RelationshipTypeTest {
 
 	private static final String INCORRECT_PID = "incorrect PID";

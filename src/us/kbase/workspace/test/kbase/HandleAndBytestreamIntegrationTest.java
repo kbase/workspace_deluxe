@@ -30,6 +30,7 @@ import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.zafarkhaja.semver.Version;
@@ -75,6 +76,7 @@ import us.kbase.workspace.test.controllers.blobstore.BlobstoreController;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.minio.MinioController;
 
+@Category(us.kbase.common.test.MongoTests.class)
 public class HandleAndBytestreamIntegrationTest {
 
 	/* The Handle ID tests were written years before the Bytestream (nee Shock) ID tests,
@@ -82,7 +84,7 @@ public class HandleAndBytestreamIntegrationTest {
 	 * methods that allow retrieving an object set the permissions correctly. As such,
 	 * the Bytestream ID tests concentrate on testing cases that are unique to Bytestream IDs.
 	 */
-	
+
 	/* Also performs an integration test with a Minio backend. */
 
 	private static MongoController MONGO;
@@ -112,14 +114,14 @@ public class HandleAndBytestreamIntegrationTest {
 	private static BasicShockClient WS_OWNED_BLOB;
 	private static BasicShockClient BLOB_CLIENT_1;
 	private static BasicShockClient BLOB_CLIENT_2;
-	
+
 	private static final ShockACLType READ_ACL = ShockACLType.READ;
 
 	private static final String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
 	private static final String BLOB_TYPE = "HandleByteStreamList.SList-0.1";
 	private static final String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
 	private static final String EMPTY_TYPE = "HandleByteStreamList.Empty-0.1";
-	
+
 	private static final String HANDLE_SERVICE_TEST_DB = "handle_service_test_handle_db";
 
 	@BeforeClass
@@ -131,7 +133,7 @@ public class HandleAndBytestreamIntegrationTest {
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
-		
+
 		final String minioUser = "s3key";
 		final String minioKey = "supersecretkey";
 		MINIO = new MinioController(
@@ -181,7 +183,7 @@ public class HandleAndBytestreamIntegrationTest {
 		final URL blobURL = new URL("http://localhost:" + BLOB.getPort());
 		System.out.println("started blobstore at " + blobURL);
 		System.out.println("Using Blobstore temp dir " + BLOB.getTempDir());
-		
+
 		WS_OWNED_BLOB = new BasicShockClient(blobURL, HANDLE_SRVC_TOKEN);
 		BLOB_CLIENT_1 = new BasicShockClient(blobURL, t1);
 		BLOB_CLIENT_2 = new BasicShockClient(blobURL, t2);
@@ -244,7 +246,7 @@ public class HandleAndBytestreamIntegrationTest {
 
 		System.out.println("finished HandleService setup");
 	}
-	
+
 	private static ShockNode addBasicNode(final BasicShockClient bsc) throws Exception {
 		return bsc.addNode(
 				new ByteArrayInputStream("a".getBytes("UTF-8")), 1, "n", "JSON");
@@ -550,7 +552,7 @@ public class HandleAndBytestreamIntegrationTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		assertThat("got correct error message", wod.getHandleError(), 
+		assertThat("got correct error message", wod.getHandleError(),
 						is("The Handle Service reported a problem while attempting to set Handle ACLs: 'Unable to set acl(s) on handles " + handle_id + "'"));
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
 						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
@@ -579,7 +581,7 @@ public class HandleAndBytestreamIntegrationTest {
 		 * I did manually check that the handle ID handler was getting the batched IDs vs.
 		 * single object IDs.
 		 */
-		
+
 		final String workspace = "batchhandle";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		final BasicShockClient bsc = new BasicShockClient(
@@ -612,7 +614,7 @@ public class HandleAndBytestreamIntegrationTest {
 			System.out.println(se.getData());
 			throw se;
 		}
-		
+
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		final GetObjects2Params params = new GetObjects2Params()
@@ -628,7 +630,7 @@ public class HandleAndBytestreamIntegrationTest {
 		checkExternalIDError(ret1.get(1).getHandleError(), ret1.get(1).getHandleStacktrace());
 		checkReadAcl(node1, Arrays.asList(BLOB_USER1, BLOB_USER2));
 		checkReadAcl(node2, Arrays.asList(BLOB_USER1, BLOB_USER2));
-		
+
 		// now test that if one node is inaccessible all nodes are marked as errored
 		node1.delete();
 		final String err = "The Handle Service reported a problem while attempting to set " +
@@ -642,7 +644,7 @@ public class HandleAndBytestreamIntegrationTest {
 			assertThat("got correct error message", od.getHandleError(), is(err));
 			assertThat("incorrect stacktrace", od.getHandleStacktrace(), startsWith(stack));
 		}
-		
+
 		// finally test the same but without batching, so only one object should have an error
 		final List<ObjectData> ret3 = CLIENT2.getObjects2(
 				params.withBatchExternalSystemUpdates(0L)).getData();
@@ -650,7 +652,7 @@ public class HandleAndBytestreamIntegrationTest {
 		assertThat("incorrect stacktrace", ret3.get(0).getHandleStacktrace(), startsWith(stack));
 		checkExternalIDError(ret3.get(1).getHandleError(), ret3.get(1).getHandleStacktrace());
 	}
-	
+
 	@Test
 	public void handlesWithBatchUpdatesAndInaccessibleObjects() throws Exception {
 		/* Tests the case where objects are requested with handles, but some of them are
@@ -700,7 +702,7 @@ public class HandleAndBytestreamIntegrationTest {
 			System.out.println(se.getData());
 			throw se;
 		}
-		
+
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(rws)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		final GetObjects2Params params = new GetObjects2Params()
@@ -728,7 +730,7 @@ public class HandleAndBytestreamIntegrationTest {
 		assertThat("expected null object", ret.get(2), is(nullValue()));
 		assertThat("expected null object", ret.get(3), is(nullValue()));
 	}
-	
+
 	@Test
 	public void saveAndGetWithBytestreamIDs() throws Exception {
 		// tests blob nodes that are already owned by the WS (but readable by the user)
@@ -785,7 +787,7 @@ public class HandleAndBytestreamIntegrationTest {
 		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
 		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1));
 		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
-		
+
 		final Map<String, Object> data = od.getData().asClassInstance(
 				new TypeReference<Map<String, Object>>() {});
 		@SuppressWarnings("unchecked")
@@ -794,16 +796,16 @@ public class HandleAndBytestreamIntegrationTest {
 		final ShockNode new2 = WS_OWNED_BLOB.getNode(new ShockNodeId(shockids.get(1)));
 		assertThat("node unexpectedly updated", new2.getId(), is(n2.getId()));
 		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
-		
+
 		// get the object with user 1
 		CLIENT1.getObjects2(gop);
 		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
-		
+
 		// get the object with user 2
 		CLIENT2.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
 		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
-		
+
 		// remove user 2 privs, and re get
 		WS_OWNED_BLOB.removeFromNodeAcl(n1.getId(), Arrays.asList(USER2), ShockACLType.READ);
 		WS_OWNED_BLOB.removeFromNodeAcl(n2.getId(), Arrays.asList(USER2), ShockACLType.READ);
@@ -812,14 +814,14 @@ public class HandleAndBytestreamIntegrationTest {
 		CLIENT2.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
 		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
-		
+
 		// check extracted IDS
 		assertThat("incorrect extracted ids", od.getExtractedIds().keySet(),
 				is(set("bytestream")));
 		assertThat("incorrect extracted ids",
 				new HashSet<>(od.getExtractedIds().get("bytestream")),
 				is(set(n1.getId().getId(), n2.getId().getId())));
-		
+
 		// check nodes have the same contents
 		// TODO BLOBSTORE update tests when https://github.com/kbase/shock_java_client/issues/26
 		// is fixed
@@ -878,7 +880,7 @@ public class HandleAndBytestreamIntegrationTest {
 		saveWithBytestreamIDFail(CLIENT1, workspace, sn.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 cannot " +
 				"read bytestream node %s at /ids/0", sn.getId().getId()), 1, "n"));
-		
+
 		final ShockNode sn2 = addBasicNode(BLOB_CLIENT_2);
 		sn2.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
 		saveWithBytestreamIDFail(CLIENT1, workspace, sn2.getId().getId(), new ServerException(
@@ -974,7 +976,7 @@ public class HandleAndBytestreamIntegrationTest {
 
 		final String handle_id = createHandle(
 				shock_id, bsc.getShockUrl().toString(), "empty_file");
-		
+
 		List<String> handleList = new LinkedList<String>();
 		handleList.add(handle_id);
 		Map<String, Object> handleobj = new HashMap<String, Object>();

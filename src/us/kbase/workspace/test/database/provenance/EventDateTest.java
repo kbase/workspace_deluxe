@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Collections;
@@ -16,6 +17,7 @@ import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.W
 import us.kbase.workspace.database.provenance.EventDate;
 import us.kbase.workspace.database.provenance.Event;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class EventDateTest {
 	static final String INCORRECT_DATE = "incorrect date";
 	static final String INCORRECT_EVENT = "incorrect event";

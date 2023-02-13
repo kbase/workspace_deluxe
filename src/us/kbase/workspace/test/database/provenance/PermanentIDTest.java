@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Map;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
@@ -18,6 +19,7 @@ import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.W
 import us.kbase.workspace.database.provenance.PermanentID;
 import us.kbase.workspace.database.provenance.RelationshipType;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class PermanentIDTest {
 
 	static final String INCORRECT_PID = "incorrect resolvable PID";
