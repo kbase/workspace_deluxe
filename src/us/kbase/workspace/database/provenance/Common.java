@@ -66,11 +66,11 @@ class Common {
 	 * @param <T>
 	 * @param list
 	 *                list of items to deduplicate
-	 * @return immutable deduplicated list
+	 * @return immutable deduplicated list or null if the list is null or empty
 	 */
 	static <T> List<T> dedupeSimpleList(final List<T> list) {
-		if (list == null) {
-			return list;
+		if (list == null || list.isEmpty()) {
+			return null;
 		}
 
 		final List<T> dedupedList = list.stream()
