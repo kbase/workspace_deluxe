@@ -18,7 +18,7 @@ test.mongo.exe = /kb/runtime/bin/mongod
 test.mongo.useWiredTiger=false
 
 # path to the ArangoDB executable (arangod, *not* arangodb) to use for the tests.
-# In the downloaded tarball it is at /usr/sbin/arangod.
+# In the downloaded tarball it is at /bin/arangod.
 test.arango.exe=/path/to/arangoddbexecutable
 
 # path to the ArangoDB javascript startup directory to use for the tests.

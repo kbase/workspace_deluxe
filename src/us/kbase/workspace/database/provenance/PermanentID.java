@@ -1,5 +1,7 @@
 package us.kbase.workspace.database.provenance;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import us.kbase.workspace.database.Util;
@@ -13,9 +15,9 @@ public class PermanentID {
 
 	private final String id;
 	private final String description;
-	private final String relationshipType;
+	private final RelationshipType relationshipType;
 
-	private PermanentID(final String id, final String description, final String relationshipType) {
+	private PermanentID(final String id, final String description, final RelationshipType relationshipType) {
 		this.id = id;
 		this.description = description;
 		this.relationshipType = relationshipType;
@@ -42,23 +44,24 @@ public class PermanentID {
 	/**
 	 * Gets the relationship between the ID and some other entity. For
 	 * example, when a {@link PermanentID] class is used to represent
-	 * objects in a {@link Resource}'s 'related_identifiers' field, this
-	 * field captures the relationship between the {@link Resource} and
+	 * objects in a {@link CitationMetadata}'s 'related_identifiers' field, this
+	 * field captures the relationship between the {@link CitationMetadata} and
 	 * the entity represented by this.id.
 	 *
-	 * This field is currently only settable by workspace admins. More
-	 * validation may be added in the future to control the field contents.
+	 * This field is currently only settable by workspace admins. See the
+	 * {@link RelationshipType} class for valid values.
 	 *
 	 * @return the relationship type, if present.
 	 */
-	public Optional<String> getRelationshipType() {
+	public Optional<RelationshipType> getRelationshipType() {
 		return Optional.ofNullable(relationshipType);
 	}
 
 	/**
 	 * Gets a builder for an {@link PermanentID}.
 	 *
-	 * @param id  the permanent ID, for example DOI:10.25982/59912.37.
+	 * @param id
+	 *                the permanent ID, for example DOI:10.25982/59912.37.
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(final String id) {
@@ -86,18 +89,24 @@ public class PermanentID {
 
 		private String id;
 		private String description = null;
-		private String relationshipType = null;
+		private RelationshipType relationshipType = null;
+		private List<String> errorList = new ArrayList<>();
 
 		private Builder(final String id) {
-			this.id = Common.checkPid(id, "id", false);
+			try {
+				this.id = Common.checkPid(id, "id", false);
+			} catch (Exception e) {
+				this.errorList.add(e.getMessage());
+			}
 		}
 
 		/**
 		 * Sets a free text description of the ID.
 		 *
-		 * @param description the description. Null, whitespace, or
-		 *                    the empty string will remove any
-		 *                    current content in the builder.
+		 * @param description
+		 *                the description. Null, whitespace, or
+		 *                the empty string will remove any
+		 *                current content in the builder.
 		 * @return this builder.
 		 */
 		public Builder withDescription(final String description) {
@@ -108,14 +117,38 @@ public class PermanentID {
 		/**
 		 * Sets the relationship type between the ID and the resource.
 		 *
-		 * @param relationshipType the relationship type. Null, whitespace, or
-		 *                         the empty string will remove the
-		 *                         current content in the builder.
+		 * @param relationshipType
+		 *                the relationship type as a string.
+		 *                Null, whitespace, or the empty string will
+		 *                remove the current content in the builder.
 		 *
 		 * @return this builder.
 		 */
 		public Builder withRelationshipType(final String relationshipType) {
-			this.relationshipType = Util.checkString(relationshipType, "relationshipType", true);
+			final String protoRelationshipType = Common.processString(relationshipType);
+			if (protoRelationshipType != null) {
+				try {
+					this.relationshipType = RelationshipType.getRelationshipType(relationshipType);
+				} catch (Exception e) {
+					this.errorList.add(e.getMessage());
+				}
+			} else {
+				this.relationshipType = null;
+			}
+			return this;
+		}
+
+		/**
+		 * Sets the relationship type between the ID and the resource.
+		 *
+		 * @param relationshipType
+		 *                the relationship type as a {@link RelationshipType}
+		 *                object. Null will remove the current content in the builder.
+		 *
+		 * @return this builder.
+		 */
+		public Builder withRelationshipType(final RelationshipType relationshipType) {
+			this.relationshipType = relationshipType;
 			return this;
 		}
 
@@ -125,7 +158,11 @@ public class PermanentID {
 		 * @return the permanent ID.
 		 */
 		public PermanentID build() {
-			return new PermanentID(id, description, relationshipType);
+			if (errorList.isEmpty()) {
+				return new PermanentID(id, description, relationshipType);
+			}
+			throw new IllegalArgumentException("Errors in PermanentID construction:\n" +
+					String.join("\n", errorList));
 		}
 	}
 }

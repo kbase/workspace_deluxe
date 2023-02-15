@@ -73,7 +73,6 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/jars/lib/jars/jackson/jackson-databind-2.9.9-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.1.0.jar" sourcepath="/jars/lib/jars/kbase/common/kbase-common-0.1.0-sources.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2-javadoc.jar!/"/>
@@ -106,5 +105,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/third-party-jackson-core-2.17.214.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/url-connection-client-2.17.214.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/utils-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

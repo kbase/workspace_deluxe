@@ -1,0 +1,60 @@
+version: '3.4'
+
+services:
+  workspace:
+    # build the workspace docker image locally
+    build: .
+    # to use the latest docker image from ghcr.io (see the readme file for more details),
+    # uncomment the next line and comment out the build line
+    # image: ghcr.io/kbase/workspace_deluxe:latest
+    ports:
+      - "7058:7058"
+    depends_on: ["auth2"]
+    environment:
+      - ignore_handle_service=true
+      - backend_type=GridFS
+      - mongodb_host=ci-mongo:27017
+      - mongodb_user=
+      - auth2_service=http://auth2:8080/testmode/
+      - listeners=
+    command:
+      - "-wait"
+      - "tcp://auth2:8080"
+      - "-template"
+      - "/kb/deployment/conf/.templates/deployment.cfg.templ:/kb/deployment/conf/deployment.cfg"
+      - "-template"
+      - "/kb/deployment/conf/.templates/server.xml.templ:/kb/deployment/services/workspace/tomcat/conf/server.xml"
+      - "-template"
+      - "/kb/deployment/conf/.templates/tomcat-users.xml.templ:/kb/deployment/services/workspace/tomcat/conf/tomcat-users.xml"
+      - "-template"
+      - "/kb/deployment/conf/.templates/logging.properties.templ:/kb/deployment/services/workspace/tomcat/conf/logging.properties"
+      - "-template"
+      - "/kb/deployment/conf/.templates/setenv.sh.templ:/kb/deployment/services/workspace/tomcat/bin/setenv.sh"
+      - "-stdout"
+      - "/kb/deployment/services/workspace/tomcat/logs/catalina.out"
+      - "-stdout"
+      - "/kb/deployment/services/workspace/tomcat/logs/access.log"
+      - "/usr/share/tomcat8/bin/catalina.sh"
+      - "run"
+
+  auth2:
+    image: ghcr.io/kbase/auth2:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - KB_DEPLOYMENT_CONFIG=/kb/deployment/conf/deployment.cfg
+      - test_mode_enabled=true
+    command:
+      - "-wait"
+      - "tcp://ci-mongo:27017"
+      - "-timeout"
+      - "120s"
+      - "-template"
+      - "/kb/deployment/conf/.templates/deployment.cfg.templ:/kb/deployment/conf/deployment.cfg"
+      - "/kb/deployment/bin/start_auth2.sh"
+    depends_on: ["ci-mongo"]
+
+  ci-mongo:
+    image: "mongo:3.6.23"
+    ports:
+      - "27017:27017"

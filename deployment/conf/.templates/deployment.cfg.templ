@@ -1,9 +1,11 @@
 [Workspace]
 mongodb-database={{ default .Env.mongodb_database "workspace" }}
+mongodb-host={{ default .Env.mongodb_host "ci-mongo" }}
+mongodb-user={{ default .Env.mongodb_user "wsserv" }}
+mongodb-pwd={{ default .Env.mongodb_pwd "" }}
 mongodb-type-database={{ default .Env.mongodb_type_database "workspace_type_db" }}
 type-delegation-target={{ default .Env.type_delegation_target "" }}
 mongodb-retrywrites={{ default .Env.mongodb_retrywrites "false" }}
-mongodb-pwd={{ default .Env.mongodb_pwd "" }}
 ws-admin={{ default .Env.ws_admin "scanonadmin" }}
 # backend user is wstest globus user in ci
 # use that acct to generate token
@@ -17,8 +19,6 @@ backend-trust-all-ssl-certificates={{ default .Env.backend_trust_all_ssl_certifi
 bytestream-url={{ default .Env.bytestream_url ""}}
 bytestream-token={{ default .Env.bytestream_token "" }}
 bytestream-user={{ default .Env.bytestream_user "" }}
-mongodb-host={{ default .Env.mongodb_host "ci-mongo" }}
-mongodb-user={{ default .Env.mongodb_user "wsserv" }}
 service-port={{ default .Env.service_port "7058" }}
 max-memory={{ default .Env.max_memory "15000" }}
 min-memory={{ default .Env.min_memory "10000" }}

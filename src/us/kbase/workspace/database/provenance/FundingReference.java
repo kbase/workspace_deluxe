@@ -2,6 +2,8 @@ package us.kbase.workspace.database.provenance;
 
 import java.net.URL;
 import java.util.Objects;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 import us.kbase.workspace.database.Util;
 
@@ -99,7 +101,8 @@ public class FundingReference {
 	/**
 	 * Gets a builder for an {@link FundingReference}.
 	 *
-	 * @param funderName  name of the funding body
+	 * @param funderName
+	 *                name of the funding body
 	 *
 	 * @return the builder.
 	 */
@@ -115,20 +118,30 @@ public class FundingReference {
 		private String awardID = null;
 		private String awardTitle = null;
 		private URL awardURL = null;
+		private List<String> errorList = new ArrayList<>();
 
 		private Builder(final String funderName) {
-			this.funderName = Util.checkString(funderName, "funderName");
+			try {
+				this.funderName = Util.checkString(funderName, "funderName");
+			} catch (Exception e) {
+				this.errorList.add(e.getMessage());
+			}
 		}
 
 		/**
 		 * Sets the ID of the funder, for example ROR:04xm1d337.
 		 *
-		 * @param funderID the ID of the funder. Null or the empty string removes any
-		 *                 current ID in the builder.
+		 * @param funderID
+		 *                the ID of the funder. Null or the empty string removes any
+		 *                current ID in the builder.
 		 * @return this builder.
 		 */
 		public Builder withFunderID(final String funderID) {
-			this.funderID = Common.checkPid(funderID, "funderID", true);
+			try {
+				this.funderID = Common.checkPid(funderID, "funderID", true);
+			} catch (Exception e) {
+				this.errorList.add(e.getMessage());
+			}
 			return this;
 		}
 
@@ -136,12 +149,13 @@ public class FundingReference {
 		 * Sets the ID of the award, for example DOI:10.46936/10.25585/60000745.
 		 * N.b. not all award IDs conform to the standard PID syntax.
 		 *
-		 * @param awardID the ID of the award. Null or the empty string removes any
+		 * @param awardID
+		 *                the ID of the award. Null or the empty string removes any
 		 *                current ID in the builder.
 		 * @return this builder.
 		 */
 		public Builder withAwardID(final String awardID) {
-			this.awardID = Util.checkString(awardID, "awardID", true);
+			this.awardID = Common.processString(awardID);
 			return this;
 		}
 
@@ -149,36 +163,47 @@ public class FundingReference {
 		 * Sets the title of the award, for example "Metagenomic analysis of the
 		 * rhizosphere of three biofuel crops at the KBS intensive site".
 		 *
-		 * @param awardTitle the title of the award. Null or the empty string removes
-		 *                   any current ID in the builder.
+		 * @param awardTitle
+		 *                the title of the award. Null or the empty string removes
+		 *                any current ID in the builder.
 		 * @return this builder.
 		 */
 		public Builder withAwardTitle(final String awardTitle) {
-			this.awardTitle = Util.checkString(awardTitle, "awardTitle", true);
+			this.awardTitle = Common.processString(awardTitle);
 			return this;
 		}
 
 		/**
 		 * Sets the URL for the award.
 		 *
-		 * @param awardURL the URL for the award. Null or the empty string removes any
-		 *                 current url in the builder.
+		 * @param awardURL
+		 *                the URL for the award. Null or the empty string removes any
+		 *                current url in the builder.
 		 * @return this builder.
 		 */
 		public Builder withAwardURL(final String awardURL) {
-			this.awardURL = Common.processURL(awardURL, "awardURL");
+			try {
+				this.awardURL = Common.processURL(awardURL, "awardURL");
+			} catch (Exception e) {
+				this.errorList.add(e.getMessage());
+			}
 			return this;
 		}
 
 		/**
 		 * Sets the URL for the award.
 		 *
-		 * @param awardURL the URL of the award. Null removes any current url in the
-		 *                 builder.
+		 * @param awardURL
+		 *                the URL of the award. Null removes any current url in the
+		 *                builder.
 		 * @return this builder.
 		 */
 		public Builder withAwardURL(final URL awardURL) {
-			this.awardURL = Common.processURL(awardURL, "awardURL");
+			try {
+				this.awardURL = Common.processURL(awardURL, "awardURL");
+			} catch (Exception e) {
+				this.errorList.add(e.getMessage());
+			}
 			return this;
 		}
 
@@ -188,7 +213,11 @@ public class FundingReference {
 		 * @return the funding reference.
 		 */
 		public FundingReference build() {
-			return new FundingReference(funderID, funderName, awardID, awardTitle, awardURL);
+			if (errorList.isEmpty()) {
+				return new FundingReference(funderID, funderName, awardID, awardTitle, awardURL);
+			}
+			throw new IllegalArgumentException("Errors in FundingReference construction:\n" +
+					String.join("\n", errorList));
 		}
 	}
 }
