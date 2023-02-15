@@ -970,7 +970,8 @@ module Workspace {
 		- contributors (one or more required)
 		- titles (one or more required)
 
-		comments - freeform text providing extra information about this credit metadata.
+		comments - a list of strings of freeform text providing extra information about
+			this credit metadata.
 			Examples:
 				- Credit metadata generated automatically from DOI:10.13039/100000015
 
@@ -1018,11 +1019,11 @@ module Workspace {
 
 	*/
 	typedef structure {
-		string comments;
 		string identifier;
 		string license;
 		string resource_type;
 		string version;
+		list<string> comments;
 		list<Contributor> contributors;
 		list<EventDate> dates;
 		list<FundingReference> funding;
