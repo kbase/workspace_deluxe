@@ -963,15 +963,17 @@ module Workspace {
 
 		Required fields are:
 		- identifier
-		- resource_type
 		- versioning information: if the resource does not have an explicit version number,
 		one or more dates should be supplied: ideally the date of resource publication and
 		the last update (if applicable).
 		- contributors (one or more required)
 		- titles (one or more required)
 
-		comments - a list of strings of freeform text providing extra information about
-			this credit metadata.
+		The resource_type field is required, but as there is currently only a single valid
+		value, 'dataset', it is automatically populated if no value is supplied.
+
+		comments - a list of strings of freeform text providing extra information about this
+			credit metadata.
 			Examples:
 				- Credit metadata generated automatically from DOI:10.13039/100000015
 
@@ -985,7 +987,9 @@ module Workspace {
 
 		license (optional) - usage license for the resource. May be a text string or an
 			URL. Abbreviations should be spelled out where possible (e.g. 'Creative
-			Commons 4.0' instead of 'CC-BY-4.0').
+			Commons 4.0' instead of 'CC-BY-4.0'). The license is interpreted as an URL
+			and checked for well-formedness if it starts with a series of letters, a
+			colon, and slashes, e.g. "http://"; "https://"; "ftp://".
 			Examples:
 				- Creative Commons 4.0
 				- MIT
@@ -1064,7 +1068,7 @@ module Workspace {
 		username saved_by;
 		string credit_metadata_schema_version;
 		epoch timestamp;
-	} CreditMetadataContainer;
+	} CreditMetadataEntry;
 
 	/*
 		Returns the version of the workspace service.
@@ -1517,7 +1521,7 @@ module Workspace {
 		list<obj_ref> path - the path to the object through the object reference graph. All the
 			references in the path are absolute.
 		list<ProvenanceAction> provenance - the object's provenance.
-		CreditMetadataContainer credit_metadata - the credit information for the object.
+		CreditMetadataEntry credit_metadata - the credit information for the object.
 		username creator - the user that first saved the object to the workspace.
 		ws_id orig_wsid - the id of the workspace in which this object was
 				originally saved. Missing for objects saved prior to version
@@ -1547,7 +1551,7 @@ module Workspace {
 		object_info info;
 		list<obj_ref> path;
 		list<ProvenanceAction> provenance;
-		CreditMetadataContainer credit_metadata;
+		CreditMetadataEntry credit_metadata;
 		username creator;
 		ws_id orig_wsid;
 		timestamp created;
