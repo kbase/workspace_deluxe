@@ -110,7 +110,7 @@ public class CreditMetadata {
 	/*
 	 * Gets the resource type.
 	 *
-	 * @return resource type as a {@link ResourceType}
+	 * @return the resource type
 	 */
 	public ResourceType getResourceType() {
 		return resourceType;
@@ -128,7 +128,7 @@ public class CreditMetadata {
 	/*
 	 * Gets the contributor list.
 	 *
-	 * @return list of {@link Contributor} objects.
+	 * @return list of Contributor objects.
 	 */
 	public List<Contributor> getContributors() {
 		return Common.getList(contributors);
@@ -137,7 +137,7 @@ public class CreditMetadata {
 	/*
 	 * Gets any lifecycle dates.
 	 *
-	 * @return list of {@link EventDate} objects
+	 * @return list of EventDate objects
 	 */
 	public List<EventDate> getDates() {
 		return Common.getList(dates);
@@ -146,7 +146,7 @@ public class CreditMetadata {
 	/*
 	 * Gets the funding information.
 	 *
-	 * @return list of {@link FundingReference} objects
+	 * @return list of FundingReference objects
 	 */
 	public List<FundingReference> getFunding() {
 		return Common.getList(funding);
@@ -155,7 +155,7 @@ public class CreditMetadata {
 	/*
 	 * Gets the list of related identifiers.
 	 *
-	 * @return list of {@link PermanentID} objects
+	 * @return list of PermanentID objects
 	 */
 	public List<PermanentID> getRelatedIdentifiers() {
 		return Common.getList(relatedIdentifiers);
@@ -164,7 +164,7 @@ public class CreditMetadata {
 	/*
 	 * Gets the list of titles used for the resource.
 	 *
-	 * @return list of {@link Title} objects
+	 * @return list of Title objects
 	 */
 	public List<Title> getTitles() {
 		return Common.getList(titles);
@@ -209,7 +209,9 @@ public class CreditMetadata {
 	 * Gets a builder for the {@link CreditMetadata}.
 	 *
 	 * @param identifier
-	 *                unique persistent ID for the resource
+	 *                unique persistent ID for the resource  (i.e. the source data for this
+	 *                workspace object). Should be in the format
+	 *                <database name>:<identifier within database>
 	 * @param contributors
 	 *                list of {@link Contributor} objects; at least one contributor is required
 	 * @param titles
@@ -324,10 +326,10 @@ public class CreditMetadata {
 		 */
 		public Builder withComments(final List<String> comments) {
 			if (comments != null) {
+				// strip out any nulls, blanks, or repeated comments
 				this.comments = comments.stream()
-						.filter(Objects::nonNull)
-						.map(String::trim)
-						.filter(c -> !Util.isNullOrWhitespace(c))
+						.filter(c -> c != null && !c.isBlank())
+						.map(String::strip)
 						.distinct()
 						.collect(Collectors.toList());
 			}
@@ -427,7 +429,7 @@ public class CreditMetadata {
 			// valid. For these purposes, a license string that starts with a series
 			// of letters followed by one or more colons and one or more slashes is
 			// considered URL-like.
-			Pattern pattern = Pattern.compile("^[a-zA-Z]+:+/+");
+			final Pattern pattern = Pattern.compile("^[a-zA-Z]+:+/+");
 			if (license != null) {
 				Matcher matcher = pattern.matcher(license);
 				if (matcher.find()){
