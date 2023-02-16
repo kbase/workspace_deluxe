@@ -54,8 +54,6 @@ public class CreditMetadata {
 	private final List<PermanentID> relatedIdentifiers;
 	private final List<Title> titles;
 
-	private static final ResourceType DEFAULT_RESOURCE_TYPE = ResourceType.DATASET;
-
 	private CreditMetadata(
 			final String identifier,
 			final String license,
@@ -212,6 +210,8 @@ public class CreditMetadata {
 	 *                unique persistent ID for the resource  (i.e. the source data for this
 	 *                workspace object). Should be in the format
 	 *                <database name>:<identifier within database>
+	 * @param resourceType
+	 *                type of the resource, as a {@link ResourceType}
 	 * @param contributors
 	 *                list of {@link Contributor} objects; at least one contributor is required
 	 * @param titles
@@ -220,9 +220,49 @@ public class CreditMetadata {
 	 */
 	public static Builder getBuilder(
 			final String identifier,
+			final ResourceType resourceType,
 			final List<Contributor> contributors,
 			final List<Title> titles) {
-		return new Builder(identifier, contributors, titles);
+		final List<String> errorList = new ArrayList<>();
+		if (resourceType == null) {
+			errorList.add("resourceType cannot be null");
+		}
+		return new Builder(identifier, resourceType, contributors, titles,
+				errorList);
+	}
+
+	/**
+	 * Gets a builder for the {@link CreditMetadata}.
+	 *
+	 * @param identifier
+	 *                unique persistent ID for the resource
+	 * @param resourceType
+	 *                type of the resource as a string
+	 * @param contributors
+	 *                list of {@link Contributor} objects; at least one contributor is required
+	 * @param titles
+	 *                list of {@link Title} objects; at least one title is required
+	 * @return the builder.
+	 */
+	public static Builder getBuilder(
+			final String identifier,
+			final String resourceType,
+			final List<Contributor> contributors,
+			final List<Title> titles) {
+		final List<String> errorList = new ArrayList<>();
+
+		ResourceType rt = null;
+		if (resourceType == null || resourceType.isBlank()) {
+			errorList.add("resourceType cannot be null or whitespace only");
+		}
+		else {
+			try {
+				rt = ResourceType.getResourceType(resourceType);
+			} catch (IllegalArgumentException e) {
+				errorList.add(e.getMessage());
+			}
+		}
+		return new Builder(identifier, rt, contributors, titles, errorList);
 	}
 
 	/** A builder for {@link CreditMetadata}. */
@@ -230,19 +270,24 @@ public class CreditMetadata {
 		private final String identifier;
 		private String license = null;
 		private String version = null;
-		private ResourceType resourceType = ResourceType.DATASET;
+		private final ResourceType resourceType;
 		private List<String> comments = null;
 		private final List<Contributor> contributors;
 		private List<EventDate> dates = null;
 		private List<FundingReference> funding = null;
 		private List<PermanentID> relatedIdentifiers = null;
 		private final List<Title> titles;
-		private List<String> errorList = new ArrayList<>();
+		private List<String> errorList;
 
 		private Builder(
 				final String identifier,
+				final ResourceType resourceType,
 				final List<Contributor> contributors,
-				final List<Title> titles) {
+				final List<Title> titles,
+				final List<String> errorList) {
+
+			this.errorList = errorList;
+			this.resourceType = resourceType;
 
 			String checkedPid = identifier;
 			try {
@@ -263,58 +308,6 @@ public class CreditMetadata {
 			if (this.titles == null || this.titles.isEmpty()) {
 				this.errorList.add("at least one title must be provided");
 			}
-		}
-
-		/**
-		 * Sets the resource type for the resource.
-		 *
-		 * As there is currently only one resource type, entering null will set the
-		 * resource type value to DEFAULT_RESOURCE_TYPE in the resultant object.
-		 *
-		 * @param resourceType
-		 *                resource type as a string
-		 * @return this builder
-		 */
-		public Builder withResourceTypeString(final String resourceType) {
-			if (resourceType != null) {
-				try {
-					this.resourceType = ResourceType.getResourceType(resourceType);
-				} catch (IllegalArgumentException e) {
-					// TEMPORARY HACK
-					// As there is only one resource type at present
-					// (ResourceType.DATASET), null input in the resourceType
-					// field will be automatically set to that value.
-					// The error message "resourceType cannot be null or
-					// whitespace only" thus needs to be edited to say
-					// "resourceType cannot be whitespace only".
-					String errorMessage = e.getMessage();
-					if ("resourceType cannot be null or whitespace only"
-							.equals(errorMessage)) {
-						errorMessage = "resourceType cannot be whitespace only";
-					}
-					errorList.add(errorMessage);
-				}
-			}
-			else {
-				this.resourceType = DEFAULT_RESOURCE_TYPE;
-			}
-			return this;
-		}
-
-		/**
-		 * Sets the resource type for the resource.
-		 *
-		 * As there is currently only one resource type, entering null will set the
-		 * resource type value to DEFAULT_RESOURCE_TYPE in the resultant object.
-		 *
-		 * @param resourceType
-		 *                resource type as a {@link ResourceType}
-		 * @return this builder
-		 */
-		public Builder withResourceType(final ResourceType resourceType) {
-			// TEMPORARY HACK - only one resource type at present
-			this.resourceType = resourceType == null ? DEFAULT_RESOURCE_TYPE : resourceType;
-			return this;
 		}
 
 		/**
@@ -435,9 +428,13 @@ public class CreditMetadata {
 				if (matcher.find()){
 					try {
 						final URL licenseURL = Common.processURL(license, "license");
-						// license field is a string, so convert the URL back to
-						// string form
+						// license field is a string, so convert the URL
+						// back to string form
 						license = licenseURL.toURI().normalize().toString();
+						// if there is user info in the url: reject it
+						if (licenseURL.getUserInfo() != null) {
+							errorList.add("Illegal license url '" + license + "': URLs must not contain user and/or password information");
+						}
 					} catch (Exception e) {
 						errorList.add(e.getMessage());
 					}

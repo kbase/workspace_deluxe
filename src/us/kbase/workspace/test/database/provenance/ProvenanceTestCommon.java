@@ -70,14 +70,6 @@ public class ProvenanceTestCommon {
 			"http://www.example.com/wpstyle/?p=364",
 			"https://www.example.com/foo/?bar=baz&inga=42&quux",
 			"http://✪df.ws/123",
-			"http://userid:password@example.com:8080",
-			"http://userid:password@example.com:8080/",
-			"http://userid@example.com",
-			"http://userid@example.com/",
-			"http://userid@example.com:8080",
-			"http://userid@example.com:8080/",
-			"http://userid:password@example.com",
-			"http://userid:password@example.com/",
 			"http://➡.ws/䨹",
 			"http://⌘.ws",
 			"http://⌘.ws/",
@@ -92,10 +84,24 @@ public class ProvenanceTestCommon {
 			"http://foo.bar/?q=Test%20URL-encoded%20stuff",
 			"http://مثال.إختبار",
 			"http://例子.测试",
-			"http://-.~_!$&'()*+,;=:%40:80%2f::::::@example.com",
 			"http://1337.net",
 			"http://a.b-c.de",
 			"http://223.255.255.254"));
+
+
+	public static final String INVALID_URL_NO_USER_INFO = "URLs must not contain user and/or password information";
+
+	public static final List<String> INVALID_URL_USER_INFO_LIST = Collections.unmodifiableList(
+			Arrays.asList(
+					"http://userid:password@example.com:8080",
+					"http://userid:password@example.com:8080/",
+					"http://userid@example.com",
+					"http://userid@example.com/",
+					"http://userid@example.com:8080",
+					"http://userid@example.com:8080/",
+					"http://userid:password@example.com",
+					"http://userid:password@example.com/",
+					"http://-.~_!$&'()*+,;=:%40:80%2f::::::@example.com"));
 
 	// URLs with no protocol or invalid protocol
 	public static final Map<String, String> INVALID_URL_BAD_PROTOCOL_MAP;
