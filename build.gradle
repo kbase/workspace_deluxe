@@ -139,6 +139,7 @@ dependencies {
 	}
 	implementation "software.amazon.awssdk:url-connection-client:2.17.214"
 
+	testImplementation files("${jarDir}/jna/jna-3.4.0.jar")
 	implementation 'org.syslog4j:syslog4j:0.9.46'
 
 	// ### Test ###
