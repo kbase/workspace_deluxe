@@ -164,22 +164,22 @@ sourceSets {
 			srcDir src
 			exclude "**/test/**"
 		}
-		// resources {
-		// 	srcDir src
-		// 	include "**/*.properties"
-		// 	include "**/*.cfg"
-		// 	include "**/*.spec"
-		// 	include "**/*.instance.*"
-		// 	include "**/instance.*"
-		// 	include "**/*.instance"
-		// 	include "**/*.html"
-		// 	include "**/*.css"
-		// 	include "**/*.gif"
-		// 	include "**/*.js"
-		// 	include "**/*.png"
-		// 	include "**/*.txt"
-		// 	include "**/*.weirdsuffix"
-		// }
+		resources {
+			srcDir src
+			include "**/*.properties"
+			include "**/*.cfg"
+			include "**/*.spec"
+			include "**/*.instance.*"
+			include "**/instance.*"
+			include "**/*.instance"
+			include "**/*.html"
+			include "**/*.css"
+			include "**/*.gif"
+			include "**/*.js"
+			include "**/*.png"
+			include "**/*.txt"
+			include "**/*.weirdsuffix"
+		}
 	}
 	test {
 		java {
