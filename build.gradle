@@ -75,7 +75,8 @@ dependencies {
 		'kbase-auth-0.4.4'
 	)
 	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/kidl/','kbase-kidl-parser-1409261812-7863aef'
+		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/kidl/',
+		'kbase-kidl-parser-1409261812-7863aef'
 	)
 
 	testImplementation fromURL(
