@@ -70,38 +70,45 @@ def fromURL = { baseUrl, name ->
 
 dependencies {
 
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth/',
-		'kbase-auth-0.4.4'
-	)
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/kidl/',
-		'kbase-kidl-parser-1409261812-7863aef'
-	)
+	implementation files("${jarDir}/kbase/auth/kbase-auth-0.4.4.jar")
+	implementation files("${jarDir}/kbase/common/kbase-common-0.1.1.jar")
+	implementation files("${jarDir}/kbase/handle/AbstractHandleClient-1.0.0.jar")
+	implementation files("${jarDir}/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar")
+	implementation files("${jarDir}/kbase/sample/SampleServiceClient-0.1.1.jar")
+	implementation files("${jarDir}/kbase/shock/shock-client-0.1.0.jar")
 
-	testImplementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth2/',
-		'kbase-auth2test-0.2.4'
-	)
+	// implementation fromURL(
+	// 	'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth/',
+	// 	'kbase-auth-0.4.4'
+	// )
+	// implementation fromURL(
+	// 	'https://github.com/kbase/jars/raw/master/lib/jars/kbase/kidl/',
+	// 	'kbase-kidl-parser-1409261812-7863aef'
+	// )
 
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/handle/',
-		'AbstractHandleClient-1.0.0'
-	)
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/sample/',
-		'SampleServiceClient-0.1.1'
-	)
+	// testImplementation fromURL(
+	// 	'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth2/',
+	// 	'kbase-auth2test-0.2.4'
+	// )
 
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/common/',
-		'kbase-common-0.1.1'
-	)
+	// implementation fromURL(
+	// 	'https://github.com/kbase/jars/raw/master/lib/jars/kbase/handle/',
+	// 	'AbstractHandleClient-1.0.0'
+	// )
+	// implementation fromURL(
+	// 	'https://github.com/kbase/jars/raw/master/lib/jars/kbase/sample/',
+	// 	'SampleServiceClient-0.1.1'
+	// )
 
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/shock/',
-		'shock-client-0.1.0'
-	)
+	// implementation fromURL(
+	// 	'https://github.com/kbase/jars/raw/master/lib/jars/kbase/common/',
+	// 	'kbase-common-0.1.1'
+	// )
+
+	// implementation fromURL(
+	// 	'https://github.com/kbase/jars/raw/master/lib/jars/kbase/shock/',
+	// 	'shock-client-0.1.0'
+	// )
 
 	implementation "ch.qos.logback:logback-classic:1.1.2"
 	implementation "com.fasterxml.jackson.core:jackson-annotations:2.9.9"
@@ -143,10 +150,12 @@ dependencies {
 	testImplementation "org.hamcrest:hamcrest-core:1.3"
 	testImplementation "org.mockito:mockito-core:3.0.0"
 
-	testImplementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth2/',
-		'kbase-auth2test-0.2.4'
-	)
+	testImplementation files("${jarDir}/kbase/auth2/kbase-auth2test-0.2.4.jar")
+
+	// testImplementation fromURL(
+	// 	'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth2/',
+	// 	'kbase-auth2test-0.2.4'
+	// )
 }
 
 sourceSets {
