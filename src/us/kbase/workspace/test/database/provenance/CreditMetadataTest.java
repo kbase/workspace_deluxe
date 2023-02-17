@@ -126,19 +126,66 @@ public class CreditMetadataTest {
 			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
 					.build());
 
+	private static final List<Contributor> CONTRIBUTOR_LIST_DUPES_NULLS = Arrays.asList(
+			Contributor.getBuilder(ContributorType.PERSON, "Mr Blobby").build(),
+			null,
+			null,
+			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
+					.build(),
+			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
+					.build(),
+			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
+					.build());
+
 	private static final List<EventDate> DATE_LIST = Arrays.asList(
 			EventDate.build("0000-12-15", Event.CREATED),
 			EventDate.build("2112", Event.WITHDRAWN));
 
+	private static final List<EventDate> DATE_LIST_DUPES_NULLS = Arrays.asList(
+			EventDate.build("0000-12-15", Event.CREATED),
+			EventDate.build("2112", Event.WITHDRAWN),
+			null,
+			EventDate.build("0000-12-15", Event.CREATED),
+			EventDate.build("2112", Event.WITHDRAWN),
+			null,
+			EventDate.build("0000-12-15", Event.CREATED),
+			EventDate.build("2112", Event.WITHDRAWN),
+			null);
+
 	private static final List<FundingReference> FUNDING_LIST = Arrays.asList(
 			FundingReference.getBuilder("New World Order LLC").build());
+
+	private static final List<FundingReference> FUNDING_LIST_DUPES_NULLS = Arrays.asList(
+			FundingReference.getBuilder("New World Order LLC").build(),
+			FundingReference.getBuilder("New World Order LLC").build(),
+			FundingReference.getBuilder("New World Order LLC").build(),
+			FundingReference.getBuilder("New World Order LLC").build(),
+			FundingReference.getBuilder("New World Order LLC").build(),
+			FundingReference.getBuilder("New World Order LLC").build(),
+			null);
 
 	private static final List<PermanentID> RELATED_ID_LIST = Arrays.asList(
 			PermanentID.getBuilder("this:ID").build(),
 			PermanentID.getBuilder("that:ID").build(),
 			PermanentID.getBuilder("the:other ID").build());
 
+	private static final List<PermanentID> RELATED_ID_LIST_DUPES_NULLS = Arrays.asList(
+			PermanentID.getBuilder("this:ID").build(),
+			PermanentID.getBuilder("that:ID").build(),
+			PermanentID.getBuilder("the:other ID").build(),
+			null,
+			PermanentID.getBuilder("the:other ID").build(),
+			PermanentID.getBuilder("that:ID").build(),
+			PermanentID.getBuilder("this:ID").build());
+
 	private static final List<Title> TITLE_LIST = Arrays.asList(
+			Title.getBuilder(TITLE_STRING).build());
+
+	private static final List<Title> TITLE_LIST_DUPES_NULLS = Arrays.asList(
+			Title.getBuilder(TITLE_STRING).build(),
+			null,
+			null,
+			null,
 			Title.getBuilder(TITLE_STRING).build());
 
 	private static final Map<String, String> EM = Collections.emptyMap();
@@ -435,7 +482,6 @@ public class CreditMetadataTest {
 		}
 	}
 
-
 	@Test
 	public void buildMaximalOverwriteNullEmptyLists() throws Exception {
 		final CreditMetadata creditMetadata = CreditMetadata
@@ -451,6 +497,24 @@ public class CreditMetadataTest {
 				.build();
 		assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, RESOURCE_TYPE,
 				CONTRIBUTOR_LIST, TITLE_LIST, VERSION_MAP);
+	}
+
+	@Test
+	public void buildMaximalDedupeLists() throws Exception {
+		final CreditMetadata creditMetadata = CreditMetadata
+				.getBuilder(IDENTIFIER_STRING,
+						RESOURCE_TYPE_STRING,
+						CONTRIBUTOR_LIST_DUPES_NULLS,
+						TITLE_LIST_DUPES_NULLS)
+				.withComments(COMMENTS_LIST_UNTRIMMED)
+				.withDates(DATE_LIST_DUPES_NULLS)
+				.withFunding(FUNDING_LIST_DUPES_NULLS)
+				.withRelatedIdentifiers(RELATED_ID_LIST_DUPES_NULLS)
+				.build();
+				assertCreditMetadataFields(creditMetadata, IDENTIFIER_STRING, RESOURCE_TYPE,
+				CONTRIBUTOR_LIST, TITLE_LIST, EM,
+				COMMENTS_LIST, DATE_LIST, FUNDING_LIST,
+				RELATED_ID_LIST);
 	}
 
 	/**
@@ -808,7 +872,7 @@ public class CreditMetadataTest {
 	}
 
 	@Test
-	public void buildMaximalFailAllFields() throws Exception {
+	public void buildFailManyFields() throws Exception {
 
 		for (String invalidPid : INVALID_PID_LIST) {
 			final String invalidPidError = "Illegal format for identifier: \"" + invalidPid + "\"\n" +

@@ -207,7 +207,7 @@ public class CreditMetadata {
 	 * Gets a builder for the {@link CreditMetadata}.
 	 *
 	 * @param identifier
-	 *                unique persistent ID for the resource  (i.e. the source data for this
+	 *                unique persistent ID for the resource (i.e. the source data for this
 	 *                workspace object). Should be in the format
 	 *                <database name>:<identifier within database>
 	 * @param resourceType
@@ -235,7 +235,9 @@ public class CreditMetadata {
 	 * Gets a builder for the {@link CreditMetadata}.
 	 *
 	 * @param identifier
-	 *                unique persistent ID for the resource
+	 *                unique persistent ID for the resource (i.e. the source data for this
+	 *                workspace object). Should be in the format
+	 *                <database name>:<identifier within database>
 	 * @param resourceType
 	 *                type of the resource as a string
 	 * @param contributors
