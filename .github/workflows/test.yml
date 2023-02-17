@@ -163,12 +163,12 @@ jobs:
       - name: upload report
         uses: actions/upload-artifact@v3
         with:
-          name: test_reports-${{matrix.ant_test}}
+          name: test_reports-${{matrix.test_cmd}}
           path: build/reports/
 
       - name: run slow tests
         if: always()
-        run: gradle clean testSlow --info
+        run: gradle coverageSlow --info
 
   workspace_deluxe_tests:
     runs-on: ubuntu-latest
