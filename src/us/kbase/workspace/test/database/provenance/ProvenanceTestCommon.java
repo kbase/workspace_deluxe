@@ -129,4 +129,152 @@ public class ProvenanceTestCommon {
 				"Illegal character in authority at index 8: https://kb^ase.us/");
 		INVALID_URL_MAP = Collections.unmodifiableMap(invalidUrlMap);
 	}
+
+	public static final Map<String, String> ABNORMAL_URL_MAP;
+	static {
+		Map<String, String> abnormalUrlMap = new HashMap<>();
+		abnormalUrlMap.put(
+			"\n\n\n   HTTPS://jgi.doe.gov/user-programs/pmo-overview/policies/\t\r\n",
+			"https://jgi.doe.gov/user-programs/pmo-overview/policies/");
+		abnormalUrlMap.put(
+			"ftp://www.example.com/public/images/../../private/illegal_torrents/",
+			"ftp://www.example.com/private/illegal_torrents/");
+
+		abnormalUrlMap.put(
+				"http://this.is.home/./././com",
+				"http://this.is.home/com"
+		);
+
+		ABNORMAL_URL_MAP = Collections.unmodifiableMap(abnormalUrlMap);
+	}
+
+        // private static final Organization ORG_1 = Organization.getBuilder("Ransome the Clown's Emporium of Wonder").build();
+        // private static final Organization ORG_2 = Organization.getBuilder("Pillowtronics").build();
+        // private static final Organization ORG_3 = Organization.getBuilder("Stupendous Brothers Traveling Circus").build();
+        // private static final Organization ORG_4 = Organization.getBuilder("Safely First Savings").build();
+
+
+        // private static final List<ContributorRole> ROLES = Arrays.asList(
+        //                 ContributorRole.METHODOLOGY,
+        //                 ContributorRole.WORK_PACKAGE_LEADER,
+        //                 ContributorRole.PROJECT_MANAGER,
+        //                 ContributorRole.FUNDING_ACQUISITION,
+        //                 ContributorRole.WRITING_ORIGINAL_DRAFT);
+
+        // // as above, but with duplicates and nulls
+        // private static final List<ContributorRole> ROLES_WITH_DUPES_NULLS = Arrays.asList(
+        //         ContributorRole.METHODOLOGY,
+        //         ContributorRole.WORK_PACKAGE_LEADER,
+        //         ContributorRole.PROJECT_MANAGER,
+        //         null,
+        //         ContributorRole.PROJECT_MANAGER,
+        //         ContributorRole.FUNDING_ACQUISITION,
+        //         ContributorRole.PROJECT_MANAGER,
+        //         ContributorRole.WRITING_ORIGINAL_DRAFT,
+        //         null,
+        //         null,
+        //         ContributorRole.WRITING_ORIGINAL_DRAFT);
+
+        // private static final List<String> ROLES_AS_STRINGS = Arrays.asList(
+        //                 "CRediT:methodology",
+        //                 "DataCite:WorkPackageLeader",
+        //                 "DataCite:ProjectManager",
+        //                 "CRediT:funding-acquisition",
+        //                 "CRediT:writing-original-draft");
+
+        // private static final List<String> ROLE_INPUT_STRINGS = Arrays.asList(
+        //                 "methodology",
+        //                 "datacite:work_package_leader",
+        //                 "projectmanager",
+        //                 "credit:funding_acquisition",
+        //                 "writingoriginaldraft");
+
+        // private static final List<String> ROLE_INPUT_STRINGS_DUPES_NULLS = Arrays.asList(
+        //                 "methodology",
+        //                 null,
+        //                 "datacite:work_package_leader",
+        //                 "\r\n\r\n",
+        //                 "   projectmanager\n\n",
+        //                 "credit:funding_acquisition",
+        //                 "",
+        //                 "CREDIT:METHODOLOGY",
+        //                 "writingoriginaldraft",
+        //                 "\n\n",
+        //                 "WorkPackageLeader",
+        //                 "methodology",
+        //                 null);
+
+
+        // // ID, resourceType, title
+
+        // private us.kbase.workspace.Contributor newContrib() {
+        //         return new us.kbase.workspace.Contributor()
+        //                         .withContributorType("person")
+        //                         .withName("Whatever Who Cares")
+        //                         .withCreditName("Cares WW")
+        //                         .withContributorId("this:ID")
+        //                         .withAffiliations(null)
+        //                         .withContributorRoles(null);
+        // }
+
+        // private us.kbase.workspace.EventDate newEventDate() {
+        //         return new us.kbase.workspace.EventDate()
+        //                 .withDate("")
+        //                 .withEvent("");
+        // }
+
+	// // {
+	// // 	"funderName":
+	// // }
+
+        // private us.kbase.workspace.FundingReference newFunder() {
+        //         return new us.kbase.workspace.FundingReference()
+        //                 .withFunderName("Some Name")
+        //                 .withFunderId("this:ID")
+        //                 .withAwardTitle("...")
+        //                 .withAwardId("...")
+        //                 .withAwardUrl("...");
+        // }
+
+        // private us.kbase.workspace.Organization newOrg() {
+        //         return new us.kbase.workspace.Organization()
+        //                 .withOrganizationName("generic org name")
+        //                 .withOrganizationId("some:ID");
+        // }
+
+        // private us.kbase.workspace.PermanentID newPid() {
+        //         return new us.kbase.workspace.PermanentID()
+        //                 .withId("some:ID")
+        //                 .withRelationshipType(null)
+        //                 .withDescription("some description here");
+        // }
+
+        // private us.kbase.workspace.Title newTitle() {
+        //         return new us.kbase.workspace.Title()
+        //                         .withTitleString("Grains of sand")
+        //                         .withTitleLanguage("blah blah blah")
+        //                         .withTitleType("whatever");
+        // }
+
+        // private us.kbase.workspace.CreditMetadata newCreditMetadata() {
+        //         final List<us.kbase.workspace.Title> titles = new ArrayList<>();
+        //         titles.add(newTitle());
+        //         return new us.kbase.workspace.CreditMetadata()
+        //                         .withTitles(titles)
+        //                         .withIdentifier("some:dbxref")
+        //                         .withResourceType("dataset")
+        //                         .withComments("")
+        //                         .withIdentifier("")
+        //                         .withLicense("")
+        //                         .withVersion("")
+        //                         .withResourceType("")
+        //                         .withContributors(null)
+        //                         .withDates(null)
+        //                         .withFunding(null)
+        //                         .withRelatedIdentifiers(null)
+        //                         .withTitles(null);
+        // }
+
+
+
 }

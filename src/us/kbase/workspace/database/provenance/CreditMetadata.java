@@ -214,8 +214,10 @@ public class CreditMetadata {
 	 *                type of the resource, as a {@link ResourceType}
 	 * @param contributors
 	 *                list of {@link Contributor} objects; at least one contributor is required
+	 *                Duplicate and null entries are removed from the list.
 	 * @param titles
-	 *                list of {@link Title} objects; at least one title is required
+	 *                list of {@link Title} objects; at least one title is required.
+	 *                Duplicate and null entries are removed from the list.
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(
@@ -241,9 +243,11 @@ public class CreditMetadata {
 	 * @param resourceType
 	 *                type of the resource as a string
 	 * @param contributors
-	 *                list of {@link Contributor} objects; at least one contributor is required
+	 *                list of {@link Contributor} objects; at least one contributor is required.
+	 *                Duplicate and null entries are removed from the list.
 	 * @param titles
 	 *                list of {@link Title} objects; at least one title is required
+	 *                Duplicate and null entries are removed from the list.
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(
@@ -266,6 +270,12 @@ public class CreditMetadata {
 		}
 		return new Builder(identifier, rt, contributors, titles, errorList);
 	}
+
+
+	// Regular expression used to detect URL-like strings; detects
+	// a sequence of letters at the start of a line, followed by one or more
+	// colons and one or more slashes.
+	static final Pattern pattern = Pattern.compile("^[a-zA-Z]+:+/+");
 
 	/** A builder for {@link CreditMetadata}. */
 	public static class Builder {
@@ -317,6 +327,7 @@ public class CreditMetadata {
 		 *
 		 * @param comments
 		 *                comments as a list of strings
+		 *                Duplicate, blank, and null entries are removed from the list.
 		 * @return this builder
 		 */
 		public Builder withComments(final List<String> comments) {
@@ -371,6 +382,7 @@ public class CreditMetadata {
 		 *
 		 * @param withDates
 		 *                list of {@link EventDate}s.
+		 *                Duplicate and null entries are removed from the list.
 		 * @return this builder
 		 */
 		public Builder withDates(final List<EventDate> dates) {
@@ -383,6 +395,7 @@ public class CreditMetadata {
 		 *
 		 * @param withFunding
 		 *                list of {@link FundingReference}s.
+		 *                Duplicate and null entries are removed from the list.
 		 * @return this builder
 		 */
 		public Builder withFunding(final List<FundingReference> funding) {
@@ -395,6 +408,7 @@ public class CreditMetadata {
 		 *
 		 * @param withRelatedIdentifiers
 		 *                list of {@link PermanentID}s.
+		 *                Duplicate and null entries are removed from the list.
 		 * @return this builder
 		 */
 		public Builder withRelatedIdentifiers(final List<PermanentID> relatedIdentifiers) {
@@ -461,6 +475,5 @@ public class CreditMetadata {
 					"Errors in CreditMetadata construction:\n" +
 							String.join("\n", errorList));
 		}
-
 	}
 }
