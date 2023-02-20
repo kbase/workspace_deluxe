@@ -4,240 +4,286 @@
  * This is a general purpose Gradle build.
  */
 
+// In Gradle, the build task is a lifecycle task that aggregates other tasks that are needed to build your project. When you run the build task, Gradle performs the following actions:
+
+// Clean the project: The clean task is executed to remove any build artifacts from previous builds.
+// Build the project: The assemble task is executed, which compiles the source code, runs tests, and packages the application into a distributable format, such as a JAR or WAR file.
+// Run additional checks: The check task is executed to run additional checks, such as code quality analysis or static analysis.
+// Generate documentation: The javadoc and dokka tasks are executed to generate documentation for the project.
+// The build task is a convenient way to build your project and generate all the artifacts that you need for deployment or distribution. It's also commonly used in Continuous Integration (CI) systems as the final step to ensure that the project is buildable and all tests pass before deploying to production.
+
+// You can customize the build task by configuring the dependencies of the assemble and check tasks, or by adding additional tasks that generate other artifacts or perform additional checks.
+
+
 plugins {
-	id "java"
-	id "war"
-	id "jacoco"
-	id "com.diffplug.spotless" version "6.15.0"
+    id "java"
+    id "war"
+    id "jacoco"
+    id "com.diffplug.spotless" version "6.15.0"
 }
 
 group = "workspace service"
 version = "0.14.1"
 
 ext {
-	clientJarFile = "WorkspaceClient.jar"
-	serviceJarFile = "WorkspaceService.jar"
-	warFile = "WorkspaceService.war"
-	warXml = "web.xml"
-	// directories
-	classes = "classes"
-	src = "src"
-	dist = "dist"
-	javadoc = "docs/javadoc"
-	docsDir = "docs"
-	tempunpack = "build/tmp/generateJavadocs/unpackedjars"
-	warDir = "war"
-	testReportsDir = "test-reports"
-	docServerDir = "/server_docs"
-	workspaceDocs = "workspace_docs"
-	jarDir = "../jars/lib/jars/"
-	// other config
-	jackson_version = "2.9.9"
-	testConfig = "test.cfg"
+    clientJarFile = "WorkspaceClient.jar"
+    serviceJarFile = "WorkspaceService.jar"
+    warFile = "WorkspaceService.war"
+    warXml = "web.xml"
+    // directories
+    classes = "classes"
+    src = "src"
+    dist = "dist"
+    javadoc = "docs/javadoc"
+    docsDir = "docs"
+    downloadDir = "$buildDir/download/"
+    coverageDir = "$buildDir/coverage"
+    tempunpack = "$buildDir/tmp/generateJavadocs/unpackedjars"
+    warDir = "war"
+    testReportsDir = "test-reports"
+    docServerDir = "/server_docs"
+    workspaceDocs = "workspace_docs"
+    jarDir = "../jars/lib/jars/"
+    // other config
+    jackson_version = "2.9.9"
+    testConfig = "test.cfg"
 }
 
 repositories {
-	mavenCentral()
-	maven {
-		name = 'Clojars'
-		url = 'https://repo.clojars.org/'
-	}
+    mavenCentral()
+    maven {
+        name = 'Clojars'
+        url = 'https://repo.clojars.org/'
+    }
 }
 
 configurations {
-	implementation
-	impl {
-		extendsFrom implementation
-	}
-	testImplementation
-	javadoc {
-		extendsFrom implementation, testImplementation
-	}
+    implementation
+    impl {
+        extendsFrom implementation
+    }
+    testImplementation
+    javadoc {
+        extendsFrom implementation, testImplementation
+    }
 }
 
-def fromURL = { baseUrl, name ->
-	File file = new File("$buildDir/download/${name}.jar")
-	file.parentFile.mkdirs()
-	if (!file.exists()) {
-		new URL("${baseUrl}${name}.jar").withInputStream { downloadStream ->
-			file.withOutputStream { fileOut ->
-				fileOut << downloadStream
-			}
-		}
-	}
-	files(file.absolutePath)
+task downloadJars {
+    doLast {
+        def dir = file(downloadDir)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        def url = 'https://github.com/kbase/jars/raw/master/lib/jars/kbase/'
+        def jars = [
+            'auth/kbase-auth-0.4.4',
+            'auth2/kbase-auth2test-0.2.4',
+            'common/kbase-common-0.1.1',
+            'handle/AbstractHandleClient-1.0.0',
+            'kidl/kbase-kidl-parser-1409261812-7863aef',
+            'sample/SampleServiceClient-0.1.1',
+            'shock/shock-client-0.1.0'
+        ]
+        jars.each { jar ->
+            def jarName = jar.split('/')[-1]
+            def file = file("${downloadDir}/${jarName}.jar")
+            if (!file.exists()) {
+                ant.get(src: "${url}${jar}.jar", dest: "${downloadDir}/${jarName}.jar")
+            }
+        }
+    }
 }
 
 dependencies {
+    // include all the downloaded jars
+    implementation fileTree(dir: "$downloadDir", include: ['*.jar'])
 
-	// implementation files("${jarDir}/kbase/auth/kbase-auth-0.4.4.jar")
-	// implementation files("${jarDir}/kbase/common/kbase-common-0.1.1.jar")
-	// implementation files("${jarDir}/kbase/handle/AbstractHandleClient-1.0.0.jar")
-	// implementation files("${jarDir}/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar")
-	// implementation files("${jarDir}/kbase/sample/SampleServiceClient-0.1.1.jar")
-	// implementation files("${jarDir}/kbase/shock/shock-client-0.1.0.jar")
+    implementation "ch.qos.logback:logback-classic:1.1.2"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:2.9.9"
+    implementation "com.fasterxml.jackson.core:jackson-core:2.9.9"
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.9.9"
+    implementation "com.github.ben-manes.caffeine:caffeine:2.9.3"
+    implementation "com.google.guava:guava:14.0.1"
+    implementation "commons-codec:commons-codec:1.8"
+    implementation "commons-io:commons-io:2.4"
+    implementation "info.picocli:picocli:4.6.1"
+    implementation "javax.annotation:javax.annotation-api:1.3.2"
+    implementation "javax.servlet:servlet-api:2.5"
+    implementation "joda-time:joda-time:2.2"
+    implementation "org.apache.commons:commons-lang3:3.1"
+    implementation "org.apache.httpcomponents:httpclient:4.5.9"
+    implementation "org.apache.httpcomponents:httpmime:4.5.8"
+    implementation "org.apache.kafka:kafka-clients:2.1.0"
+    implementation "org.eclipse.jetty.aggregate:jetty-all:7.0.0.v20091005"
+    implementation "org.ini4j:ini4j:0.5.2"
+    implementation "org.mongodb:mongo-java-driver:3.12.10"
+    implementation "org.slf4j:slf4j-api:1.7.30"
 
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth/',
-		'kbase-auth-0.4.4'
-	)
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/kidl/',
-		'kbase-kidl-parser-1409261812-7863aef'
-	)
+    // ### Amazon S3 ###
 
-	testImplementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth2/',
-		'kbase-auth2test-0.2.4'
-	)
+    implementation("software.amazon.awssdk:s3:2.17.214") {
+        exclude module: "apache-client"
+        exclude module: "netty-nio-client"
+    }
+    implementation "software.amazon.awssdk:url-connection-client:2.17.214"
 
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/handle/',
-		'AbstractHandleClient-1.0.0'
-	)
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/sample/',
-		'SampleServiceClient-0.1.1'
-	)
+    // testImplementation files("${jarDir}/jna/jna-3.4.0.jar")
+    implementation 'org.syslog4j:syslog4j:0.9.46'
 
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/common/',
-		'kbase-common-0.1.1'
-	)
+    // ### Test ###
 
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/shock/',
-		'shock-client-0.1.0'
-	)
-
-	implementation "ch.qos.logback:logback-classic:1.1.2"
-	implementation "com.fasterxml.jackson.core:jackson-annotations:2.9.9"
-	implementation "com.fasterxml.jackson.core:jackson-core:2.9.9"
-	implementation "com.fasterxml.jackson.core:jackson-databind:2.9.9"
-	implementation "com.github.ben-manes.caffeine:caffeine:2.9.3"
-	implementation "com.google.guava:guava:14.0.1"
-	implementation "commons-codec:commons-codec:1.8"
-	implementation "commons-io:commons-io:2.4"
-	implementation "info.picocli:picocli:4.6.1"
-	implementation "javax.annotation:javax.annotation-api:1.3.2"
-	implementation "javax.servlet:servlet-api:2.5"
-	implementation "joda-time:joda-time:2.2"
-	implementation "org.apache.commons:commons-lang3:3.1"
-	implementation "org.apache.httpcomponents:httpclient:4.5.9"
-	implementation "org.apache.httpcomponents:httpmime:4.5.8"
-	implementation "org.apache.kafka:kafka-clients:2.1.0"
-	implementation "org.eclipse.jetty.aggregate:jetty-all:7.0.0.v20091005"
-	implementation "org.ini4j:ini4j:0.5.2"
-	implementation "org.mongodb:mongo-java-driver:3.12.10"
-	implementation "org.slf4j:slf4j-api:1.7.30"
-
-	// ### Amazon S3 ###
-
-	implementation("software.amazon.awssdk:s3:2.17.214") {
-		exclude module: "apache-client"
-		exclude module: "netty-nio-client"
-	}
-	implementation "software.amazon.awssdk:url-connection-client:2.17.214"
-
-	testImplementation files("${jarDir}/jna/jna-3.4.0.jar")
-	implementation 'org.syslog4j:syslog4j:0.9.46'
-
-	// ### Test ###
-
-	testImplementation "com.arangodb:arangodb-java-driver:6.7.2"
-	testImplementation "com.github.zafarkhaja:java-semver:0.9.0"
-	testImplementation "junit:junit:4.12"
-	testImplementation "nl.jqno.equalsverifier:equalsverifier:3.1.10"
-	testImplementation "org.hamcrest:hamcrest-core:1.3"
-	testImplementation "org.mockito:mockito-core:3.0.0"
-
-	// testImplementation files("${jarDir}/kbase/auth2/kbase-auth2test-0.2.4.jar")
-
-	testImplementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth2/',
-		'kbase-auth2test-0.2.4'
-	)
+    testImplementation "com.arangodb:arangodb-java-driver:6.7.2"
+    testImplementation "com.github.zafarkhaja:java-semver:0.9.0"
+    testImplementation "junit:junit:4.12"
+    testImplementation "nl.jqno.equalsverifier:equalsverifier:3.1.10"
+    testImplementation "org.hamcrest:hamcrest-core:1.3"
+    testImplementation "org.mockito:mockito-core:3.0.0"
 }
 
 sourceSets {
-	main {
-		java {
-			srcDir src
-			exclude "**/test/**"
-		}
-		resources {
-			srcDir src
-			include "**/*.properties"
-			include "**/*.cfg"
-			include "**/*.spec"
-			include "**/*.instance.*"
-			include "**/instance.*"
-			include "**/*.instance"
-			include "**/*.html"
-			include "**/*.css"
-			include "**/*.gif"
-			include "**/*.js"
-			include "**/*.png"
-			include "**/*.txt"
-			include "**/*.weirdsuffix"
-		}
-	}
-	test {
-		java {
-			srcDir src
-			include "**/test/**"
-			exclude "*Tester.java"
-		}
-	}
+    main {
+        java {
+            srcDir src
+            exclude "**/test/**"
+        }
+        // resources {
+        //     srcDir src
+        //     include "**/*.properties"
+        //     include "**/*.cfg"
+        //     include "**/*.spec"
+        //     include "**/*.instance.*"
+        //     include "**/instance.*"
+        //     include "**/*.instance"
+        //     include "**/*.html"
+        //     include "**/*.css"
+        //     include "**/*.gif"
+        //     include "**/*.js"
+        //     include "**/*.png"
+        //     include "**/*.txt"
+        //     include "**/*.weirdsuffix"
+        // }
+    }
+    test {
+        java {
+            srcDir src
+            include "**/test/**"
+            exclude "*Tester.java"
+        }
+    }
 }
 
-task customCompileJava(type: JavaCompile) {
-	source = sourceSets.main.java
-	classpath = configurations.javadoc
-	destinationDirectory = file("build/customCompile")
+tasks.withType(JavaCompile) {
+    dependsOn(downloadJars)
+    source = sourceSets.main.java
+    classpath = configurations.javadoc
+    destinationDirectory = file("$buildDir/classes")
+    options.compilerArgs = ['-source', '11', '-target', '11', '-g']
 }
 
-task clientJar(type: Jar, dependsOn: customCompileJava) {
-	from sourceSets.main.output
-	include "us/kbase/workspace/*.class"
-	exclude "us/kbase/workspace/WorkspaceServer.class"
-	include "us/kbase/common/service/*.class"
-	exclude "us/kbase/common/service/JsonServer*"
-	archiveFileName.set clientJarFile
-	destinationDirectory.set file("$dist/client")
+// task customCompileJava(type: JavaCompile, dependsOn: downloadJars) {
+//     source = sourceSets.main.java
+//     classpath = configurations.javadoc
+//     destinationDirectory = file("$classes")
+// }
+
+task clientJar(type: Jar, dependsOn: compileJava) {
+    from sourceSets.main.output
+    include "us/kbase/workspace/*.class"
+    exclude "us/kbase/workspace/WorkspaceServer.class"
+    include "us/kbase/common/service/*.class"
+    exclude "us/kbase/common/service/JsonServer*"
+    archiveFileName = clientJarFile
+    destinationDirectory = file("$dist/client")
 }
 
-task serviceJar(type: Jar, dependsOn: customCompileJava) {
-	from sourceSets.main.output
-	archiveFileName.set serviceJarFile
-	destinationDirectory.set file("$dist")
+task serviceJar(type: Jar, dependsOn: compileJava) {
+    from sourceSets.main.output
+    archiveFileName = serviceJarFile
+    destinationDirectory = file("$dist")
 }
 
-task buildWar(type: War, dependsOn: customCompileJava) {
-	description = "Build the WAR file. Assumes compilation has been run."
-
-	// make the war file for the server
-	into("$warDir/lib") {
-		from sourceSets.test.output + sourceSets.main.output
-	}
-	copy {
-		from docsDir
-		into "$workspaceDocs/$docServerDir"
-	}
-
-	destinationDirectory = file("$dist")
-	archiveFileName = warFile
-	webXml = file("${warDir}/${warXml}")
-	from classes
-	from "$warDir/lib"
-	from "$workspaceDocs/$docServerDir"
-
-	doLast {
-		delete "${warDir}/lib"
-		delete workspaceDocs
-	}
+task buildJars {
+    dependsOn serviceJar, clientJar
 }
 
+task unzipJar(type: Copy, dependsOn: [downloadJars]) {
+    from zipTree("${downloadDir}/kbase-common-0.1.1.jar")
+    into "$tempunpack"
+}
+
+task generateJavadocs(type: Javadoc, dependsOn: [downloadJars, unzipJar]) {
+    destinationDir file("$javadoc")
+    classpath = configurations.javadoc
+    failOnError = false
+    options {
+        author = false
+        noDeprecated = false
+        noDeprecatedList = false
+        noIndex = false
+        noNavBar = false
+        noTree = false
+        splitIndex = true
+        use = true
+        version = true
+        links = [
+            "http://download.oracle.com/javase/11/docs/api/",
+            "https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/2.9.9/",
+            "https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/2.9.9/"
+        ]
+    }
+    source = fileTree(dir: "$src/us/kbase",
+    include: [
+        "workspace/*.java",
+        "common/service/*.java"
+    ],
+    exclude: [
+        "workspace/WorkspaceServer.java",
+        "common/service/JsonServer*",
+        "common/service/JacksonTupleModule.java",
+        "common/service/JsonClientCaller.java",
+        "common/service/JsonTreeTraversingParser.java",
+        "common/service/KBaseJsonParser.java"
+    ])
+    source += fileTree(dir: "$tempunpack/us/kbase/common/service", include: [
+        "UObject.java",
+        "JsonTokenStream.java",
+        "*Exception.java"
+    ])
+
+    doLast {
+        delete "$tempunpack"
+    }
+}
+
+task buildWar(type: War, dependsOn: [compileJava, generateJavadocs]) {
+    description = "Build the WAR file. Assumes compilation has been run."
+
+    // location of the web.xml file
+    webXml = file("${warDir}/${warXml}")
+
+    // add the main and test output directories to the WAR file
+    into('WEB-INF/lib') {
+        from sourceSets.main.output
+        from sourceSets.test.output
+    }
+    // copy the compiled classes over
+    into('WEB-INF/classes') {
+        from classes
+    }
+    // copy in the documentation
+    into('WEB-INF/classes/server_docs') {
+        from docsDir
+    }
+
+    // set the WAR file name and output directory
+    archiveFileName = warFile
+    destinationDirectory = file("$dist")
+}
+
+task expandWar(type: Copy) {
+    from zipTree("$dist/$warFile")
+    into "war_contents"
+}
 
 tasks.withType(Test) {
     useJUnit()
@@ -247,86 +293,97 @@ tasks.withType(Test) {
         events "passed", "skipped", "failed"
         exceptionFormat "short"
         showStandardStreams = true
-		showExceptions = true
-		showCauses = true
+        showExceptions = true
+        showCauses = true
     }
 }
 
 task testProvenance(type: Test) {
-	description = "run all tests marked as Provenance tests"
+    description = "run all tests marked as Provenance tests"
     systemProperty "test.cfg", testConfig
-	options {
-		includeCategories "us.kbase.common.test.ProvenanceTests"
-	}
+    options {
+        includeCategories "us.kbase.common.test.ProvenanceTests"
+    }
 }
 
 task testMongo(type: Test) {
-	description = "run all tests marked as Mongo tests"
-	systemProperty "test.cfg", testConfig
-	options {
-		includeCategories "us.kbase.common.test.MongoTests"
-		excludeCategories "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
-	}
+    description = "run all tests marked as Mongo tests"
+    systemProperty "test.cfg", testConfig
+    options {
+        includeCategories "us.kbase.common.test.MongoTests"
+        excludeCategories "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
+    }
 }
 
 task testQuick(type: Test) {
-	description = "run the non-Mongo, non-long tests"
+    description = "run the non-Mongo, non-long tests"
     systemProperty "test.cfg", testConfig
-	options {
-		excludeCategories "us.kbase.common.test.MongoTests", "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
-	}
+    options {
+        excludeCategories "us.kbase.common.test.MongoTests", "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
+    }
 }
 
 task testSlow(type: Test) {
-	description = "run the non-Mongo, non-long tests"
+    description = "run the non-Mongo, non-long tests"
     systemProperty "test.cfg", testConfig
     maxHeapSize = "3G"
-	options {
-		includeCategories "us.kbase.common.test.SlowTests"
-		excludeCategories "us.kbase.common.test.TestHelpers"
-	}
+    options {
+        includeCategories "us.kbase.common.test.SlowTests"
+        excludeCategories "us.kbase.common.test.TestHelpers"
+    }
 }
 
 task noLongTests(type: Test) {
-	description = "run all tests except the long tests"
+    description = "run all tests except the long tests"
     systemProperty "test.cfg", testConfig
-	forkEvery 1
-	options {
-		excludeCategories"us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
-	}
+    forkEvery 1
+    options {
+        excludeCategories"us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
+    }
+}
+
+tasks.withType(JacocoReport) {
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = true
+    }
+    sourceSets sourceSets.main
+    destinationDirectory = file("$buildDir/reports/coverage")
 }
 
 task coverageMongo(type: JacocoReport, dependsOn: testMongo) {
     group = "Reporting"
     description = "Generate Jacoco code coverage report for Mongo tests"
-    reports {
-        html.required = true
-        xml.required = true
-    }
     executionData(testMongo)
-    sourceSets sourceSets.main
+    // reports {
+    //     html.required = true
+    //     xml.required = true
+    // }
+    // sourceSets sourceSets.main
 }
 
 task coverageQuick(type: JacocoReport, dependsOn: testQuick) {
     group = "Reporting"
     description = "Generate Jacoco code coverage report for quick tests"
-    reports {
-        html.required = true
-        xml.required = true
-    }
     executionData(testQuick)
-    sourceSets sourceSets.main
+    // reports {
+    //     html.required = true
+    //     xml.required = true
+    // }
+    // sourceSets sourceSets.main
 }
 
 task coverageSlow(type: JacocoReport, dependsOn: testSlow) {
     group = "Reporting"
     description = "Generate Jacoco code coverage report for slow tests"
-    reports {
-        html.required = true
-        xml.required = true
-    }
     executionData(testSlow)
-    sourceSets sourceSets.main
+    // reports {
+    //     html.required = true
+    //     xml.required = true
+    // }
+    // sourceSets sourceSets.main
+    // destinationDirectory = file("$buildDir/reports/coverage")
 }
 
 task combineCoverage(type: JacocoReport, dependsOn: [testMongo, testQuick]) {
@@ -334,7 +391,7 @@ task combineCoverage(type: JacocoReport, dependsOn: [testMongo, testQuick]) {
     description = "Generate combined Jacoco code coverage report for all tests"
     reports {
         html.required = true
-		csv.required = true
+        csv.required = true
         xml.required = true
     }
     executionData fileTree(project.rootDir.absolutePath).include("**/build/jacoco/*.exec")
@@ -342,80 +399,30 @@ task combineCoverage(type: JacocoReport, dependsOn: [testMongo, testQuick]) {
 }
 
 task testCoverage(type: JacocoReport, dependsOn: [noLongTests]) {
-	group = "Reporting"
-	description = "Generate code coverage reports for the tests"
-	reports {
-		html.required = true
-		csv.required = true
-		xml.required = true
-	}
-}
-
-task unzipJar(type: Copy) {
-	from zipTree("${jarDir}/kbase/common/kbase-common-0.1.1.jar")
-	into "$tempunpack"
-}
-
-task generateJavadocs(type: Javadoc) {
-	dependsOn unzipJar
-	destinationDir file("$javadoc")
-	classpath = configurations.javadoc
-	failOnError = false
-	options {
-		author = false
-		noDeprecated = false
-		noDeprecatedList = false
-		noIndex = false
-		noNavBar = false
-		noTree = false
-		splitIndex = true
-		use = true
-		version = true
-		links = [
-			"http://download.oracle.com/javase/11/docs/api/",
-			"https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/2.9.9/",
-			"https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/2.9.9/"
-		]
-	}
-	source = fileTree(dir: "$src/us/kbase",
-	include: [
-		"workspace/*.java",
-		"common/service/*.java"
-	],
-	exclude: [
-		"workspace/WorkspaceServer.java",
-		"common/service/JsonServer*",
-		"common/service/JacksonTupleModule.java",
-		"common/service/JsonClientCaller.java",
-		"common/service/JsonTreeTraversingParser.java",
-		"common/service/KBaseJsonParser.java"
-	])
-	source += fileTree(dir: "$tempunpack/us/kbase/common/service", include: [
-		"UObject.java",
-		"JsonTokenStream.java",
-		"*Exception.java"
-	])
-
-	doLast {
-		delete "$tempunpack"
-	}
+    group = "Reporting"
+    description = "Generate code coverage reports for the tests"
+    reports {
+        html.required = true
+        csv.required = true
+        xml.required = true
+    }
 }
 
 task createScript {
-	dependsOn customCompileJava
-	description = "create cli script"
+    dependsOn compileJava
+    description = "create cli script"
 
-	def libClasspath = configurations.impl.files.join(":")
-	file("update_workspace_database_schema").write("#!/bin/sh\n" +
-			"java -cp ${dist}/${serviceJarFile}:${libClasspath} us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
-	file("update_workspace_database_schema").setExecutable(true)
+    def libClasspath = configurations.impl.files.join(":")
+    file("update_workspace_database_schema").write("#!/bin/sh\n" +
+            "java -cp ${dist}/${serviceJarFile}:${libClasspath} us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
+    file("update_workspace_database_schema").setExecutable(true)
     // always run the script
-	outputs.upToDateWhen { false }
+    outputs.upToDateWhen { false }
 }
 
-spotless {
-	groovyGradle {
-		target "*.gradle" // default target of groovyGradle
-		greclipse()
-	}
-}
+// spotless {
+//     groovyGradle {
+//         target "*.gradle" // default target of groovyGradle
+//         greclipse()
+//     }
+// }

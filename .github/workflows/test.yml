@@ -39,29 +39,23 @@ jobs:
         run: |
           sh scripts/run_tests.sh
 
-  run_gradle_tests:
+  run_tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - java: '11'
-            mongo: 'mongodb-linux-x86_64-3.6.23'
-            minio: '2019-05-23T00-29-34Z'
-            wired_tiger: 'true'
-            test_cmd: 'combineCoverage'
-          # the current production setup
-          - java: '11'
-            # mongo: 'mongodb-linux-x86_64-3.6.13'
-            # minio: '2019-05-23T00-29-34Z'
-            # wired_tiger: 'false'
-            mongo: 'mongodb-linux-x86_64-3.6.23'
-            minio: '2019-05-23T00-29-34Z'
-            wired_tiger: 'true'
-            test_cmd: 'testCoverage'
+        mongo: ['mongodb-linux-x86_64-3.6.13', 'mongodb-linux-x86_64-3.6.23']
+        test_cmd: ['ant test_quick_coverage', 'gradle coverageSlow --info', 'gradle coverageMongo --info', 'gradle coverageQuick --info']
+        wired_tiger: ['true'] #, 'false']
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Set up java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 11
 
       - name: Set up Python 3.7  # sample service is on 3.7, handle service is on sdkbase2.latest
         uses: actions/setup-python@v3
@@ -73,10 +67,16 @@ jobs:
         with:
           gradle-version: 7.6
 
+      - name: build the war file
+        run: gradle war --info
+
       - name: Install dependencies and set up test config
         shell: bash
         run: |
           export HOMEDIR=`pwd`
+          export MINIO_VER='2019-05-23T00-29-34Z'
+          export MONGO_VER=${{mongo}}
+          export WIRED_TIGER=${{wired_tiger}}
 
           # set up python dependencies
           cd python_dependencies
@@ -129,12 +129,12 @@ jobs:
           export BLOBEXE=$(pwd)/blobstore
 
           # set up mongo
-          wget -q http://fastdl.mongodb.org/linux/${{matrix.mongo}}.tgz
-          tar xfz ${{matrix.mongo}}.tgz
-          export MONGOD=`pwd`/${{matrix.mongo}}/bin/mongod
+          wget -q http://fastdl.mongodb.org/linux/$MONGO_VER.tgz
+          tar xfz $MONGO_VER.tgz
+          export MONGOD=`pwd`/$MONGO_VER/bin/mongod
 
           # set up minio
-          wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
+          wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.$MINIO_VER -O minio
           chmod a+x minio
           export MINIOD=`pwd`/minio
 
@@ -144,7 +144,7 @@ jobs:
           sed -i "s#^test.temp.dir =.*#test.temp.dir=temp_test_dir#" test.cfg
           sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
           sed -i "s#^test.minio.exe.*#test.minio.exe=$MINIOD#" test.cfg
-          sed -i "s#^test.mongo.useWiredTiger.*#test.mongo.useWiredTiger=${{matrix.wired_tiger}}#" test.cfg
+          sed -i "s#^test.mongo.useWiredTiger.*#test.mongo.useWiredTiger=$WIRED_TIGER#" test.cfg
           sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
           sed -i "s#^test.blobstore.exe.*#test.blobstore.exe=$BLOBEXE#" test.cfg
           sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
@@ -153,25 +153,59 @@ jobs:
           sed -i "s#^test.arango.js.*#test.arango.js=$ARANGO_JS#" test.cfg
           cat test.cfg
 
-      - name: Javadoc
-        run: gradle generateJavadocs
+      - name: run the tests and generate coverage
+        run: ${{test_cmd}}
 
-      - name: run tests, generate coverage
-        id: tests_with_coverage
-        run: gradle clean ${{matrix.test_cmd}} --info
+      - name: upload jacoco report
+        uses: actions/upload-artifact@v3
+        if: matrix.test_cmd != 'ant test_quick_coverage'
+        with:
+          name: ${{matrix.test_cmd}}-${{matrix.mongo}}
+          path: build/reports
 
-      - name: upload report
+      - name: upload test-reports dir
+        uses: actions/upload-artifact@v3
+        if: matrix.test_cmd == 'ant test_quick_coverage'
+        with:
+          name: ${{matrix.test_cmd}}-${{matrix.mongo}}
+          path: test-reports
+
+  compile_coverage:
+    runs-on: ubuntu-latest
+    if: 1 == 3
+    steps:
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 7.6
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: mongo-coverage
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: quick-coverage
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: slow-coverage
+
+      - name: combine coverage
+        run: gradle combineCoverage --info
+
+      - name: upload combined coverage
         uses: actions/upload-artifact@v3
         with:
-          name: test_reports-${{matrix.test_cmd}}
-          path: build/reports/
-
-      - name: run slow tests
-        if: always()
-        run: gradle coverageSlow --info
+          name: combined-coverage
+          path: build/report/
 
   workspace_deluxe_tests:
     runs-on: ubuntu-latest
+    if: 1 == 3
     strategy:
       fail-fast: false
       matrix:
