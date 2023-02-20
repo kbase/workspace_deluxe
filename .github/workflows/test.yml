@@ -75,8 +75,8 @@ jobs:
         run: |
           export HOMEDIR=`pwd`
           export MINIO_VER='2019-05-23T00-29-34Z'
-          export MONGO_VER=${{mongo}}
-          export WIRED_TIGER=${{wired_tiger}}
+          export MONGO_VER=${{matrix.mongo}}
+          export WIRED_TIGER=${{matrix.wired_tiger}}
 
           # set up python dependencies
           cd python_dependencies
@@ -154,7 +154,7 @@ jobs:
           cat test.cfg
 
       - name: run the tests and generate coverage
-        run: ${{test_cmd}}
+        run: ${{matrix.test_cmd}}
 
       - name: upload jacoco report
         uses: actions/upload-artifact@v3
