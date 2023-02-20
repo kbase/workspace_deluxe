@@ -349,7 +349,7 @@ tasks.withType(JacocoReport) {
         csv.required = true
     }
     sourceSets sourceSets.main
-    destinationDirectory = file("$buildDir/reports/coverage")
+    // destinationDirectory = file("$buildDir/reports/coverage")
 }
 
 task coverageMongo(type: JacocoReport, dependsOn: testMongo) {
