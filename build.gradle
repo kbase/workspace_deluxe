@@ -336,7 +336,7 @@ task testSlow(type: Test) {
 task noLongTests(type: Test) {
     description = "run all tests except the long tests"
     systemProperty "test.cfg", testConfig
-    forkEvery 1
+    // forkEvery 1
     options {
         excludeCategories"us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
     }
@@ -398,7 +398,7 @@ task combineCoverage(type: JacocoReport, dependsOn: [testMongo, testQuick]) {
     sourceSets sourceSets.main
 }
 
-task testCoverage(type: JacocoReport, dependsOn: [noLongTests]) {
+task coverageNoLongTests(type: JacocoReport, dependsOn: [noLongTests]) {
     group = "Reporting"
     description = "Generate code coverage reports for the tests"
     reports {

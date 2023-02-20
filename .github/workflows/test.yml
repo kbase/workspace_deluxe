@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         mongo: ['mongodb-linux-x86_64-3.6.13', 'mongodb-linux-x86_64-3.6.23']
-        test_cmd: ['ant test_quick_coverage', 'gradle coverageSlow --info', 'gradle coverageMongo --info', 'gradle coverageQuick --info']
+        test_cmd: ['ant test_quick_coverage', 'gradle coverageSlow --info', 'gradle coverageMongo --info', 'gradle coverageQuick --info', 'gradle coverageNoLongTests --info']
         wired_tiger: ['true'] #, 'false']
 
     steps:
@@ -161,7 +161,7 @@ jobs:
         if: matrix.test_cmd != 'ant test_quick_coverage'
         with:
           name: ${{matrix.test_cmd}}-${{matrix.mongo}}
-          path: build/reports
+          path: build/
 
       - name: upload test-reports dir
         uses: actions/upload-artifact@v3
