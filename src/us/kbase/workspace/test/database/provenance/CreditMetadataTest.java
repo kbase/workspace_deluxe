@@ -10,11 +10,11 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
-import static us.kbase.common.test.TestCommon.ES;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Collections;
 import java.util.Optional;
@@ -99,8 +99,6 @@ public class CreditMetadataTest {
 			"DATAZET"
 	};
 
-	private static final String TITLE_STRING = "A Series of Unfortunate Elephants";
-
 	private static final List<String> COMMENTS_LIST = Arrays.asList(
 			"An Airport For Aliens Currently Run By Dogs",
 			"Space Warlord Organ Trading Simulator",
@@ -115,74 +113,65 @@ public class CreditMetadataTest {
 			"An Airport For Aliens Currently Run By Dogs",
 			"\t\tEl Paso Elsewhere\n\n   ");
 
-	private static final List<Contributor> CONTRIBUTOR_LIST = Arrays.asList(
-			Contributor.getBuilder(ContributorType.PERSON, "Mr Blobby").build(),
-			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
-					.build());
+	private static final Contributor C1 = Contributor.getBuilder(
+			ContributorType.PERSON, "Mr Blobby")
+			.build();
 
+	private static final Contributor C2 = Contributor.getBuilder(
+			ContributorType.ORGANIZATION, "Cereal Convention")
+			.build();
+
+	private static final Contributor C3 = Contributor.getBuilder(
+			ContributorType.PERSON, "Ransome the Clown")
+			.build();
+
+	private static final List<Contributor> CONTRIBUTOR_LIST = Arrays.asList(C1, C2);
 	private static final List<Contributor> CONTRIBUTOR_LIST_DUPES_NULLS = Arrays.asList(
-			Contributor.getBuilder(ContributorType.PERSON, "Mr Blobby").build(),
-			null,
-			null,
-			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
-					.build(),
-			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
-					.build(),
-			Contributor.getBuilder(ContributorType.ORGANIZATION, "Cereal Convention")
-					.build());
+			C1, null, null, C2, C2, C2);
 
-	private static final List<EventDate> DATE_LIST = Arrays.asList(
-			EventDate.build("0000-12-15", Event.CREATED),
-			EventDate.build("2112", Event.WITHDRAWN));
+	private static final EventDate ED1 = EventDate.build("0000-12-15", Event.CREATED);
+	private static final EventDate ED2 = EventDate.build("2112", Event.WITHDRAWN);
+	private static final EventDate ED3 = EventDate.build("2000-01-01", Event.AVAILABLE);
 
+	private static final List<EventDate> DATE_LIST = Arrays.asList(ED1, ED2);
 	private static final List<EventDate> DATE_LIST_DUPES_NULLS = Arrays.asList(
-			EventDate.build("0000-12-15", Event.CREATED),
-			EventDate.build("2112", Event.WITHDRAWN),
-			null,
-			EventDate.build("0000-12-15", Event.CREATED),
-			EventDate.build("2112", Event.WITHDRAWN),
-			null,
-			EventDate.build("0000-12-15", Event.CREATED),
-			EventDate.build("2112", Event.WITHDRAWN),
-			null);
+			ED1, ED2, null, ED1, ED2, null, ED1, ED2, null);
 
-	private static final List<FundingReference> FUNDING_LIST = Arrays.asList(
-			FundingReference.getBuilder("New World Order LLC").build());
 
+	private static final FundingReference F1 = FundingReference
+			.getBuilder("New World Order LLC").build();
+	private static final FundingReference F2 = FundingReference
+			.getBuilder("Daddy Warbucks").build();
+
+	private static final List<FundingReference> FUNDING_LIST = Arrays.asList(F1);
 	private static final List<FundingReference> FUNDING_LIST_DUPES_NULLS = Arrays.asList(
-			FundingReference.getBuilder("New World Order LLC").build(),
-			FundingReference.getBuilder("New World Order LLC").build(),
-			FundingReference.getBuilder("New World Order LLC").build(),
-			FundingReference.getBuilder("New World Order LLC").build(),
-			FundingReference.getBuilder("New World Order LLC").build(),
-			FundingReference.getBuilder("New World Order LLC").build(),
-			null);
+			F1, F1, F1, F1, F1, F1, F1, null);
 
-	private static final List<PermanentID> RELATED_ID_LIST = Arrays.asList(
-			PermanentID.getBuilder("this:ID").build(),
-			PermanentID.getBuilder("that:ID").build(),
-			PermanentID.getBuilder("the:other ID").build());
-
+	private static final PermanentID PID1 = PermanentID.getBuilder("this:ID").build();
+	private static final PermanentID PID2 = PermanentID.getBuilder("that:ID").build();
+	private static final PermanentID PID3 = PermanentID.getBuilder("the:other ID").build();
+	private static final List<PermanentID> RELATED_ID_LIST = Arrays.asList(PID1, PID2);
 	private static final List<PermanentID> RELATED_ID_LIST_DUPES_NULLS = Arrays.asList(
-			PermanentID.getBuilder("this:ID").build(),
-			PermanentID.getBuilder("that:ID").build(),
-			PermanentID.getBuilder("the:other ID").build(),
-			null,
-			PermanentID.getBuilder("the:other ID").build(),
-			PermanentID.getBuilder("that:ID").build(),
-			PermanentID.getBuilder("this:ID").build());
+			PID1, PID2, PID1, PID2, null, PID2, PID2, PID1);
 
-	private static final List<Title> TITLE_LIST = Arrays.asList(
-			Title.getBuilder(TITLE_STRING).build());
+	// titles
+	private static final Title T1 = Title.getBuilder(
+			"\t\t\f\t\n\rA Series of Unfortunate Elephants\n\n\n   ")
+			.build();
+	private static final Title T2 = Title.getBuilder(
+			"Eine Reihe unglücklicher Elefanten")
+			.withTitleLanguage("de")
+			.withTitleType("translated_title")
+			.build();
 
+	private static final Title T3 = Title.getBuilder("Elephants Gone Wild!")
+			.withTitleType("subtitle")
+			.build();
+
+	private static final List<Title> TITLE_LIST = Arrays.asList(T1, T2);
 	private static final List<Title> TITLE_LIST_DUPES_NULLS = Arrays.asList(
-			Title.getBuilder(TITLE_STRING).build(),
-			null,
-			null,
-			null,
-			Title.getBuilder(TITLE_STRING).build());
+			null, T1, null, null, null, T1, T2);
 
-	private static final Map<String, String> EM = Collections.emptyMap();
 	private static final List<String> ELS = Collections.emptyList();
 	private static final List<Contributor> ELC = Collections.emptyList();
 	private static final List<EventDate> ELD = Collections.emptyList();
@@ -507,6 +496,159 @@ public class CreditMetadataTest {
 				CONTRIBUTOR_LIST, TITLE_LIST, null, null,
 				COMMENTS_LIST, DATE_LIST, FUNDING_LIST,
 				RELATED_ID_LIST);
+	}
+
+	@Test
+	public void assertContributorsImmutable() throws Exception {
+		// same as CONTRIBUTOR_LIST
+		final List<Contributor> contributorList = new ArrayList<>(Arrays.asList(C1, C2));
+		final CreditMetadata cm = CreditMetadata
+				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+						CONTRIBUTOR_LIST, TITLE_LIST)
+				.withDates(DATE_LIST)
+				.build();
+
+		// mutating the input list should not affect the contributor list
+		contributorList.add(C3);
+		assertThat("no mutation", contributorList,
+				is(Arrays.asList(C1, C2, C3)));
+
+		assertThat(INCORRECT_CONTRIBUTORS, cm.getContributors(), is(CONTRIBUTOR_LIST));
+
+		try {
+			cm.getContributors().add(C3);
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// hurrah, no mutations here!
+		}
+	}
+
+	@Test
+	public void assertCommentsImmutable() throws Exception {
+		final List<String> commentList = new ArrayList<>(Arrays.asList(
+				"What a load of nonsense",
+				"Prime codswallop"
+		));
+		final CreditMetadata cm = CreditMetadata
+				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+						CONTRIBUTOR_LIST, TITLE_LIST)
+				.withDates(DATE_LIST)
+				.withComments(commentList)
+				.build();
+
+		// mutating the input list should not affect the comments
+		commentList.add("blah blah blah");
+		assertThat("no mutation", commentList, is(Arrays.asList(
+				"What a load of nonsense",
+				"Prime codswallop",
+				"blah blah blah"
+		)));
+		assertThat(INCORRECT_COMMENTS, cm.getComments(), is(Arrays.asList(
+				"What a load of nonsense",
+				"Prime codswallop"
+		)));
+
+		try {
+			cm.getComments().add("horse puckey!");
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// test passed
+		}
+	}
+
+	@Test
+	public void assertDatesImmutable() throws Exception {
+		// same as DATE_LIST
+		final List<EventDate> dateList = new ArrayList<>(Arrays.asList(ED1, ED2));
+		final CreditMetadata cm = CreditMetadata
+				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+						CONTRIBUTOR_LIST, TITLE_LIST)
+				.withDates(DATE_LIST)
+				.build();
+
+		// mutating the input list should not affect the date list
+		dateList.add(ED3);
+		assertThat("no mutation", dateList,
+				is(Arrays.asList(ED1, ED2, ED3)));
+		assertThat(INCORRECT_DATES, cm.getDates(), is(DATE_LIST));
+
+		try {
+			cm.getDates().add(ED3);
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// hurrah, no mutations here!
+		}
+	}
+
+	@Test
+	public void assertFundingImmutable() throws Exception {
+		// same as CONTRIBUTOR_LIST
+		final List<FundingReference> fundingList = new ArrayList<>(Arrays.asList(F1));
+		final CreditMetadata cm = CreditMetadata
+				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+						CONTRIBUTOR_LIST, TITLE_LIST)
+				.withDates(DATE_LIST)
+				.withFunding(fundingList)
+				.build();
+
+		// mutating the input list should not affect the funding list
+		fundingList.add(F2);
+		assertThat("no mutation", fundingList,
+				is(Arrays.asList(F1, F2)));
+		assertThat(INCORRECT_FUNDING, cm.getFunding(), is(FUNDING_LIST));
+
+		try {
+			cm.getFunding().add(F2);
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// hurrah, no mutations here!
+		}
+	}
+
+	@Test
+	public void assertRelatedIdentifiersImmutable() throws Exception {
+		// same as RELATED_ID_LIST
+		final List<PermanentID> pidList = new ArrayList<>(Arrays.asList(PID1, PID2));
+		final CreditMetadata cm = CreditMetadata
+				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+						CONTRIBUTOR_LIST, TITLE_LIST)
+				.withDates(DATE_LIST)
+				.withRelatedIdentifiers(pidList)
+				.build();
+		// mutating the input list should not affect the related ID list
+		pidList.add(PID3);
+		assertThat("no mutation", pidList, is(Arrays.asList(PID1, PID2, PID3)));
+
+		assertThat(INCORRECT_RELATED_IDS, cm.getRelatedIdentifiers(), is(RELATED_ID_LIST));
+
+		try {
+			cm.getRelatedIdentifiers().add(PID3);
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// hurrah, no mutations here!
+		}
+	}
+
+	@Test
+	public void assertTitlesImmutable() throws Exception {
+		// same as TITLE_LIST
+		final List<Title> titleList = new ArrayList<>(Arrays.asList(T1, T2));
+		final CreditMetadata cm = CreditMetadata
+				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+						CONTRIBUTOR_LIST, titleList)
+				.withDates(DATE_LIST)
+				.build();
+		// mutating the input list should not affect the title list
+		titleList.add(T3);
+		assertThat("no mutation", titleList, is(Arrays.asList(T1, T2, T3)));
+		assertThat(INCORRECT_TITLES, cm.getTitles(), is(TITLE_LIST));
+
+		try {
+			cm.getTitles().add(T3);
+			fail(EXP_EXC);
+		} catch (UnsupportedOperationException e) {
+			// hurrah, no mutations here!
+		}
 	}
 
 	/**

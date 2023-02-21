@@ -333,14 +333,14 @@ public class CreditMetadata {
 		public Builder withComments(final List<String> comments) {
 			if (comments != null) {
 				// strip out any nulls, blanks, or repeated comments
-				this.comments = comments.stream()
+				this.comments = Common.immutable(comments.stream()
 						.filter(c -> c != null && !c.isBlank())
 						.map(String::strip)
 						.distinct()
-						.collect(Collectors.toList());
+						.collect(Collectors.toList()));
 			}
 			else {
-				this.comments = comments;
+				this.comments = null;
 			}
 			return this;
 		}
