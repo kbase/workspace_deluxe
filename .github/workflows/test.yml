@@ -155,6 +155,7 @@ jobs:
 
       - name: run the ${{matrix.test_cmd}} tests and generate coverage
         run: |
+          mkdir test-reports
           if [ "${{matrix.test_cmd}}" = "test_quick_coverage" ]; then
             ant "${{matrix.test_cmd}}"
           else

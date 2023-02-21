@@ -117,15 +117,13 @@ ext {
     clientJarFile = "WorkspaceClient.jar"
     serviceJarFile = "WorkspaceService.jar"
     warFile = "WorkspaceService.war"
-    warXml = "web.xml"
+    warXml = "war/web.xml"
     // directories
     src = "src"
     dist = "dist"
     jarDir = "../jars/lib/jars"
     downloadDir = "$buildDir/download"
-    coverageDir = "$buildDir/coverage"
     tempunpack = "$buildDir/tmp/unpackedjars"
-    warDir = "war"
     // other config
     jackson_version = "2.9.9"
     testConfig = "test.cfg"
@@ -169,9 +167,9 @@ task downloadJars {
         ]
         jars.each { jar ->
             def jarName = jar.split('/')[-1]
-            def file = file("${downloadDir}/${jarName}.jar")
+            def file = file("$downloadDir/${jarName}.jar")
             if (!file.exists()) {
-                ant.get(src: "${url}${jar}.jar", dest: "${downloadDir}/${jarName}.jar")
+                ant.get(src: "${url}${jar}.jar", dest: "$downloadDir/${jarName}.jar")
             }
         }
     }
@@ -210,7 +208,7 @@ dependencies {
     // }
     // implementation "software.amazon.awssdk:url-connection-client:2.17.214"
 
-    // // testImplementation files("${jarDir}/jna/jna-3.4.0.jar")
+    // // testImplementation files("$jarDir/jna/jna-3.4.0.jar")
     // implementation 'org.syslog4j:syslog4j:0.9.46'
 
     // // ### Test ###
@@ -291,10 +289,6 @@ dependencies {
     testImplementation files("$jarDir/objenesis/objenesis-2.6.jar")
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir src
 
 // java.destinationDirectory — DirectoryProperty
 // Default value: $buildDir/classes/java/$name, e.g. build/classes/java/main
@@ -311,33 +305,17 @@ sourceSets {
 // The directory to generate the resources of this source set into.
 
 
+sourceSets {
+    main {
+        java {
+            srcDir src
             exclude "**/test/**"
         }
-        // resources {
-        //     srcDir src
-        //     include "**/*.properties"
-        //     include "**/*.cfg"
-        //     include "**/*.spec"
-        //     include "**/*.instance.*"
-        //     include "**/instance.*"
-        //     include "**/*.instance"
-        //     include "**/*.html"
-        //     include "**/*.css"
-        //     include "**/*.gif"
-        //     include "**/*.js"
-        //     include "**/*.png"
-        //     include "**/*.txt"
-        //     include "**/*.weirdsuffix"
-        // }
     }
     test {
         java {
             srcDir src
-            // include "**/test/**"
-            // exclude "*Tester.java"
         }
-        // compileClasspath += main.output + test.output
-        // runtimeClasspath += main.output + test.output
         resources {
             srcDir src
             include "**/*.properties"
@@ -384,7 +362,7 @@ task buildJars {
 }
 
 task unzipJar(type: Copy, dependsOn: [downloadJars]) {
-    from zipTree("${downloadDir}/kbase-common-0.1.1.jar")
+    from zipTree("$downloadDir/kbase-common-0.1.1.jar")
     into "$tempunpack"
 }
 
@@ -441,7 +419,7 @@ tasks.war {
     destinationDirectory = file("$dist")
 
     // location of the web.xml file
-    webXml = file("${warDir}/${warXml}")
+    webXml = file("$warXml")
 
     duplicatesStrategy 'exclude'
 
@@ -481,6 +459,15 @@ tasks.withType(Test) {
     }
 }
 
+task testMongo(type: Test) {
+    description = "run all tests marked as Mongo tests"
+    systemProperty "test.cfg", testConfig
+    options {
+        includeCategories "us.kbase.common.test.MongoTests"
+        excludeCategories "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
+    }
+}
+
 task testProvenance(type: Test) {
     description = "run all tests marked as Provenance tests"
     systemProperty "test.cfg", testConfig
@@ -491,24 +478,8 @@ task testProvenance(type: Test) {
     }
 }
 
-task testMongo(type: Test) {
-    description = "run all tests marked as Mongo tests"
-    systemProperty "test.cfg", testConfig
-    options {
-        includeCategories "us.kbase.common.test.MongoTests"
-        excludeCategories "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
-    }
-    testLogging {
-        events "passed", "skipped", "failed"
-        exceptionFormat "short"
-        showStandardStreams = true
-        showExceptions = true
-        showCauses = true
-    }
-}
-
 task testQuick(type: Test) {
-    description = "run the non-Mongo, non-long tests"
+    description = "run the non-Mongo, non-slow tests"
     systemProperty "test.cfg", testConfig
     options {
         excludeCategories "us.kbase.common.test.MongoTests", "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
@@ -516,7 +487,7 @@ task testQuick(type: Test) {
 }
 
 task testSlow(type: Test) {
-    description = "run the non-Mongo, non-long tests"
+    description = "run the slow tests"
     systemProperty "test.cfg", testConfig
     maxHeapSize = "3G"
     options {
@@ -526,7 +497,7 @@ task testSlow(type: Test) {
 }
 
 task noLongTests(type: Test) {
-    description = "run all tests except the long tests"
+    description = "run all tests except the slow tests"
     systemProperty "test.cfg", testConfig
     // forkEvery 1
     options {
@@ -541,7 +512,7 @@ task noLongTests(type: Test) {
     }
 }
 
-// by default, the output from these tasks is saved to
+// by default, the output from coverage tasks is saved to
 // build/reports/jacoco/<testName>
 tasks.withType(JacocoReport) {
     reports {
@@ -552,39 +523,22 @@ tasks.withType(JacocoReport) {
     sourceSets sourceSets.main
 }
 
-task coverageProvenance(type: JacocoReport, dependsOn: testProvenance) {
-    group = "Reporting"
-    description = "Generate Jacoco code coverage report for Provenance tests"
-    executionData(testProvenance)
-    // reports {
-    //     html.required = true
-    //     xml.required = true
-    // }
-    // sourceSets sourceSets.main
-}
-
-
 task coverageMongo(type: JacocoReport, dependsOn: testMongo) {
     group = "Reporting"
     description = "Generate Jacoco code coverage report for Mongo tests"
     executionData(testMongo)
-    // reports {
-    //     html.required = true
-    //     xml.required = true
-    // }
-    // sourceSets sourceSets.main
+}
+
+task coverageProvenance(type: JacocoReport, dependsOn: testProvenance) {
+    group = "Reporting"
+    description = "Generate Jacoco code coverage report for Provenance tests"
+    executionData(testProvenance)
 }
 
 task coverageQuick(type: JacocoReport, dependsOn: testQuick) {
     group = "Reporting"
-    description = "Generate Jacoco code coverage report for quick tests"
+    description = "Generate Jacoco code coverage report for non-Mongo, non-slow tests"
     executionData(testQuick)
-    // reports {
-    //     html.required = true
-    //     xml.required = true
-    //     csv.required = true
-    // }
-    // sourceSets sourceSets.main
 }
 
 task coverageSlow(type: JacocoReport, dependsOn: testSlow) {
@@ -595,15 +549,9 @@ task coverageSlow(type: JacocoReport, dependsOn: testSlow) {
 
 task coverageNoLongTests(type: JacocoReport, dependsOn: noLongTests) {
     group = "Reporting"
-    description = "Generate code coverage reports for the tests"
+    description = "Generate code coverage reports for all tests except the slow tests"
     executionData(noLongTests)
-    // reports {
-    //     html.required = true
-    //     csv.required = true
-    //     xml.required = true
-    // }
 }
-
 
 task combineCoverage(type: JacocoReport) {
     group = "Reporting"
@@ -623,7 +571,7 @@ task createScript {
 
     def runtimeClasspath = configurations.runtimeDeps.files.join(":")
     file("update_workspace_database_schema").write("#!/bin/sh\n" +
-            "java -cp ${project.rootDir.absolutePath}/${dist}/${serviceJarFile}:${runtimeClasspath} us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
+            "java -cp ${project.rootDir.absolutePath}/$dist/$serviceJarFile:$runtimeClasspath us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
     file("update_workspace_database_schema").setExecutable(true)
     // always run the script
     outputs.upToDateWhen { false }
