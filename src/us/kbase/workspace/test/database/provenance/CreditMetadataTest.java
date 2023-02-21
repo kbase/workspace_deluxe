@@ -4,8 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import static us.kbase.common.test.TestCommon.opt;
-
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -18,6 +16,9 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Collections;
 import java.util.Optional;
+
+import static us.kbase.common.test.TestCommon.opt;
+import static us.kbase.common.test.TestCommon.ES;
 
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_PID_LIST;
@@ -254,8 +255,8 @@ public class CreditMetadataTest {
 			final ResourceType rt,
 			final List<Contributor> contributors,
 			final List<Title> titles,
-			final String license,
-			final String version,
+			final Optional<String> license,
+			final Optional<String> version,
 			final List<String> comments,
 			final List<EventDate> dates,
 			final List<FundingReference> funding,
@@ -275,8 +276,8 @@ public class CreditMetadataTest {
 				is(relatedIdentifiers));
 		assertThat(INCORRECT_TITLES, cm.getTitles(),
 				is(titles));
-		assertThat(INCORRECT_LICENSE, cm.getLicense(), is(Optional.ofNullable(license)));
-		assertThat(INCORRECT_VERSION, cm.getVersion(), is(Optional.ofNullable(version)));
+		assertThat(INCORRECT_LICENSE, cm.getLicense(), is(license));
+		assertThat(INCORRECT_VERSION, cm.getVersion(), is(version));
 	}
 
 	private void assertCreditMetadataFields(
@@ -285,8 +286,8 @@ public class CreditMetadataTest {
 			final ResourceType rt,
 			final List<Contributor> contributors,
 			final List<Title> titles,
-			final String license,
-			final String version) {
+			final Optional<String> license,
+			final Optional<String> version) {
 		assertCreditMetadataFields(cm, identifier, rt, contributors, titles,
 				license, version, ELS, ELD, ELF, ELRI);
 	}
@@ -301,7 +302,7 @@ public class CreditMetadataTest {
 						.withVersion(VERSION_STRING)
 						.build();
 				assertCreditMetadataFields(cm, entry.getValue(), rt,
-						CONTRIBUTOR_LIST, TITLE_LIST, null, VERSION_STRING);
+						CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
 			}
 		}
 	}
@@ -317,7 +318,7 @@ public class CreditMetadataTest {
 						.build();
 				assertCreditMetadataFields(cm, entry.getValue(),
 						rtes.getValue(), CONTRIBUTOR_LIST, TITLE_LIST,
-						null, VERSION_STRING);
+						ES, opt(VERSION_STRING));
 			}
 		}
 	}
@@ -333,7 +334,7 @@ public class CreditMetadataTest {
 				.build();
 
 		assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, null, VERSION_STRING,
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING),
 				COMMENTS_LIST, ELD, ELF, ELRI);
 	}
 
@@ -347,7 +348,7 @@ public class CreditMetadataTest {
 					.withDates(DATE_LIST)
 					.build();
 			assertCreditMetadataFields(cm2, IDENTIFIER_STRING, RESOURCE_TYPE,
-					CONTRIBUTOR_LIST, TITLE_LIST, licenseURL, null,
+					CONTRIBUTOR_LIST, TITLE_LIST, opt(licenseURL), ES,
 					ELS, DATE_LIST, ELF, ELRI);
 		}
 
@@ -362,7 +363,7 @@ public class CreditMetadataTest {
 
 			assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
 					CONTRIBUTOR_LIST, TITLE_LIST,
-					entry.getValue(), VERSION_STRING);
+					opt(entry.getValue()), opt(VERSION_STRING));
 		}
 	}
 
@@ -379,7 +380,7 @@ public class CreditMetadataTest {
 				.withRelatedIdentifiers(ELRI)
 				.build();
 		assertCreditMetadataFields(cm1, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, null, VERSION_STRING);
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
 
 		// list of nulls
 		final CreditMetadata cm2 = CreditMetadata
@@ -393,7 +394,7 @@ public class CreditMetadataTest {
 						Arrays.asList(null, null, null, null, null))
 				.build();
 		assertCreditMetadataFields(cm2, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, null, VERSION_STRING);
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
 
 		// plain nulls
 		final CreditMetadata cm3 = CreditMetadata
@@ -406,7 +407,7 @@ public class CreditMetadataTest {
 				.withRelatedIdentifiers(null)
 				.build();
 		assertCreditMetadataFields(cm3, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, null, VERSION_STRING);
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
 	}
 
 	@Test
@@ -420,7 +421,7 @@ public class CreditMetadataTest {
 					.withDates(DATE_LIST)
 					.build();
 			assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-					CONTRIBUTOR_LIST, TITLE_LIST, null, null,
+					CONTRIBUTOR_LIST, TITLE_LIST, ES, ES,
 					ELS, DATE_LIST, ELF, ELRI);
 		}
 	}
@@ -439,7 +440,8 @@ public class CreditMetadataTest {
 					.withRelatedIdentifiers(RELATED_ID_LIST)
 					.build();
 			assertCreditMetadataFields(cm, entry.getValue(), RESOURCE_TYPE,
-					CONTRIBUTOR_LIST, TITLE_LIST, LICENSE_STRING, VERSION_STRING,
+					CONTRIBUTOR_LIST, TITLE_LIST,
+					opt(LICENSE_STRING), opt(VERSION_STRING),
 					COMMENTS_LIST, DATE_LIST, FUNDING_LIST,
 					RELATED_ID_LIST);
 		}
@@ -458,7 +460,7 @@ public class CreditMetadataTest {
 					.withDates(DATE_LIST)
 					.build();
 			assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-					CONTRIBUTOR_LIST, TITLE_LIST, null, null,
+					CONTRIBUTOR_LIST, TITLE_LIST, ES, ES,
 					ELS, DATE_LIST, ELF, ELRI);
 		}
 	}
@@ -477,7 +479,7 @@ public class CreditMetadataTest {
 				.withVersion(VERSION_STRING_UNTRIMMED)
 				.build();
 		assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, null, VERSION_STRING);
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
 	}
 
 	@Test
@@ -493,7 +495,7 @@ public class CreditMetadataTest {
 				.withRelatedIdentifiers(RELATED_ID_LIST_DUPES_NULLS)
 				.build();
 				assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, null, null,
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, ES,
 				COMMENTS_LIST, DATE_LIST, FUNDING_LIST,
 				RELATED_ID_LIST);
 	}
@@ -504,15 +506,13 @@ public class CreditMetadataTest {
 		final List<Contributor> contributorList = new ArrayList<>(Arrays.asList(C1, C2));
 		final CreditMetadata cm = CreditMetadata
 				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
-						CONTRIBUTOR_LIST, TITLE_LIST)
+						contributorList, TITLE_LIST)
 				.withDates(DATE_LIST)
 				.build();
 
 		// mutating the input list should not affect the contributor list
 		contributorList.add(C3);
-		assertThat("no mutation", contributorList,
-				is(Arrays.asList(C1, C2, C3)));
-
+		assertThat("no mutation", contributorList, is(Arrays.asList(C1, C2, C3)));
 		assertThat(INCORRECT_CONTRIBUTORS, cm.getContributors(), is(CONTRIBUTOR_LIST));
 
 		try {
@@ -563,13 +563,12 @@ public class CreditMetadataTest {
 		final CreditMetadata cm = CreditMetadata
 				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
-				.withDates(DATE_LIST)
+				.withDates(dateList)
 				.build();
 
 		// mutating the input list should not affect the date list
 		dateList.add(ED3);
-		assertThat("no mutation", dateList,
-				is(Arrays.asList(ED1, ED2, ED3)));
+		assertThat("no mutation", dateList, is(Arrays.asList(ED1, ED2, ED3)));
 		assertThat(INCORRECT_DATES, cm.getDates(), is(DATE_LIST));
 
 		try {
@@ -593,8 +592,7 @@ public class CreditMetadataTest {
 
 		// mutating the input list should not affect the funding list
 		fundingList.add(F2);
-		assertThat("no mutation", fundingList,
-				is(Arrays.asList(F1, F2)));
+		assertThat("no mutation", fundingList, is(Arrays.asList(F1, F2)));
 		assertThat(INCORRECT_FUNDING, cm.getFunding(), is(FUNDING_LIST));
 
 		try {
@@ -618,7 +616,6 @@ public class CreditMetadataTest {
 		// mutating the input list should not affect the related ID list
 		pidList.add(PID3);
 		assertThat("no mutation", pidList, is(Arrays.asList(PID1, PID2, PID3)));
-
 		assertThat(INCORRECT_RELATED_IDS, cm.getRelatedIdentifiers(), is(RELATED_ID_LIST));
 
 		try {

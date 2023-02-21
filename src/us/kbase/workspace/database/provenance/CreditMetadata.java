@@ -275,7 +275,7 @@ public class CreditMetadata {
 	// Regular expression used to detect URL-like strings; detects
 	// a sequence of letters at the start of a line, followed by one or more
 	// colons and one or more slashes.
-	static final Pattern pattern = Pattern.compile("^[a-zA-Z]+:+/+");
+	private static final Pattern pattern = Pattern.compile("^[a-zA-Z]+:+/+");
 
 	/** A builder for {@link CreditMetadata}. */
 	public static class Builder {
@@ -438,7 +438,6 @@ public class CreditMetadata {
 			// valid. For these purposes, a license string that starts with a series
 			// of letters followed by one or more colons and one or more slashes is
 			// considered URL-like.
-			final Pattern pattern = Pattern.compile("^[a-zA-Z]+:+/+");
 			if (license != null) {
 				Matcher matcher = pattern.matcher(license);
 				if (matcher.find()){
