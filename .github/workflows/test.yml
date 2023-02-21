@@ -44,18 +44,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - java: '11'
-            mongo: 'mongodb-linux-x86_64-3.6.23'
-            minio: '2019-05-23T00-29-34Z'
-            wired_tiger: 'true'
-            ant_test: 'test_quick_coverage'
-          # the current production setup
-          - java: '11'
-            mongo: 'mongodb-linux-x86_64-3.6.13'
-            minio: '2019-05-23T00-29-34Z'
-            wired_tiger: 'false'
-            ant_test: 'test_quick_coverage'
+        mongo: ['3.6.13', '3.6.23']
+        test_cmd: ['test_quick_coverage', 'NoLongTests']
+
     steps:
       - uses: actions/checkout@v3
 
@@ -63,7 +54,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: ${{matrix.java}}
+          java-version: 11
 
       - name: Set up Python 3.7  # sample service is on 3.7, handle service is on sdkbase2.latest
         uses: actions/setup-python@v3
@@ -74,6 +65,19 @@ jobs:
         shell: bash
         run: |
           export HOMEDIR=`pwd`
+          export MINIO_VER='2019-05-23T00-29-34Z'
+          export MONGO_VER='mongodb-linux-x86_64-${{matrix.mongo}}'
+          # 3.6.13 has wired_tiger set to 'false', 3.6.23 has wired_tiger 'true'
+          if [ "${{matrix.mongo}}" = "3.6.13" ]; then
+            export WIRED_TIGER="false"
+          else
+            export WIRED_TIGER="true"
+          fi
+          export ARANGODB_VER=3.9.1
+          export ARANGODB_V=39
+          export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
+          export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
+          export SAMPLE_COMMIT=6813fb148e95db2b11db6eea04f4d1d45cbb7119
 
           # set up python dependencies
           cd python_dependencies
@@ -89,16 +93,12 @@ jobs:
           export JARSDIR=$(pwd)/jars/lib/jars/
 
           # set up arango
-          export ARANGODB_VER=3.9.1
-          export ARANGODB_V=39
           curl -O https://download.arangodb.com/arangodb$ARANGODB_V/Community/Linux/arangodb3-linux-$ARANGODB_VER.tar.gz
           tar -xf arangodb3-linux-$ARANGODB_VER.tar.gz
           export ARANGO_EXE=$(pwd)/arangodb3-linux-$ARANGODB_VER/bin/arangod
           export ARANGO_JS=$(pwd)/arangodb3-linux-$ARANGODB_VER/usr/share/arangodb3/js/
 
            # set up handle service
-          export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
-          export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
           git clone https://github.com/kbase/handle_service2.git
           cd handle_service2/
           git checkout $HS_COMMIT
@@ -112,7 +112,6 @@ jobs:
           cd ../..
 
           # set up sample service
-          export SAMPLE_COMMIT=6813fb148e95db2b11db6eea04f4d1d45cbb7119
           git clone https://github.com/kbase/sample_service.git
           cd sample_service
           git checkout $SAMPLE_COMMIT
@@ -126,12 +125,12 @@ jobs:
           export BLOBEXE=$(pwd)/blobstore
 
           # set up mongo
-          wget -q http://fastdl.mongodb.org/linux/${{matrix.mongo}}.tgz
-          tar xfz ${{matrix.mongo}}.tgz
-          export MONGOD=`pwd`/${{matrix.mongo}}/bin/mongod
+          wget -q http://fastdl.mongodb.org/linux/$MONGO_VER.tgz
+          tar xfz $MONGO_VER.tgz
+          export MONGOD=`pwd`/$MONGO_VER/bin/mongod
 
           # set up minio
-          wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
+          wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.$MINIO_VER -O minio
           chmod a+x minio
           export MINIOD=`pwd`/minio
 
@@ -141,7 +140,7 @@ jobs:
           sed -i "s#^test.temp.dir =.*#test.temp.dir=temp_test_dir#" test.cfg
           sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
           sed -i "s#^test.minio.exe.*#test.minio.exe=$MINIOD#" test.cfg
-          sed -i "s#^test.mongo.useWiredTiger.*#test.mongo.useWiredTiger=${{matrix.wired_tiger}}#" test.cfg
+          sed -i "s#^test.mongo.useWiredTiger.*#test.mongo.useWiredTiger=$WIRED_TIGER#" test.cfg
           sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
           sed -i "s#^test.blobstore.exe.*#test.blobstore.exe=$BLOBEXE#" test.cfg
           sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
@@ -150,13 +149,33 @@ jobs:
           sed -i "s#^test.arango.js.*#test.arango.js=$ARANGO_JS#" test.cfg
           cat test.cfg
 
-      - name: Run tests
-        shell: bash
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 7.6
+
+      - name: build the war file (requires compileJava, javadoc)
+        run: gradle war --info
+
+      - name: run the ${{matrix.test_cmd}} tests and generate coverage
         run: |
-          ant javadoc
-          ant ${{matrix.ant_test}}
+          mkdir test-reports
+          if [ "${{matrix.test_cmd}}" = "test_quick_coverage" ]; then
+            ant "${{matrix.test_cmd}}"
+          else
+            gradle "coverage${{matrix.test_cmd}}" --info
+          fi
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
+        if: ${{ matrix.test_cmd }} == 'test_quick_coverage'
         with:
           fail_ci_if_error: true
+
+      - name: upload jacoco report
+        uses: actions/upload-artifact@v3
+        if: ${{ matrix.test_cmd }} != 'test_quick_coverage'
+        with:
+          name: coverage${{matrix.test_cmd}}-${{matrix.mongo}}.exec
+          path: build/
+          if-no-files-found: warn
