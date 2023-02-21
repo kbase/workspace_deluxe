@@ -52,12 +52,12 @@ import us.kbase.workspace.database.mongo.ObjectInfoUtils;
 import us.kbase.workspace.database.mongo.ObjectLister;
 
 public class ObjectListerTest {
-	
+
 	private static final String TYPE_3_2 = "Mod.Type-3.2";
 	private static final String SHTTY_MD5 = "thisshouldbeaMD5";
 	private static final ResolvedWorkspaceID WSID_1 = new ResolvedWorkspaceID(
 			5, "foo", false, false);
-	
+
 	private static Document makeDBObject(final int id) {
 		return new Document()
 				.append("ver", 7)
@@ -71,7 +71,7 @@ public class ObjectListerTest {
 				.append("id", id)
 				.append("ws", 5);
 	}
-	
+
 	private static Map<String, Object> makeMapObject(final int id) {
 		return MapBuilder.<String,Object>newHashMap()
 				.with("ver", 7)
@@ -86,13 +86,13 @@ public class ObjectListerTest {
 				.with("ws", 5)
 				.build();
 	}
-	
+
 	private static ObjectInformation makeObjInfo(final int id) {
 		return new ObjectInformation(
 				id, "thing", TYPE_3_2, Date.from(inst(10000)), 7,
 				new WorkspaceUser("someguy"), WSID_1, SHTTY_MD5, 3L, null);
 	}
-	
+
 	// start is inclusive, end is exclusive
 	private static Document[] makeDBObjs(final int start, final int end) {
 		return IntStream.range(start, end).mapToObj(i -> makeDBObject(i)).toArray(Document[]::new);
@@ -101,9 +101,9 @@ public class ObjectListerTest {
 	private static final Map<String, Object> OBJ_MAP_1 = makeMapObject(24);
 	private static final Document OBJ_DB_1 = makeDBObject(24);
 	private static final ObjectInformation OBJ_INFO_1 = makeObjInfo(24);
-	
+
 	private final AllUsers AU = new AllUsers('*');
-	
+
 	private class Mocks {
 		public final MongoCollection<Document> col;
 		public final ObjectInfoUtils infoutils;
@@ -125,15 +125,15 @@ public class ObjectListerTest {
 			this.mcur = mcur;
 		}
 	}
-	
+
 	@Test
 	public void constructFail() throws Exception {
 		final Mocks m = new Mocks();
-		
+
 		failConstruct(null, m.infoutils, new NullPointerException("verCol cannot be null"));
 		failConstruct(m.col, null, new NullPointerException("infoUtils cannot be null"));
 	}
-	
+
 	private void failConstruct(
 			final MongoCollection<Document> col,
 			final ObjectInfoUtils oiu,
@@ -145,32 +145,32 @@ public class ObjectListerTest {
 			assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	private Document getProjection() {
 		return getProjection(false);
 	}
-	
+
 	private Document getProjection(final boolean includeMeta) {
 		final Document p = new Document();
 		Stream.of("ver", "tyname", "tymaj", "tymin", "savedate", "savedby", "chksum", "size",
 				"id", "ws")
 				.forEach(s -> p.append(s, 1));
-		
+
 		if (includeMeta) {
 			p.append("meta", 1);
 		}
 		return p;
 	}
-	
+
 	@Test
 	public void filterFailNull() throws Exception {
 		filterFail(new Mocks().lister, null, new NullPointerException("params cannot be null"));
 	}
-	
+
 	@Test
 	public void filterFailException() throws Exception {
 		final Mocks m = new Mocks();
-		
+
 		final ResolvedWorkspaceID wsid = WSID_1;
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5)))
@@ -178,17 +178,17 @@ public class ObjectListerTest {
 				.resolve(PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 						.withWorkspace(wsid, Permission.READ, Permission.NONE)
 						.build());
-		
-		
+
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)));
-		
+
 		when(m.col.find(expectedQuery)).thenThrow(new MongoException("ah creahp"));
-		
+
 		filterFail(m.lister, p, new WorkspaceCommunicationException(
 				"There was a problem communicating with the database"));
 	}
-	
+
 	private void filterFail(
 			final ObjectLister lister,
 			final ResolvedListObjectParameters params,
@@ -200,17 +200,17 @@ public class ObjectListerTest {
 			assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	@Test
 	public void filterWithEmptyPermissionSet() throws Exception {
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(1)))
 				.build()
 				.resolve(PermissionSet.getBuilder(new WorkspaceUser("foo"), AU).build());
-		
+
 		assertThat("incorrect objs", new Mocks().lister.filter(p), is(Collections.emptyList()));
 	}
-	
+
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
@@ -218,7 +218,7 @@ public class ObjectListerTest {
 			throws Exception {
 		completeSimpleFilterTest(pset, p, expectedQuery, false);
 	}
-	
+
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
@@ -227,7 +227,7 @@ public class ObjectListerTest {
 			throws Exception {
 		completeSimpleFilterTest(pset, p, expectedQuery, basicSort, false);
 	}
-	
+
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
@@ -241,7 +241,7 @@ public class ObjectListerTest {
 		}
 		completeSimpleFilterTest(pset, p, expectedQuery, sort, boolopts);
 	}
-	
+
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
@@ -255,7 +255,7 @@ public class ObjectListerTest {
 		}
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs);
 	}
-	
+
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
@@ -269,7 +269,7 @@ public class ObjectListerTest {
 		}
 		completeSimpleFilterTest(pset, p, expectedQuery, sort, boolopts);
 	}
-	
+
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
@@ -281,7 +281,7 @@ public class ObjectListerTest {
 		completeSimpleFilterTest(
 				pset, p, expectedQuery, expectedSort, boolopts, new Document());
 	}
-	
+
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
@@ -297,12 +297,12 @@ public class ObjectListerTest {
 		when(m.cur.iterator()).thenReturn(m.mcur);
 		when(m.cur.hint(expectedSort)).thenReturn(m.cur); // mock fluent interface
 		when(m.mcur.hasNext()).thenReturn(true, true, false);
-		
+
 		// if include meta is true, all these object representations should include metadata.
 		// however, the code doesn't actually know what's going on beyond setting up the
 		// mongo projection, so not really worth the bother.
 		when(m.mcur.next()).thenReturn(OBJ_DB_1);
-		
+
 		when(m.infoutils.generateObjectInfo(
 				pset,
 				Arrays.asList(OBJ_MAP_1),
@@ -312,11 +312,11 @@ public class ObjectListerTest {
 				boolopts.get(4),
 				boolopts.get(5)))
 				.thenReturn(ImmutableMap.of(OBJ_MAP_1, OBJ_INFO_1));
-		
+
 		final List<ObjectInformation> ret = m.lister.filter(p);
-		
+
 		assertThat("incorrect objects", ret, is(Arrays.asList(OBJ_INFO_1)));
-		
+
 		if (!startFrom.keySet().isEmpty()) {
 			verify(m.cur).min(startFrom);
 		} else {
@@ -325,11 +325,11 @@ public class ObjectListerTest {
 		}
 		verify(m.cur).sort(expectedSort);
 	}
-	
+
 	@Test
 	public void filterWithNoResults() throws Exception {
 		final Mocks m = new Mocks();
-		
+
 		final ResolvedWorkspaceID wsid = WSID_1;
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5)))
@@ -337,22 +337,22 @@ public class ObjectListerTest {
 				.resolve(PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 						.withWorkspace(wsid, Permission.READ, Permission.NONE)
 						.build());
-		
-		
+
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)));
-		
+
 		when(m.col.find(expectedQuery)).thenReturn(m.cur);
 		when(m.cur.projection(getProjection())).thenReturn(m.cur);
 		when(m.cur.iterator()).thenReturn(m.mcur);
 		when(m.mcur.hasNext()).thenReturn(false);
-		
+
 		final List<ObjectInformation> ret = m.lister.filter(p);
 		assertThat("incorrect objects", ret, is(Collections.emptyList()));
-		
+
 		verify(m.cur).sort(new Document("ws", 1).append("id",  1).append("ver", -1));
 	}
-	
+
 	@Test
 	public void filterMinimal() throws Exception {
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
@@ -361,13 +361,13 @@ public class ObjectListerTest {
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5))).build()
 				.resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)));
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, true);
 	}
-	
+
 	@Test
 	public void filterWithAllTheFixins() throws Exception {
 		// jam everything possible into the params other than startFrom and limit
@@ -393,7 +393,7 @@ public class ObjectListerTest {
 				.withAsAdmin(true)
 				.build()
 				.resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(2L, 5L)))
 				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
@@ -404,10 +404,10 @@ public class ObjectListerTest {
 						new Document("$gt", Date.from(inst(40000)))
 								.append("$lt", Date.from(inst(80000))))
 				.append("id", new Document("$gte", 5L).append("$lte", 78L));
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 	}
-	
+
 	@Test
 	public void filterWithStartFrom() throws Exception {
 		// test filtering starting from a reference
@@ -417,36 +417,36 @@ public class ObjectListerTest {
 				.build();
 		final Builder lob = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5)));
-		
+
 		// case 1: no start from, no type
 		ResolvedListObjectParameters p = lob.build().resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)));
 		Document expectedSort = new Document("ws", 1).append("id", 1).append("ver", -1);
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, new Document());
-		
+
 		// case 2: start from, wsid only
 		p = lob.withStartFrom(RefLimit.build(3L, null, null)).build().resolve(pset);
 		Document expectedMin = new Document("ws", 3L).append("id", 1L)
 				.append("ver", Integer.MAX_VALUE);
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
-		
+
 		// case 3: start from, wsid & objid
 		p = lob.withStartFrom(RefLimit.build(24L, 108L, null)).build().resolve(pset);
 		expectedMin = new Document("ws", 24L).append("id", 108L)
 				.append("ver", Integer.MAX_VALUE);
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
-		
+
 		// case 4: start from fully specified
 		p = lob.withStartFrom(RefLimit.build(24L, 108L, 7)).build().resolve(pset);
 		expectedMin = new Document("ws", 24L).append("id", 108L).append("ver", 7);
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
-		
+
 		// case 5: start from wsid only and a full type
 		p = lob.withStartFrom(RefLimit.build(32L, null, null))
 				.withType(TypeDefId.fromTypeString(TYPE_3_2)).build().resolve(pset);
@@ -455,9 +455,9 @@ public class ObjectListerTest {
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		expectedMin = new Document("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
 				.append("ws", 32L).append("id", 1L).append("ver", Integer.MAX_VALUE);
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
-		
+
 		// case 6: start from wsid & objid and a major version type
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, null))
 				.withType(TypeDefId.fromTypeString("Mod.Type-3")).build().resolve(pset);
@@ -466,9 +466,9 @@ public class ObjectListerTest {
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		expectedMin = new Document("tyname", "Mod.Type").append("tymaj", 3)
 				.append("ws", 1L).append("id", 1L).append("ver", Integer.MAX_VALUE);
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
-		
+
 		// case 7: start from fully specified and a name only type
 		p = lob.withStartFrom(RefLimit.build(64L, 128L, 256))
 				.withType(TypeDefId.fromTypeString("Mod.Type")).build().resolve(pset);
@@ -477,15 +477,15 @@ public class ObjectListerTest {
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		expectedMin = new Document("tyname", "Mod.Type")
 				.append("ws", 64L).append("id", 128L).append("ver", 256);
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
-		
+
 	}
-	
+
 	@Test
 	public void filterWithLeftSide() throws Exception {
 		// Filter with the greater than filters - after and min object id
-		
+
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
@@ -495,20 +495,20 @@ public class ObjectListerTest {
 				.withMinObjectID(5)
 				.build()
 				.resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("savedate",
 						new Document("$gt", Date.from(inst(40000))))
 				.append("id", new Document("$gte", 5L));
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery);
 	}
-	
+
 	@Test
 	public void filterWithRightSide() throws Exception {
 		// Filter with the less than filters - before and max object id
-		
+
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
@@ -518,13 +518,13 @@ public class ObjectListerTest {
 				.withMaxObjectID(70)
 				.build()
 				.resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("savedate",
 						new Document("$lt", Date.from(inst(80000))))
 				.append("id", new Document("$lte", 70L));
-		
+
 		completeSimpleFilterTest(pset, p, expectedQuery);
 	}
 
@@ -532,11 +532,11 @@ public class ObjectListerTest {
 	public void basicSortSpecification() throws Exception {
 		// test the various cases that affect a standard sort specification being applied to the
 		// query. Does not include type based sorts.
-		
+
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
-		
+
 		final Builder lop = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5)))
 				.withMinObjectID(7)
@@ -548,25 +548,25 @@ public class ObjectListerTest {
 				.withShowOnlyDeleted(true)
 				.withIncludeMetaData(true)
 				.withAsAdmin(true);
-		
+
 		// case 1: basic sort is applied, unlike the following cases
 		ResolvedListObjectParameters p = lop.build().resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("id", new Document("$gte", 7L).append("$lte", 70L));
 		completeSimpleFilterTest(pset, p, expectedQuery, true, true);
-				
+
 		// case 2: after
 		p = lop.withAfter(inst(50000)).build().resolve(pset);
 		expectedQuery.put("savedate", new Document("$gt", Date.from(inst(50000))));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
-		
+
 		// case 3: before
 		p = lop.withAfter(null).withBefore(inst(90000)).build().resolve(pset);
 		expectedQuery.put("savedate", new Document("$lt", Date.from(inst(90000))));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
-		
+
 		// case 4: meta
 		p = lop.withBefore(null).withMetadata(new WorkspaceUserMetadata(ImmutableMap.of("x", "y")))
 				.build().resolve(pset);
@@ -574,7 +574,7 @@ public class ObjectListerTest {
 		expectedQuery.put("$and", Arrays.asList(new Document("meta",
 				new Document("k", "x").append("v", "y"))));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
-		
+
 		// case 5: savers
 		p = lop.withMetadata(null).withSavers(Arrays.asList(new WorkspaceUser("z")))
 				.build().resolve(pset);
@@ -582,16 +582,16 @@ public class ObjectListerTest {
 		expectedQuery.put("savedby", new Document("$in", Arrays.asList("z")));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 	}
-	
+
 	@Test
 	public void typeSortSpecification() throws Exception {
 		// test the various cases that affect a type sort specification being applied to the
 		// query. Close to the test above but trying to integrate turned into a mess.
-		
+
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
-		
+
 		final Builder lop = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5)))
 				.withMinObjectID(7)
@@ -603,11 +603,11 @@ public class ObjectListerTest {
 				.withShowOnlyDeleted(true)
 				.withIncludeMetaData(true)
 				.withAsAdmin(true);
-		
+
 		// case 1: a type based sort is applied, unlike the following cases
 		ResolvedListObjectParameters p = lop
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3, 2)).build().resolve(pset);
-		
+
 		Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
@@ -616,19 +616,19 @@ public class ObjectListerTest {
 				.append("tymaj", 1).append("tymin", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
-		
+
 		// case 2: after
 		p = lop.withAfter(inst(50000)).build().resolve(pset);
 		expectedQuery.put("savedate", new Document("$gt", Date.from(inst(50000))));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
-		
+
 		// case 3: before
 		p = lop.withAfter(null).withBefore(inst(90000))
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3)).build().resolve(pset);
 		expectedQuery.append("savedate", new Document("$lt", Date.from(inst(90000))))
 				.remove("tymin");
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
-		
+
 		// case 4: meta
 		p = lop.withBefore(null).withMetadata(new WorkspaceUserMetadata(ImmutableMap.of("x", "y")))
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"))).build().resolve(pset);
@@ -638,7 +638,7 @@ public class ObjectListerTest {
 				.remove("savedate");
 		expectedQuery.remove("tymaj");
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
-		
+
 		// case 5: savers
 		p = lop.withMetadata(null).withSavers(Arrays.asList(new WorkspaceUser("z")))
 				.build().resolve(pset);
@@ -646,16 +646,16 @@ public class ObjectListerTest {
 		expectedQuery.put("savedby", new Document("$in", Arrays.asList("z")));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 	}
-	
+
 	@Test
 	public void types() throws Exception {
 		// test the various cases of type strings in the parameters and how that affects
 		// queries and sorting.
-		
+
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
-		
+
 		final Builder lop = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5)))
 				.withMinObjectID(7)
@@ -667,11 +667,11 @@ public class ObjectListerTest {
 				.withShowOnlyDeleted(true)
 				.withIncludeMetaData(true)
 				.withAsAdmin(true);
-		
+
 		// case 1: full type name
 		ResolvedListObjectParameters p = lop
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3, 1)).build().resolve(pset);
-		
+
 		Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 1)
@@ -680,7 +680,7 @@ public class ObjectListerTest {
 				.append("tymaj", 1).append("tymin", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
-		
+
 		// case 2: major version
 		p = lop.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3)).build().resolve(pset);
 		expectedQuery.remove("tymin");
@@ -697,70 +697,70 @@ public class ObjectListerTest {
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
 	}
-	
+
 	@Test
 	public void booleans() throws Exception {
 		// test that the five individual booleans are passed to the object info instance correctly.
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
-		
+
 		final Builder lop = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5)));
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)));
-		
+
 		// note that the metadata boolean is not passed to the object info instance and is
 		// tested elsewhere
-		
+
 		// case 1: hidden
 		ResolvedListObjectParameters p = lop.withShowHidden(true).build().resolve(pset);
 		final BitSet bs = new BitSet(6);
 		bs.set(1); // a fluent interface for bitset would be nice
 		completeSimpleFilterTest(pset, p, expectedQuery, true, bs);
-		
+
 		// case 2: deleted
 		p = lop.withShowHidden(false).withShowDeleted(true).build().resolve(pset);
 		bs.clear();
 		bs.set(2);
 		completeSimpleFilterTest(pset, p, expectedQuery, true, bs);
-		
+
 		// case 3: only deleted
 		p = lop.withShowDeleted(false).withShowOnlyDeleted(true).build().resolve(pset);
 		bs.clear();
 		bs.set(3);
 		completeSimpleFilterTest(pset, p, expectedQuery, true, bs);
-		
+
 		// case 4: all versions
 		p = lop.withShowOnlyDeleted(false).withShowAllVersions(true).build().resolve(pset);
 		bs.clear();
 		bs.set(4);
 		completeSimpleFilterTest(pset, p, expectedQuery, true, bs);
-		
+
 		// case 5: admin
 		p = lop.withShowAllVersions(false).withAsAdmin(true).build().resolve(pset);
 		bs.clear();
 		bs.set(5);
 		completeSimpleFilterTest(pset, p, expectedQuery, true, bs);
 	}
-	
+
 	@Test
 	public void objectsFilteredOutByInfoUtils() throws Exception {
 		// test the case where the info utils instance doesn't return entries for all
 		// the input objects. This can occur when objects are filtered out because they're
 		// hidden, deleted, not the most recent version, etc.
-		
+
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
-		
+
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5))).build().resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)));
-		
+
 		final Mocks m = new Mocks();
 		when(m.col.find(expectedQuery)).thenReturn(m.cur);
 		when(m.cur.projection(getProjection())).thenReturn(m.cur);
@@ -769,7 +769,7 @@ public class ObjectListerTest {
 		when(m.mcur.hasNext()).thenReturn(true, true, true, true, true, false);
 		when(m.mcur.next()).thenReturn(
 				makeDBObject(7), makeDBObject(8), makeDBObject(9), makeDBObject(10));
-		
+
 		when(m.infoutils.generateObjectInfo(
 				pset,
 				Arrays.asList(
@@ -784,15 +784,15 @@ public class ObjectListerTest {
 						makeMapObject(7), makeObjInfo(7),
 						makeMapObject(9), makeObjInfo(9)
 				));
-		
+
 		final List<ObjectInformation> ret = m.lister.filter(p);
-		
+
 		assertThat("incorrect objects", ret, is(Arrays.asList(
 				makeObjInfo(7), makeObjInfo(9), makeObjInfo(10))));
-		
+
 		verify(m.cur).sort(new Document("ws", 1).append("id",  1).append("ver", -1));
 	}
-	
+
 	@Test
 	public void limit1() throws Exception {
 		// test how the limits parameter interacts with the info utils class and output
@@ -800,13 +800,13 @@ public class ObjectListerTest {
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
-		
+
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5))).withLimit(1).build().resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)));
-		
+
 		final Mocks m = new Mocks();
 		when(m.col.find(expectedQuery)).thenReturn(m.cur);
 		when(m.cur.projection(getProjection())).thenReturn(m.cur);
@@ -814,7 +814,7 @@ public class ObjectListerTest {
 
 		when(m.mcur.hasNext()).thenReturn(true);
 		when(m.mcur.next()).thenReturn(makeDBObject(45), makeDBObjs(46, 200));
-		
+
 		when(m.infoutils.generateObjectInfo(
 				pset,
 				IntStream.range(45, 145).mapToObj(i -> makeMapObject(i))
@@ -829,14 +829,14 @@ public class ObjectListerTest {
 						makeMapObject(72), makeObjInfo(72),
 						makeMapObject(76), makeObjInfo(76)
 				));
-		
+
 		final List<ObjectInformation> ret = m.lister.filter(p);
-		
+
 		assertThat("incorrect objects", ret, is(Arrays.asList(makeObjInfo(72))));
-		
+
 		verify(m.cur).sort(new Document("ws", 1).append("id",  1).append("ver", -1));
 	}
-	
+
 	@Test
 	public void limit150() throws Exception {
 		// test how the limits parameter interacts with the info utils class and output
@@ -844,26 +844,26 @@ public class ObjectListerTest {
 		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
 				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
 				.build();
-		
+
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5))).withLimit(150).build().resolve(pset);
-		
+
 		final Document expectedQuery = new Document(
 				"ws", new Document("$in", Arrays.asList(5L)));
-		
+
 		final Mocks m = new Mocks();
-		
+
 		when(m.col.find(expectedQuery)).thenReturn(m.cur);
 		when(m.cur.projection(getProjection())).thenReturn(m.cur);
 		when(m.cur.iterator()).thenReturn(m.mcur);
 		when(m.mcur.hasNext()).thenReturn(true);
 		when(m.mcur.next()).thenReturn(makeDBObject(40), makeDBObjs(41, 500));
-		
+
 		final Map<Map<String, Object>, ObjectInformation> retmap = new HashMap<>();
 		IntStream.range(40, 80).forEach(i -> retmap.put(makeMapObject(i), makeObjInfo(i)));
 		// oh dang, we're going to have to do two passes
 		IntStream.range(90, 190).forEach(i -> retmap.put(makeMapObject(i), makeObjInfo(i)));
-		
+
 		when(m.infoutils.generateObjectInfo(
 				pset,
 				IntStream.range(40, 190).mapToObj(i -> makeMapObject(i))
@@ -874,11 +874,11 @@ public class ObjectListerTest {
 				false,
 				false))
 				.thenReturn(retmap);
-		
+
 		// don't reuse retmap, will screw up the mocks
 		final Map<Map<String, Object>, ObjectInformation> retmap2 = new HashMap<>();
 		IntStream.range(190, 340).forEach(i -> retmap2.put(makeMapObject(i), makeObjInfo(i)));
-		
+
 		when(m.infoutils.generateObjectInfo(
 				pset,
 				IntStream.range(190, 340).mapToObj(i -> makeMapObject(i))
@@ -889,15 +889,15 @@ public class ObjectListerTest {
 				false,
 				false))
 				.thenReturn(retmap2);
-		
+
 		final List<ObjectInformation> ret = m.lister.filter(p);
-		
+
 		final List<ObjectInformation> expected = new LinkedList<>();
 		IntStream.range(40, 80).forEach(i -> expected.add(makeObjInfo(i)));
 		IntStream.range(90, 200).forEach(i -> expected.add(makeObjInfo(i)));
-		
+
 		assertThat("incorrect objects", ret, is(expected));
-		
+
 		verify(m.cur).sort(new Document("ws", 1).append("id",  1).append("ver", -1));
 	}
 }
