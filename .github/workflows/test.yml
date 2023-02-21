@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         mongo: ['mongodb-linux-x86_64-3.6.13', 'mongodb-linux-x86_64-3.6.23']
-        test_cmd: ['ant test_quick_coverage', 'gradle coverageSlow --info', 'gradle coverageMongo --info', 'gradle coverageQuick --info', 'gradle coverageNoLongTests --info']
+        test_cmd: ['test_quick_coverage', 'Slow', 'Mongo', 'Quick', 'NoLongTests']
         wired_tiger: ['true'] #, 'false']
 
     steps:
@@ -65,7 +65,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: 7.6
+          gradle-version: 8.0
 
       - name: build the war file
         run: gradle war --info
@@ -154,14 +154,19 @@ jobs:
           cat test.cfg
 
       - name: run the tests and generate coverage
-        run: ${{matrix.test_cmd}}
+        if: matrix.test_cmd != 'test_quick_coverage'
+        run: gradle coverage${{matrix.test_cmd}} --info
+
+      - name: run the tests and generate coverage, ant version
+        if: matrix.test_cmd == 'test_quick_coverage'
+        run: ant ${{matrix.test_cmd}}
 
       - name: upload jacoco report
         uses: actions/upload-artifact@v3
-        if: matrix.test_cmd != 'ant test_quick_coverage'
+        if: matrix.test_cmd != 'test_quick_coverage'
         with:
           name: ${{matrix.test_cmd}}-${{matrix.mongo}}
-          path: build/
+          path: build/reports/jacoco/
 
       - name: upload test-reports dir
         uses: actions/upload-artifact@v3
@@ -177,7 +182,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: 7.6
+          gradle-version: 8.0
 
       - name: Download artifacts
         uses: actions/download-artifact@v2

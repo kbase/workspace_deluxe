@@ -4,16 +4,104 @@
  * This is a general purpose Gradle build.
  */
 
-// In Gradle, the build task is a lifecycle task that aggregates other tasks that are needed to build your project. When you run the build task, Gradle performs the following actions:
+// The Java plugin adds a number of tasks to your project, as shown below.
 
-// Clean the project: The clean task is executed to remove any build artifacts from previous builds.
-// Build the project: The assemble task is executed, which compiles the source code, runs tests, and packages the application into a distributable format, such as a JAR or WAR file.
-// Run additional checks: The check task is executed to run additional checks, such as code quality analysis or static analysis.
-// Generate documentation: The javadoc and dokka tasks are executed to generate documentation for the project.
-// The build task is a convenient way to build your project and generate all the artifacts that you need for deployment or distribution. It's also commonly used in Continuous Integration (CI) systems as the final step to ensure that the project is buildable and all tests pass before deploying to production.
+// compileJava — JavaCompile
+// Depends on: All tasks which contribute to the compilation classpath, including jar tasks from projects that are on the classpath via project dependencies
 
-// You can customize the build task by configuring the dependencies of the assemble and check tasks, or by adding additional tasks that generate other artifacts or perform additional checks.
+// Compiles production Java source files using the JDK compiler.
 
+// processResources — ProcessResources
+// Copies production resources into the production resources directory.
+
+// classes
+// Depends on: compileJava, processResources
+
+// This is an aggregate task that just depends on other tasks. Other plugins may attach additional compilation tasks to it.
+
+// compileTestJava — JavaCompile
+// Depends on: classes, and all tasks that contribute to the test compilation classpath
+
+// Compiles test Java source files using the JDK compiler.
+
+// processTestResources — Copy
+// Copies test resources into the test resources directory.
+
+// testClasses
+// Depends on: compileTestJava, processTestResources
+
+// This is an aggregate task that just depends on other tasks. Other plugins may attach additional test compilation tasks to it.
+
+// jar — Jar
+// Depends on: classes
+
+// Assembles the production JAR file, based on the classes and resources attached to the main source set.
+
+// javadoc — Javadoc
+// Depends on: classes
+
+// Generates API documentation for the production Java source using Javadoc.
+
+// test — Test
+// Depends on: testClasses, and all tasks which produce the test runtime classpath
+
+// Runs the unit tests using JUnit or TestNG.
+
+// clean — Delete
+// Deletes the project build directory.
+
+// cleanTaskName — Delete
+// Deletes files created by the specified task. For example, cleanJar will delete the JAR file created by the jar task and cleanTest will delete the test results created by the test task.
+// SourceSet Tasks
+
+// For each source set you add to the project, the Java plugin adds the following tasks:
+
+// compileSourceSetJava — JavaCompile
+// Depends on: All tasks which contribute to the source set’s compilation classpath
+
+// Compiles the given source set’s Java source files using the JDK compiler.
+
+// processSourceSetResources — Copy
+// Copies the given source set’s resources into the resources directory.
+
+// sourceSetClasses — Task
+// Depends on: compileSourceSetJava, processSourceSetResources
+
+// Prepares the given source set’s classes and resources for packaging and execution. Some plugins may add additional compilation tasks for the source set.
+
+// Lifecycle Tasks
+
+// The Java plugin attaches some of its tasks to the lifecycle tasks defined by the Base Plugin — which the Java Plugin applies automatically — and it also adds a few other lifecycle tasks:
+
+// assemble
+// Depends on: jar, and all other tasks that create artifacts attached to the archives configuration
+
+// Aggregate task that assembles all the archives in the project. This task is added by the Base Plugin.
+
+// check
+// Depends on: test
+
+// Aggregate task that performs verification tasks, such as running the tests. Some plugins add their own verification tasks to check. You should also attach any custom Test tasks to this lifecycle task if you want them to execute for a full build. This task is added by the Base Plugin.
+
+// build
+// Depends on: check, assemble
+
+// Aggregate tasks that performs a full build of the project. This task is added by the Base Plugin.
+
+// buildNeeded
+// Depends on: build, and buildNeeded tasks in all projects that are dependencies in the testRuntimeClasspath configuration.
+
+// Performs a full build of the project and all projects it depends on.
+
+// buildDependents
+// Depends on: build, and buildDependents tasks in all projects that have this project as a dependency in their testRuntimeClasspath configurations
+
+// Performs a full build of the project and all projects which depend upon it.
+
+// buildConfigName — task rule
+// Depends on: all tasks that generate the artifacts attached to the named — ConfigName — configuration
+
+// Assembles the artifacts for the specified configuration. This rule is added by the Base Plugin.
 
 plugins {
     id "java"
@@ -31,19 +119,13 @@ ext {
     warFile = "WorkspaceService.war"
     warXml = "web.xml"
     // directories
-    classes = "classes"
     src = "src"
     dist = "dist"
-    javadoc = "docs/javadoc"
-    docsDir = "docs"
-    downloadDir = "$buildDir/download/"
+    jarDir = "../jars/lib/jars"
+    downloadDir = "$buildDir/download"
     coverageDir = "$buildDir/coverage"
-    tempunpack = "$buildDir/tmp/generateJavadocs/unpackedjars"
+    tempunpack = "$buildDir/tmp/unpackedjars"
     warDir = "war"
-    testReportsDir = "test-reports"
-    docServerDir = "/server_docs"
-    workspaceDocs = "workspace_docs"
-    jarDir = "../jars/lib/jars/"
     // other config
     jackson_version = "2.9.9"
     testConfig = "test.cfg"
@@ -59,15 +141,16 @@ repositories {
 
 configurations {
     implementation
-    impl {
+    testImplementation
+    runtimeDeps {
         extendsFrom implementation
     }
-    testImplementation
-    javadoc {
+    allDeps {
         extendsFrom implementation, testImplementation
     }
 }
 
+// download the KBase jars if they aren't already present
 task downloadJars {
     doLast {
         def dir = file(downloadDir)
@@ -95,55 +178,139 @@ task downloadJars {
 }
 
 dependencies {
-    // include all the downloaded jars
-    implementation fileTree(dir: "$downloadDir", include: ['*.jar'])
+    // downloaded jars
+    // implementation fileTree(dir: "$downloadDir", include: ['*.jar'])
 
-    implementation "ch.qos.logback:logback-classic:1.1.2"
-    implementation "com.fasterxml.jackson.core:jackson-annotations:2.9.9"
-    implementation "com.fasterxml.jackson.core:jackson-core:2.9.9"
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.9.9"
-    implementation "com.github.ben-manes.caffeine:caffeine:2.9.3"
-    implementation "com.google.guava:guava:14.0.1"
-    implementation "commons-codec:commons-codec:1.8"
-    implementation "commons-io:commons-io:2.4"
-    implementation "info.picocli:picocli:4.6.1"
-    implementation "javax.annotation:javax.annotation-api:1.3.2"
-    implementation "javax.servlet:servlet-api:2.5"
-    implementation "joda-time:joda-time:2.2"
-    implementation "org.apache.commons:commons-lang3:3.1"
-    implementation "org.apache.httpcomponents:httpclient:4.5.9"
-    implementation "org.apache.httpcomponents:httpmime:4.5.8"
-    implementation "org.apache.kafka:kafka-clients:2.1.0"
-    implementation "org.eclipse.jetty.aggregate:jetty-all:7.0.0.v20091005"
-    implementation "org.ini4j:ini4j:0.5.2"
-    implementation "org.mongodb:mongo-java-driver:3.12.10"
-    implementation "org.slf4j:slf4j-api:1.7.30"
+    // implementation "ch.qos.logback:logback-classic:1.1.2"
+    // implementation "com.fasterxml.jackson.core:jackson-annotations:2.9.9"
+    // implementation "com.fasterxml.jackson.core:jackson-core:2.9.9"
+    // implementation "com.fasterxml.jackson.core:jackson-databind:2.9.9"
+    // implementation "com.github.ben-manes.caffeine:caffeine:2.9.3"
+    // implementation "com.google.guava:guava:14.0.1"
+    // implementation "commons-codec:commons-codec:1.8"
+    // implementation "commons-io:commons-io:2.4"
+    // implementation "info.picocli:picocli:4.6.1"
+    // implementation "javax.annotation:javax.annotation-api:1.3.2"
+    // implementation "javax.servlet:servlet-api:2.5"
+    // implementation "joda-time:joda-time:2.2"
+    // implementation "org.apache.commons:commons-lang3:3.1"
+    // implementation "org.apache.httpcomponents:httpclient:4.5.9"
+    // implementation "org.apache.httpcomponents:httpmime:4.5.8"
+    // implementation "org.apache.kafka:kafka-clients:2.1.0"
+    // implementation "org.eclipse.jetty.aggregate:jetty-all:7.0.0.v20091005"
+    // implementation "org.ini4j:ini4j:0.5.2"
+    // implementation "org.mongodb:mongo-java-driver:3.12.10"
+    // implementation "org.slf4j:slf4j-api:1.7.30"
 
-    // ### Amazon S3 ###
+    // // ### Amazon S3 ###
 
-    implementation("software.amazon.awssdk:s3:2.17.214") {
-        exclude module: "apache-client"
-        exclude module: "netty-nio-client"
-    }
-    implementation "software.amazon.awssdk:url-connection-client:2.17.214"
+    // implementation("software.amazon.awssdk:s3:2.17.214") {
+    //     exclude module: "apache-client"
+    //     exclude module: "netty-nio-client"
+    // }
+    // implementation "software.amazon.awssdk:url-connection-client:2.17.214"
 
-    // testImplementation files("${jarDir}/jna/jna-3.4.0.jar")
-    implementation 'org.syslog4j:syslog4j:0.9.46'
+    // // testImplementation files("${jarDir}/jna/jna-3.4.0.jar")
+    // implementation 'org.syslog4j:syslog4j:0.9.46'
 
-    // ### Test ###
+    // // ### Test ###
+    // testImplementation "com.arangodb:arangodb-java-driver:6.7.2"
+    // testImplementation "com.github.zafarkhaja:java-semver:0.9.0"
+    // testImplementation "junit:junit:4.12"
+    // testImplementation "nl.jqno.equalsverifier:equalsverifier:3.1.10"
+    // testImplementation "org.hamcrest:hamcrest-core:1.3"
+    // testImplementation "org.mockito:mockito-core:3.0.0"
 
-    testImplementation "com.arangodb:arangodb-java-driver:6.7.2"
-    testImplementation "com.github.zafarkhaja:java-semver:0.9.0"
-    testImplementation "junit:junit:4.12"
-    testImplementation "nl.jqno.equalsverifier:equalsverifier:3.1.10"
-    testImplementation "org.hamcrest:hamcrest-core:1.3"
-    testImplementation "org.mockito:mockito-core:3.0.0"
+
+    implementation files("$jarDir/kbase/common/kbase-common-0.1.1.jar")
+    implementation files("$jarDir/ini4j/ini4j-0.5.2.jar")
+    implementation files("$jarDir/jetty/jetty-all-7.0.0.jar")
+    implementation files("$jarDir/jna/jna-3.4.0.jar")
+    implementation files("$jarDir/servlet/servlet-api-2.5.jar")
+    implementation files("$jarDir/syslog4j/syslog4j-0.9.46.jar")
+    implementation files("$jarDir/annotation/javax.annotation-api-1.3.2.jar")
+    implementation files("$jarDir/junit/junit-4.12.jar")
+    implementation files("$jarDir/hamcrest/hamcrest-core-1.3.jar")
+    implementation files("$jarDir/kbase/common/kbase-common-0.1.1.jar")
+    implementation files("$jarDir/joda/joda-time-2.2.jar")
+    implementation files("$jarDir/kbase/auth/kbase-auth-0.4.4.jar")
+    implementation files("$jarDir/jackson/jackson-annotations-${jackson_version}.jar")
+    implementation files("$jarDir/jackson/jackson-core-${jackson_version}.jar")
+    implementation files("$jarDir/jackson/jackson-databind-${jackson_version}.jar")
+    implementation files("$jarDir/kbase/shock/shock-client-0.1.0.jar")
+    implementation files("$jarDir/apache_commons/commons-logging-1.1.1.jar")
+    implementation files("$jarDir/apache_commons/http/httpclient-4.5.9.jar")
+    implementation files("$jarDir/apache_commons/http/httpcore-4.4.5.jar")
+    implementation files("$jarDir/apache_commons/http/httpmime-4.5.8.jar")
+    implementation files("$jarDir/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar")
+    implementation files("$jarDir/apache_commons/commons-codec-1.8.jar")
+    implementation files("$jarDir/apache_commons/commons-io-2.4.jar")
+    implementation files("$jarDir/apache_commons/commons-lang3-3.1.jar")
+    implementation files("$jarDir/picocli/picocli-4.6.1.jar")
+    implementation files("$jarDir/mongo/mongo-java-driver-3.12.10.jar")
+    implementation files("$jarDir/slf4j/slf4j-api-1.7.30.jar")
+    implementation files("$jarDir/logback/logback-core-1.1.2.jar")
+    implementation files("$jarDir/logback/logback-classic-1.1.2.jar")
+    implementation files("$jarDir/google/guava-14.0.1.jar")
+    implementation files("$jarDir/caffeinecache/caffeine-2.9.3.jar")
+    implementation files("$jarDir/kafka/kafka-clients-2.1.0.jar")
+    implementation files("$jarDir/kbase/handle/AbstractHandleClient-1.0.0.jar")
+    implementation files("$jarDir/kbase/sample/SampleServiceClient-0.1.1.jar")
+    implementation files("$jarDir/amazon/V2/annotations-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/arns-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/auth-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/aws-core-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/aws-query-protocol-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/aws-xml-protocol-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/eventstream-1.0.1.jar")
+    implementation files("$jarDir/amazon/V2/http-client-spi-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/json-utils-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/metrics-spi-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/profiles-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/protocol-core-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/regions-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/s3-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/sdk-core-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/third-party-jackson-core-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/url-connection-client-2.17.214.jar")
+    implementation files("$jarDir/amazon/V2/utils-2.17.214.jar")
+    implementation files("$jarDir/reactivestreams/reactive-streams-1.0.3.jar")
+
+    // TEST
+    testImplementation files("$jarDir/apache_commons/commons-collections-3.2.1.jar")
+    testImplementation files("$jarDir/apache_commons/commons-lang-2.4.jar")
+    testImplementation files("$jarDir/apache_commons/velocity-1.7.jar")
+    testImplementation files("$jarDir/arangodb/arangodb-java-driver-6.7.2.jar")
+    testImplementation files("$jarDir/arangodb/velocypack-2.4.0.jar")
+    testImplementation files("$jarDir/bytebuddy/byte-buddy-1.9.10.jar")
+    testImplementation files("$jarDir/bytebuddy/byte-buddy-agent-1.9.10.jar")
+    testImplementation files("$jarDir/equalsverifier/equalsverifier-3.1.10.jar")
+    testImplementation files("$jarDir/jsemver/java-semver-0.9.0.jar")
+    testImplementation files("$jarDir/kbase/auth2/kbase-auth2test-0.2.4.jar")
+    testImplementation files("$jarDir/mockito/mockito-core-3.0.0.jar")
+    testImplementation files("$jarDir/objenesis/objenesis-2.6.jar")
 }
 
 sourceSets {
     main {
         java {
             srcDir src
+
+// java.destinationDirectory — DirectoryProperty
+// Default value: $buildDir/classes/java/$name, e.g. build/classes/java/main
+
+// output — (read-only) SourceSetOutput
+// The output files of the source set, containing its compiled classes and resources.
+
+// output.classesDirs — (read-only) FileCollection
+// Default value: $buildDir/classes/java/$name, e.g. build/classes/java/main
+// The directories to generate the classes of this source set into. May contain directories for other JVM languages, e.g. build/classes/kotlin/main.
+
+// output.resourcesDir — File
+// Default value: $buildDir/resources/$name, e.g. build/resources/main
+// The directory to generate the resources of this source set into.
+
+
             exclude "**/test/**"
         }
         // resources {
@@ -166,25 +333,35 @@ sourceSets {
     test {
         java {
             srcDir src
-            include "**/test/**"
-            exclude "*Tester.java"
+            // include "**/test/**"
+            // exclude "*Tester.java"
         }
-    }
+        // compileClasspath += main.output + test.output
+        // runtimeClasspath += main.output + test.output
+        resources {
+            srcDir src
+            include "**/*.properties"
+            include "**/*.cfg"
+            include "**/*.spec"
+            include "**/*.instance.*"
+            include "**/instance.*"
+            include "**/*.instance"
+            include "**/*.html"
+            include "**/*.css"
+            include "**/*.gif"
+            include "**/*.js"
+            include "**/*.png"
+            include "**/*.txt"
+            include "**/*.weirdsuffix"
+        }
+     }
 }
 
 tasks.withType(JavaCompile) {
     dependsOn(downloadJars)
-    source = sourceSets.main.java
-    classpath = configurations.javadoc
-    destinationDirectory = file("$buildDir/classes")
+    classpath = configurations.allDeps
     options.compilerArgs = ['-source', '11', '-target', '11', '-g']
 }
-
-// task customCompileJava(type: JavaCompile, dependsOn: downloadJars) {
-//     source = sourceSets.main.java
-//     classpath = configurations.javadoc
-//     destinationDirectory = file("$classes")
-// }
 
 task clientJar(type: Jar, dependsOn: compileJava) {
     from sourceSets.main.output
@@ -211,9 +388,10 @@ task unzipJar(type: Copy, dependsOn: [downloadJars]) {
     into "$tempunpack"
 }
 
-task generateJavadocs(type: Javadoc, dependsOn: [downloadJars, unzipJar]) {
-    destinationDir file("$javadoc")
-    classpath = configurations.javadoc
+// by default, the files go into build/docs/javadoc
+tasks.javadoc {
+    dependsOn unzipJar
+    classpath = configurations.allDeps
     failOnError = false
     options {
         author = false
@@ -255,37 +433,42 @@ task generateJavadocs(type: Javadoc, dependsOn: [downloadJars, unzipJar]) {
     }
 }
 
-task buildWar(type: War, dependsOn: [compileJava, generateJavadocs]) {
+tasks.war {
+    dependsOn javadoc
     description = "Build the WAR file. Assumes compilation has been run."
+    // set the WAR file name and output directory
+    archiveFileName = warFile
+    destinationDirectory = file("$dist")
 
     // location of the web.xml file
     webXml = file("${warDir}/${warXml}")
 
-    // add the main and test output directories to the WAR file
+    duplicatesStrategy 'exclude'
+
+    // add the dependencies to lib
     into('WEB-INF/lib') {
-        from sourceSets.main.output
-        from sourceSets.test.output
+        from sourceSets.main.compileClasspath
     }
     // copy the compiled classes over
     into('WEB-INF/classes') {
-        from classes
+        from sourceSets.main.output.classesDirs
     }
     // copy in the documentation
-    into('WEB-INF/classes/server_docs') {
-        from docsDir
+    into('WEB-INF/classes/server_docs/javadoc') {
+        from javadoc.destinationDir
     }
-
-    // set the WAR file name and output directory
-    archiveFileName = warFile
-    destinationDirectory = file("$dist")
 }
 
 task expandWar(type: Copy) {
+    // dependsOn buildWar
     from zipTree("$dist/$warFile")
     into "war_contents"
 }
 
+// reports of the tests are saved to
+// build/reports/tests/<testName>
 tasks.withType(Test) {
+    dependsOn compileTestJava
     useJUnit()
     systemProperty "test.cfg", testConfig
     maxHeapSize = "3G"
@@ -301,6 +484,8 @@ tasks.withType(Test) {
 task testProvenance(type: Test) {
     description = "run all tests marked as Provenance tests"
     systemProperty "test.cfg", testConfig
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
     options {
         includeCategories "us.kbase.common.test.ProvenanceTests"
     }
@@ -338,10 +523,12 @@ task noLongTests(type: Test) {
     systemProperty "test.cfg", testConfig
     // forkEvery 1
     options {
-        excludeCategories"us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
+        excludeCategories "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
     }
 }
 
+// by default, the output from these tasks is saved to
+// build/reports/jacoco/<testName>
 tasks.withType(JacocoReport) {
     reports {
         html.required = true
@@ -349,8 +536,19 @@ tasks.withType(JacocoReport) {
         csv.required = true
     }
     sourceSets sourceSets.main
-    // destinationDirectory = file("$buildDir/reports/coverage")
 }
+
+task coverageProvenance(type: JacocoReport, dependsOn: testProvenance) {
+    group = "Reporting"
+    description = "Generate Jacoco code coverage report for Provenance tests"
+    executionData(testProvenance)
+    // reports {
+    //     html.required = true
+    //     xml.required = true
+    // }
+    // sourceSets sourceSets.main
+}
+
 
 task coverageMongo(type: JacocoReport, dependsOn: testMongo) {
     group = "Reporting"
@@ -370,6 +568,7 @@ task coverageQuick(type: JacocoReport, dependsOn: testQuick) {
     // reports {
     //     html.required = true
     //     xml.required = true
+    //     csv.required = true
     // }
     // sourceSets sourceSets.main
 }
@@ -378,46 +577,51 @@ task coverageSlow(type: JacocoReport, dependsOn: testSlow) {
     group = "Reporting"
     description = "Generate Jacoco code coverage report for slow tests"
     executionData(testSlow)
-    // reports {
-    //     html.required = true
-    //     xml.required = true
-    // }
-    // sourceSets sourceSets.main
-    // destinationDirectory = file("$buildDir/reports/coverage")
 }
 
-task combineCoverage(type: JacocoReport, dependsOn: [testMongo, testQuick]) {
-    group = "Reporting"
-    description = "Generate combined Jacoco code coverage report for all tests"
-    reports {
-        html.required = true
-        csv.required = true
-        xml.required = true
-    }
-    executionData fileTree(project.rootDir.absolutePath).include("**/build/jacoco/*.exec")
-    sourceSets sourceSets.main
-}
-
-task coverageNoLongTests(type: JacocoReport, dependsOn: [noLongTests]) {
+task coverageNoLongTests(type: JacocoReport, dependsOn: noLongTests) {
     group = "Reporting"
     description = "Generate code coverage reports for the tests"
+    executionData(noLongTests)
+    // reports {
+    //     html.required = true
+    //     csv.required = true
+    //     xml.required = true
+    // }
+}
+
+
+task combineCoverage(type: JacocoReport) {
+    group = "Reporting"
+    description = "Generate combined Jacoco code coverage report for any tests that have been run"
     reports {
         html.required = true
         csv.required = true
         xml.required = true
     }
+    executionData fileTree(project.rootDir.absolutePath).include("${project.buildDir}/jacoco/*.exec")
+    sourceSets sourceSets.main
 }
 
 task createScript {
     dependsOn compileJava
     description = "create cli script"
 
-    def libClasspath = configurations.impl.files.join(":")
+    def libClasspath = configurations.runtimeDeps.files.join(":")
     file("update_workspace_database_schema").write("#!/bin/sh\n" +
             "java -cp ${dist}/${serviceJarFile}:${libClasspath} us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
     file("update_workspace_database_schema").setExecutable(true)
     // always run the script
     outputs.upToDateWhen { false }
+}
+
+task printDeps {
+    doLast {
+        def compileDeps = sourceSets.main.compileClasspath
+        def runtimeDeps = sourceSets.main.runtimeClasspath
+        def runtimeOnlyDeps = runtimeDeps.minus(compileDeps)
+        runtimeOnlyDeps.each { println it }
+    }
 }
 
 // spotless {

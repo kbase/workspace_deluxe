@@ -75,7 +75,7 @@
 
   <fileset dir="${jardir}" id="s3lib">
     <include name="amazon/V2/annotations-2.17.214.jar"/>
-    <include name="amazon/V2/arns-2.17.214.jar.jar"/>
+    <include name="amazon/V2/arns-2.17.214.jar"/>
     <include name="amazon/V2/auth-2.17.214.jar"/>
     <include name="amazon/V2/aws-core-2.17.214.jar"/>
     <include name="amazon/V2/aws-query-protocol-2.17.214.jar"/>
@@ -242,7 +242,9 @@
     <javadoc access="protected" author="false" classpathref="compile.classpath"
       destdir="${doc}" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
-      source="11" splitindex="true" use="true" version="true">
+      source="11" splitindex="true" use="true"
+      Windowtitle="Workspace 0.14.1 API"
+      version="true">
       <link href="http://download.oracle.com/javase/11/docs/api/"/>
       <link href="https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/${jackson.version}/"/>
       <link href="https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/${jackson.version}/"/>
