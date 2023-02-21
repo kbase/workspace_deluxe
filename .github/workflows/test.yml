@@ -153,26 +153,26 @@ jobs:
       - name: build the war file
         run: gradle war --info
 
-      - name: run the tests and generate coverage
-        if: matrix.test_cmd != 'test_quick_coverage'
-        run: gradle coverage${{matrix.test_cmd}} --info
-
-      - name: run the tests and generate coverage, ant version
-        if: matrix.test_cmd == 'test_quick_coverage'
-        run: ant ${{matrix.test_cmd}}
+      - name: run the ${{matrix.test_cmd}} tests and generate coverage
+        run: |
+          if [ "${{matrix.test_cmd}}" = "test_quick_coverage" ]; then
+            ant "${{matrix.test_cmd}}"
+          else
+            gradle "coverage${{matrix.test_cmd}}" --info
+          fi
 
       - name: upload jacoco report
         uses: actions/upload-artifact@v3
-        if: always() && matrix.test_cmd != 'test_quick_coverage'
+        if: always()
         with:
           name: coverage${{matrix.test_cmd}}-${{matrix.mongo}}.exec
           path: build/jacoco/test${{matrix.test_cmd}}.exec
 
       - name: upload test-reports dir
         uses: actions/upload-artifact@v3
-        if: always() && matrix.test_cmd == 'test_quick_coverage'
+        if: always()
         with:
-          name: ${{matrix.test_cmd}}-${{matrix.mongo}}
+          name: ${{matrix.test_cmd}}-${{matrix.mongo}}-test-reports
           path: test-reports
 
   compile_coverage:
