@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.net.URL;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
@@ -21,6 +22,7 @@ import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.I
 
 import us.kbase.workspace.database.provenance.FundingReference;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class FundingReferenceTest {
 
 	static final String INCORRECT = "incorrect ";

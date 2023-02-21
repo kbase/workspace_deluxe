@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,6 +84,7 @@ public class AdministrationCommandSetInstaller {
 	private static final String CREATE_WORKSPACE = "createWorkspace";
 	private static final String DELETE_WS = "deleteWorkspace";
 	private static final String UNDELETE_WS = "undeleteWorkspace";
+	private static final String UNDELETE_WS2 = "undeleteWorkspace";
 
 	private final static ObjectMapper MAPPER = new ObjectMapper()
 			.registerModule(new JacksonTupleModule());

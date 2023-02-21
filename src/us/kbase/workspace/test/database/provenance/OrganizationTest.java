@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Map;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
@@ -18,6 +19,7 @@ import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.I
 
 import us.kbase.workspace.database.provenance.Organization;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class OrganizationTest {
 	private static final String INCORRECT_NAME = "incorrect org name";
 	private static final String INCORRECT_ID = "incorrect org id";

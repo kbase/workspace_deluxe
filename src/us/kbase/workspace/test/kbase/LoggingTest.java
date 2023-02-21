@@ -23,6 +23,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.productivity.java.syslog4j.SyslogIF;
 
 import us.kbase.auth.AuthToken;
@@ -60,23 +61,24 @@ import com.mongodb.client.MongoDatabase;
  * @author gaprice@lbl.gov
  *
  */
+@Category({us.kbase.common.test.MongoTests.class, us.kbase.common.test.DodgyTests.class})
 public class LoggingTest {
-	
+
 	// TODO TEST convert these to unit tests
-	
+
 	private static final String ARGUTILS = "us.kbase.workspace.kbase.ArgUtils";
 	private static final String SERV = "us.kbase.workspace.WorkspaceServer";
-	
+
 	private static final String DB_WS_NAME = "LoggingTest";
 	private static final String DB_TYPE_NAME = "LoggingTest_Types";
-	
+
 	private static int INFO = JsonServerSyslog.LOG_LEVEL_INFO;
 //	private static int ERR = JsonServerSyslog.LOG_LEVEL_ERR;
 
 	private static final String ATYPE = "SomeModule.AType";
 	private static final String BTYPE = "SomeModule.BType";
 	private static final String REFTYPE = "SomeModule.RefType";
-	
+
 	private static final String USER1 = "user1";
 	private static final String USER2 = "user2";
 	private static MongoController mongo;
@@ -89,13 +91,13 @@ public class LoggingTest {
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		logout = new SysLogOutputMock();
-		
+
 //		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
-		
+
 		// set up auth
 		final String dbname = LoggingTest.class.getSimpleName() + "Auth";
 		authc = new AuthController(
@@ -111,9 +113,9 @@ public class LoggingTest {
 		final String token2 = TestCommon.createLoginToken(authURL, USER2);
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
-		
+
 		final String mongohost = "localhost:" + mongo.getServerPort();
-		
+
 		SERVER = startupWorkspaceServer(mongohost, DB_WS_NAME, DB_TYPE_NAME);
 		SERVER.changeSyslogOutput(logout);
 		int port = SERVER.getServerPort();
@@ -135,14 +137,14 @@ public class LoggingTest {
 
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
-		
+
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "SomeModule");
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(
-					"module SomeModule {" + 
+					"module SomeModule {" +
 						"/* @optional thing */" +
 						"typedef structure {" +
 							"string thing;" +
@@ -161,7 +163,7 @@ public class LoggingTest {
 			.withNewTypes(Arrays.asList("AType", "BType", "RefType")));
 		CLIENT1.releaseModule("SomeModule");
 	}
-	
+
 	public static void administerCommand(WorkspaceClient client,
 			String command, String... params)
 			throws IOException, JsonClientException {
@@ -171,13 +173,13 @@ public class LoggingTest {
 			releasemod.put(params[i * 2], params[i * 2 + 1]);
 		client.administer(new UObject(releasemod));
 	}
-	
+
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
 			final String db,
 			final String typedb)
 			throws Exception {
-		
+
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
 				new File(TestCommon.getTempDir()));
@@ -199,7 +201,7 @@ public class LoggingTest {
 		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
-		
+
 		//set up env
 		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
@@ -212,7 +214,7 @@ public class LoggingTest {
 		}
 		return server;
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (SERVER != null) {
@@ -239,11 +241,11 @@ public class LoggingTest {
 					new Document("key", DynamicConfig.KEY_BACKEND_SCALING).append("value", 1));
 		}
 	}
-	
+
 	private static class LogEvent {
 		public int level;
 		public String message;
-		
+
 		@Override
 		public String toString() {
 			StringBuilder builder = new StringBuilder();
@@ -255,11 +257,11 @@ public class LoggingTest {
 			return builder.toString();
 		}
 	}
-	
+
 	private static class SysLogOutputMock extends SyslogOutput {
-		
-		public List<LogEvent> events = new LinkedList<LogEvent>(); 
-		
+
+		public List<LogEvent> events = new LinkedList<LogEvent>();
+
 		@Override
 		public void logToSystem(SyslogIF log, int level, String message) {
 			LogEvent e = new LogEvent();
@@ -267,20 +269,20 @@ public class LoggingTest {
 			e.message = message;
 			events.add(e);
 		}
-		
+
 		@Override
 		public PrintWriter logToFile(File f, PrintWriter pw, int level,
 				String message) throws Exception {
 			throw new UnsupportedOperationException();
 		}
-		
+
 		public void reset() {
 			events.clear();
 		}
 	}
-	
+
 	private static class ExpectedLog {
-		
+
 		public int level;
 		public String method;
 		public String message;
@@ -296,18 +298,18 @@ public class LoggingTest {
 			this.caller = caller;
 		}
 	}
-	
+
 	private static class LogObjExp extends ExpectedLog {
-		
+
 		public LogObjExp(String method, String message, String caller) {
 			super(INFO, method, message, USER1, caller);
 		}
 	}
-	
+
 	private void checkLogging(List<ExpectedLog> expected) throws Exception {
 		checkLogging(expected, expected.size());
 	}
-	
+
 	private void checkLogging(List<ExpectedLog> expected, int eventCount)
 			throws Exception {
 		assertThat("correct # of logging events", logout.events.size(),
@@ -326,9 +328,9 @@ public class LoggingTest {
 				assertThat("same call IDs for all calls", call, is(callID));
 			}
 		}
-		
+
 	}
-	
+
 	private String checkMessage(String message, ExpectedLog exp) {
 //		System.out.println(message);
 		String[] parts = message.split(":", 2);
@@ -349,22 +351,22 @@ public class LoggingTest {
 		assertThat("method correct", headerParts[9], is(exp.method));
 		String callID = headerParts[10].substring(
 				0, headerParts[10].length() - 1);
-		
+
 		assertThat("full message correct", parts[1].trim(), is(exp.message));
 		return callID;
 	}
-	
+
 
 	@Test
 	public void logObjects() throws Exception {
 		/* test various methods that log the object ID and type when run
-		 * Doesn't bother with deprecated fns 
+		 * Doesn't bother with deprecated fns
 		 */
 		String ws = "myws";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace(ws));
 		logout.reset();
-		
+
 		// save objects
 		List<ObjectSaveData> d = new LinkedList<ObjectSaveData>();
 		for (String name: Arrays.asList("foo", "bar", "baz")) {
@@ -386,7 +388,7 @@ public class LoggingTest {
 						"Object 1/3/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("save_objects", "end method", SERV))));
 		logout.reset();
-		
+
 		// rename
 		CLIENT1.renameObject(new RenameObjectParams()
 				.withNewName("bak")
@@ -397,7 +399,7 @@ public class LoggingTest {
 						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("rename_object", "end method", SERV))));
 		logout.reset();
-		
+
 		// copy
 		CLIENT1.copyObject(new CopyObjectParams()
 				.withFrom(new ObjectIdentity().withRef("1/2"))
@@ -408,7 +410,7 @@ public class LoggingTest {
 						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("copy_object", "end method", SERV))));
 		logout.reset();
-		
+
 		// revert
 		CLIENT1.revertObject(new ObjectIdentity().withRef("1/1/1"));
 		checkLogging(convertLogObjExp(Arrays.asList(
@@ -417,7 +419,7 @@ public class LoggingTest {
 						"Object 1/1/3 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("revert_object", "end method", SERV))));
 		logout.reset();
-		
+
 		// history
 		CLIENT1.getObjectHistory(new ObjectIdentity().withRef("1/1"));
 		checkLogging(convertLogObjExp(Arrays.asList(
@@ -430,7 +432,7 @@ public class LoggingTest {
 						"Object 1/1/3 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_object_history", "end method", SERV))));
 		logout.reset();
-		
+
 		// get info
 		CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 				.withObjects(Arrays.asList(
@@ -444,7 +446,7 @@ public class LoggingTest {
 						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_object_info3", "end method", SERV))));
 		logout.reset();
-		
+
 		// get info
 		@SuppressWarnings({ "deprecation", "unused" })
 		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
@@ -460,7 +462,7 @@ public class LoggingTest {
 						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_object_info_new", "end method", SERV))));
 		logout.reset();
-		
+
 		//get objs2
 		CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
@@ -474,7 +476,7 @@ public class LoggingTest {
 						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_objects2", "end method", SERV))));
 		logout.reset();
-		
+
 		// get objs
 		@SuppressWarnings({ "deprecation", "unused" })
 		List<ObjectData> objects = CLIENT1.getObjects(Arrays.asList(
@@ -488,7 +490,7 @@ public class LoggingTest {
 						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_objects", "end method", SERV))));
 		logout.reset();
-		
+
 		// get subobjs
 		@SuppressWarnings({ "unused", "deprecation" })
 		List<ObjectData> objectSubset = CLIENT1.getObjectSubset(Arrays.asList(
@@ -504,7 +506,7 @@ public class LoggingTest {
 						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_object_subset", "end method", SERV))));
 		logout.reset();
-		
+
 		// get prov
 		@SuppressWarnings({ "unused", "deprecation" })
 		List<us.kbase.workspace.ObjectProvenanceInfo> objectProvenance =
@@ -519,7 +521,7 @@ public class LoggingTest {
 						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_object_provenance", "end method", SERV))));
 		logout.reset();
-		
+
 		// get ref'd objects
 		Map<String, String> r = new HashMap<String, String>();
 		r.put("r", "1/1/2");
@@ -542,7 +544,7 @@ public class LoggingTest {
 						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_referenced_objects", "end method", SERV))));
 		logout.reset();
-										
+
 	}
 
 	private List<ExpectedLog> convertLogObjExp(List<LogObjExp> logobj) {

@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -29,10 +30,11 @@ import us.kbase.workspace.database.provenance.ExternalData;
 import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class ProvenanceActionTest {
-	
+
 	private static class ProvExpected {
-		
+
 		// set all fields to default returns from getters
 		private Optional<Instant> time = Optional.empty();
 		private Optional<String> caller = Optional.empty();
@@ -51,92 +53,92 @@ public class ProvenanceActionTest {
 		private Map<String, String> custom = Collections.emptyMap();
 		private Optional<String> description = Optional.empty();
 		private List<String> resolvedObjects = Collections.emptyList();
-		
+
 		public ProvExpected withTime(Optional<Instant> time) {
 			this.time = time;
 			return this;
 		}
-		
+
 		public ProvExpected withCaller(Optional<String> caller) {
 			this.caller = caller;
 			return this;
 		}
-		
+
 		public ProvExpected withService(Optional<String> service) {
 			this.service = service;
 			return this;
 		}
-		
+
 		public ProvExpected withServiceVersion(Optional<String> serviceVersion) {
 			this.serviceVersion = serviceVersion;
 			return this;
 		}
-		
+
 		public ProvExpected withMethod(Optional<String> method) {
 			this.method = method;
 			return this;
 		}
-		
+
 		public ProvExpected withMethodParameters(List<Object> methodParameters) {
 			this.methodParameters = methodParameters;
 			return this;
 		}
-		
+
 		public ProvExpected withScript(Optional<String> script) {
 			this.script = script;
 			return this;
 		}
-		
+
 		public ProvExpected withScriptVersion(Optional<String> scriptVersion) {
 			this.scriptVersion = scriptVersion;
 			return this;
 		}
-		
+
 		public ProvExpected withCommandLine(Optional<String> commandLine) {
 			this.commandLine = commandLine;
 			return this;
 		}
-		
+
 		public ProvExpected withWsobjs(List<String> wsobjs) {
 			this.wsobjs = wsobjs;
 			return this;
 		}
-		
+
 		public ProvExpected withIncomingArgs(List<String> incomingArgs) {
 			this.incomingArgs = incomingArgs;
 			return this;
 		}
-		
+
 		public ProvExpected withOutgoingArgs(List<String> outgoingArgs) {
 			this.outgoingArgs = outgoingArgs;
 			return this;
 		}
-		
+
 		public ProvExpected withExternalData(List<ExternalData> externalData) {
 			this.externalData = externalData;
 			return this;
 		}
-		
+
 		public ProvExpected withSubActions(List<SubAction> subActions) {
 			this.subActions = subActions;
 			return this;
 		}
-		
+
 		public ProvExpected withCustom(Map<String, String> custom) {
 			this.custom = custom;
 			return this;
 		}
-		
+
 		public ProvExpected withDescription(Optional<String> description) {
 			this.description = description;
 			return this;
 		}
-		
+
 		public ProvExpected withResolvedObjects(List<String> resolvedObjects) {
 			this.resolvedObjects = resolvedObjects;
 			return this;
 		}
-		
+
 		private ProvExpected assertCorrect(final ProvenanceAction action) {
 			assertThat("incorrect caller", action.getCaller(), is(caller));
 			assertThat("incorrect command line", action.getCommandLine(), is(commandLine));
@@ -164,19 +166,19 @@ public class ProvenanceActionTest {
 	public void equals() throws Exception {
 		EqualsVerifier.forClass(ProvenanceAction.class).usingGetClass().verify();
 	}
-	
+
 	@Test
 	public void isEmpty() throws Exception {
 		// Test with each field individually to test the at least one field set requirement
 		// Except resolved objects, which must be paired with workspace objects
-		
+
 		assertThat("incorrect isEmpty",
 				ProvenanceAction.getBuilder().isEmpty(), is(true));
-		
+
 		assertThat("incorrect isEmpty",
 				ProvenanceAction.getBuilder().withCaller("caller").isEmpty(), is(false));
 
-		
+
 		assertThat("incorrect isEmpty",
 				ProvenanceAction.getBuilder().withCommandLine("--dostuff").isEmpty(), is(false));
 
@@ -239,12 +241,12 @@ public class ProvenanceActionTest {
 						.isEmpty(),
 				is(false));
 	}
-	
+
 	@Test
 	public void buildMinimal() throws Exception {
 		// test with each field individually to test the at least one field set requirement
 		// Except resolved objects, which must be paired with workspace objects
-		
+
 		new ProvExpected().withCaller(opt("caller")).assertCorrect(
 				ProvenanceAction.getBuilder().withCaller("caller").build());
 
@@ -308,7 +310,7 @@ public class ProvenanceActionTest {
 				ProvenanceAction.getBuilder().withWorkspaceObjects(list("foo/bar", "1/w/1"))
 						.build());
 	}
-	
+
 	@Test
 	public void buildMinimalWithNulls() throws Exception {
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
@@ -330,13 +332,13 @@ public class ProvenanceActionTest {
 				.withTime(null)
 				.withWorkspaceObjects(null)
 				.build();
-		
+
 		new ProvExpected().withCaller(opt("caller")).assertCorrect(pa);
-		
+
 		// need to test caller field as well
 		final ProvenanceAction pa2 = ProvenanceAction.getBuilder()
 				.withCaller(null).withCommandLine("--boop").build();
-		
+
 		new ProvExpected().withCommandLine(opt("--boop")).assertCorrect(pa2);
 	}
 	@Test
@@ -359,16 +361,16 @@ public class ProvenanceActionTest {
 				.withSubActions(Collections.emptyList())
 				.withWorkspaceObjects(Collections.emptyList())
 				.build();
-		
+
 		new ProvExpected().withCaller(opt("caller")).assertCorrect(pa);
-		
+
 		// need to test caller field as well
 		final ProvenanceAction pa2 = ProvenanceAction.getBuilder()
 				.withCaller("   \t   ").withCommandLine("--boop").build();
-		
+
 		new ProvExpected().withCommandLine(opt("--boop")).assertCorrect(pa2);
 	}
-	
+
 	@Test
 	public void buildMaximal() throws Exception {
 		// tests string trimming where appropriate
@@ -395,7 +397,7 @@ public class ProvenanceActionTest {
 				.withSubActions(list(SubAction.getBuilder().withName("subby sub sub").build()))
 				.withTime(inst(20000))
 				.build();
-		
+
 		new ProvExpected()
 				.withCaller(opt("caller"))
 				.withCommandLine(opt("-rf /"))
@@ -420,7 +422,7 @@ public class ProvenanceActionTest {
 				.withWsobjs(list("foo/bar/1;  7/8/9", "8/9"))
 				.assertCorrect(pa);
 	}
-	
+
 	@Test
 	public void buildOverwriteWithNulls() throws Exception {
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
@@ -462,16 +464,16 @@ public class ProvenanceActionTest {
 				.withTime(null)
 				.withWorkspaceObjects(null)
 				.build();
-		
+
 		new ProvExpected().withCaller(opt("caller")).assertCorrect(pa);
-		
+
 		// need to test caller field as well
 		final ProvenanceAction pa2 = ProvenanceAction.getBuilder()
 				.withCaller("foo").withCaller(null).withCommandLine("--boop").build();
-		
+
 		new ProvExpected().withCommandLine(opt("--boop")).assertCorrect(pa2);
 	}
-	
+
 	@Test
 	public void buildOverwriteWithEmpties() throws Exception {
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
@@ -513,20 +515,20 @@ public class ProvenanceActionTest {
 				.withTime(null)
 				.withWorkspaceObjects(list())
 				.build();
-		
+
 		new ProvExpected().withCaller(opt("caller")).assertCorrect(pa);
-		
+
 		// need to test caller field as well
 		final ProvenanceAction pa2 = ProvenanceAction.getBuilder()
 				.withCaller("foo").withCaller(null).withCommandLine("--boop").build();
-		
+
 		new ProvExpected().withCommandLine(opt("--boop")).assertCorrect(pa2);
 	}
-	
+
 	private MapBuilder<String, Object> mapb() {
 		return MapBuilder.<String, Object>newHashMap();
 	}
-	
+
 	@Test
 	public void buildWithMethodParameters() throws Exception {
 		// Method parameter's code is a bit more complex than the others due to the deep
@@ -634,7 +636,7 @@ public class ProvenanceActionTest {
 		new ProvExpected().withMethodParameters(expected).assertCorrect(
 				ProvenanceAction.getBuilder().withMethodParameters(input).build());
 	}
-	
+
 	@Test
 	public void buildWithWorkspaceObjectsSetAndUnset() throws Exception {
 		// Test setting and unsetting resolved and workspace objects.
@@ -645,16 +647,16 @@ public class ProvenanceActionTest {
 				.withWorkspaceObjects(list("foo/bar", "1/1/1", "baz/1/7"))
 				// WSO must be set before RO, and RO must be the same size
 				.withResolvedObjects(list("7/6/2", "1/1/1", "9/1/7"));
-		
+
 		final ProvExpected e = new ProvExpected()
 				.withCaller(opt("c"))
 				.withWsobjs(list("foo/bar", "1/1/1", "baz/1/7"))
 				.withResolvedObjects(list("7/6/2", "1/1/1", "9/1/7"));
 		e.assertCorrect(b.build());
-		
+
 		// unsetting resolved objects should always work
 		e.withResolvedObjects(list()).assertCorrect(b.withResolvedObjects(null).build());
-		
+
 		// resetting resolved objects should work at long as the workspace objects are the same
 		// size
 		e.withResolvedObjects(list("8/9/2", "1/1/1", "6/8/7")).assertCorrect(
@@ -662,32 +664,32 @@ public class ProvenanceActionTest {
 
 		// unsetting resolved objects should always work
 		e.withResolvedObjects(list()).assertCorrect(b.withResolvedObjects(list()).build());
-		
+
 		// unsetting workspace objects should unset resolved objects
 		e.withResolvedObjects(list("8/9/2", "1/1/1", "6/8/7")).assertCorrect(
 				b.withResolvedObjects(list("8/9/2", "1/1/1", "6/8/7")).build());
-		
+
 		e.withWsobjs(list()).withResolvedObjects(list()).assertCorrect(
 				b.withWorkspaceObjects(null).build());
-		
+
 		e.withWsobjs(list("foo/bar", "1/1/1", "baz/1/7"))
 				.withResolvedObjects(list("8/9/2", "1/1/1", "6/8/7")).assertCorrect(
 						b.withWorkspaceObjects(list("foo/bar", "1/1/1", "baz/1/7"))
 							.withResolvedObjects(list("8/9/2", "1/1/1", "6/8/7")).build());
-		
+
 		e.withWsobjs(list()).withResolvedObjects(list()).assertCorrect(
 				b.withWorkspaceObjects(list()).build());
-		
+
 		// Setting workspace objects should work as long as any current resolved objects
 		// are the same size
 		e.withWsobjs(list("foo/bar", "1/1/1")).withResolvedObjects(list("8/9/2", "1/1/1"))
 				.assertCorrect(b.withWorkspaceObjects(list("foo/bar", "1/1/1"))
 									.withResolvedObjects(list("8/9/2", "1/1/1")).build());
-	
+
 		e.withWsobjs(list("8/bar", "one/one/1")).withResolvedObjects(list("8/9/2", "1/1/1"))
 				.assertCorrect(b.withWorkspaceObjects(list("8/bar", "one/one/1")).build());
 	}
-	
+
 	@Test
 	public void immutableMethodParameters() throws Exception {
 		final List<String> toMutate = new LinkedList<>(list("a", "b", "c"));
@@ -695,13 +697,13 @@ public class ProvenanceActionTest {
 				"foo", null, ImmutableMap.of("bar", "baz", "bat", toMutate));
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
 				.withMethodParameters(params).build();
-		
+
 		// check mutating input doesn't mutate PA
 		toMutate.remove("b");
 		assertThat("no mutate", toMutate, is(list("a", "c")));
 		assertThat("incorrect params", pa.getMethodParameters(), is(list(
 				"foo", null, ImmutableMap.of("bar", "baz", "bat", list("a", "b", "c")))));
-		
+
 		// check mutating return doesn't mutate PA
 		try {
 			pa.getMethodParameters().add("foo");
@@ -726,22 +728,22 @@ public class ProvenanceActionTest {
 			// test passed
 		}
 	}
-	
+
 	// all these immutable tests are so similar but trying to DRY them up makes a real mess
 	// maybe there's a better way to handle it but I'm not spending any more time on it
-	
+
 	@Test
 	public void immutableWorkspaceObjects() throws Exception {
 		final List<String> toMutate = new LinkedList<>(list("foo/bar", "baz/bat/1"));
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
 				.withWorkspaceObjects(toMutate).build();
-		
+
 		// check mutating doesn't mutate PA
 		toMutate.add("badref");
 		assertThat("no mutate", toMutate, is(list("foo/bar", "baz/bat/1", "badref")));
 		assertThat("incorrect ws objs",
 				pa.getWorkspaceObjects(), is(list("foo/bar", "baz/bat/1")));
-		
+
 		// check mutating return doesn't mutate PA
 		try {
 			pa.getWorkspaceObjects().add("foo");
@@ -750,13 +752,13 @@ public class ProvenanceActionTest {
 			// test passed
 		}
 	}
-	
+
 	@Test
 	public void immutableIncomingParams() throws Exception {
 		final List<String> toMutate = new LinkedList<>(list("1", "2"));
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
 				.withIncomingArgs(toMutate).build();
-		
+
 		// check mutating doesn't mutate PA
 		toMutate.add("3");
 		assertThat("no mutate", toMutate, is(list("1", "2", "3")));
@@ -770,13 +772,13 @@ public class ProvenanceActionTest {
 			// test passed
 		}
 	}
-	
+
 	@Test
 	public void immutableOutgoingParams() throws Exception {
 		final List<String> toMutate = new LinkedList<>(list("1", "2"));
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
 				.withOutgoingArgs(toMutate).build();
-		
+
 		// check mutating doesn't mutate PA
 		toMutate.add("3");
 		assertThat("no mutate", toMutate, is(list("1", "2", "3")));
@@ -790,14 +792,14 @@ public class ProvenanceActionTest {
 			// test passed
 		}
 	}
-	
+
 	@Test
 	public void immutableExternalData() throws Exception {
 		final List<ExternalData> toMutate = new LinkedList<>(list(
 				ExternalData.getBuilder().withDataID("d").build()));
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
 				.withExternalData(toMutate).build();
-		
+
 		// check mutating doesn't mutate PA
 		toMutate.add(ExternalData.getBuilder().withDataID("e").build());
 		assertThat("no mutate", toMutate, is(list(
@@ -815,14 +817,14 @@ public class ProvenanceActionTest {
 			// test passed
 		}
 	}
-	
+
 	@Test
 	public void immutableSubActions() throws Exception {
 		final List<SubAction> toMutate = new LinkedList<>(list(
 				SubAction.getBuilder().withName("f").build()));
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
 				.withSubActions(toMutate).build();
-		
+
 		// check mutating doesn't mutate PA
 		toMutate.add(SubAction.getBuilder().withName("g").build());
 		assertThat("no mutate", toMutate, is(list(
@@ -840,14 +842,14 @@ public class ProvenanceActionTest {
 			// test passed
 		}
 	}
-	
+
 	@Test
 	public void immutableCustom() throws Exception {
 		final Map<String, String> toMutate = new HashMap<>(ImmutableMap.of(
 				"foo", "bar", "baz", "bat"));
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
 				.withCustom(toMutate).build();
-		
+
 		// check mutating doesn't mutate PA
 		toMutate.put("whee", "whoo");
 		assertThat("no mutate", toMutate, is(ImmutableMap.of(
@@ -863,20 +865,20 @@ public class ProvenanceActionTest {
 			// test passed
 		}
 	}
-	
+
 	@Test
 	public void immutableResolvedObjects() throws Exception {
 		final List<String> toMutate = new LinkedList<>(list("6/8/22", "1/1/1"));
 		final ProvenanceAction pa = ProvenanceAction.getBuilder()
 				.withWorkspaceObjects(list("1/1/1", "1/1/1"))
 				.withResolvedObjects(toMutate).build();
-		
+
 		// check mutating doesn't mutate PA
 		toMutate.add("badref");
 		assertThat("no mutate", toMutate, is(list("6/8/22", "1/1/1", "badref")));
 		assertThat("incorrect resolved objs",
 				pa.getResolvedObjects(), is(list("6/8/22", "1/1/1")));
-		
+
 		// check mutating return doesn't mutate PA
 		try {
 			pa.getResolvedObjects().add("foo");
@@ -885,7 +887,7 @@ public class ProvenanceActionTest {
 			// test passed
 		}
 	}
-	
+
 	@Test
 	public void withMethodParametersFailBadMapKey() throws Exception {
 		final Map<String, Object> nullMap = new HashMap<>();
@@ -907,7 +909,7 @@ public class ProvenanceActionTest {
 				list(list("one", ImmutableMap.of(1, "bar"), list("two"))),
 				"Non string key in map at /0/1 in method parameters");
 	}
-	
+
 	@Test
 	public void withMethodParametersFailCantSerialize() throws Exception {
 		failWithMethodParameters(
@@ -924,12 +926,12 @@ public class ProvenanceActionTest {
 							"wugga", list(null, null, new WorkspaceUser("foo"), 1)),
 					null),
 				"Illegal type at /4/wugga/2 in method parameters: WorkspaceUser");
-		
+
 		failWithMethodParameters(list(
 					list("one", ImmutableMap.of("foo", new ByteArrayOutputStream()), list("two"))),
 				"Illegal type at /0/1/foo in method parameters: ByteArrayOutputStream");
 	}
-	
+
 	private void failWithMethodParameters(final List<Object> input, final String exception) {
 		try {
 			ProvenanceAction.getBuilder().withMethodParameters(input);
@@ -938,7 +940,7 @@ public class ProvenanceActionTest {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(exception));
 		}
 	}
-	
+
 	@Test
 	public void withWorkspaceObjectsFailBadRef() throws Exception {
 		// we just test a few cases here, since the ObjectIdentifier tests are exhaustive
@@ -955,13 +957,13 @@ public class ProvenanceActionTest {
 				prefix + "3: Unable to parse version portion of object reference 'foo/bar/baz' "
 				+ "to an integer");
 	}
-	
+
 	@Test
 	public void withWorkspaceObjectsFailUnequalResolvedObjects() throws Exception {
 		final ProvenanceAction.Builder b = ProvenanceAction.getBuilder()
 				.withWorkspaceObjects(list("foo/bar"))
 				.withResolvedObjects(list("1/1/1"));
-		
+
 		failWithWorkspaceObjects(b, list("foo/bar", "baz/bat/1"),
 				"The workspace objects list must be the same size as the resolved objects list");
 		// check builder unmodified
@@ -985,7 +987,7 @@ public class ProvenanceActionTest {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(exception));
 		}
 	}
-	
+
 	@Test
 	public void withResolvedObjectsFail() throws Exception {
 		// we just test a few cases here, since the ObjectIdentifier tests are exhaustive
@@ -1009,12 +1011,12 @@ public class ProvenanceActionTest {
 				list("1/1/1", "1/1/1", "1/1"),
 				prefix + "3: Reference 1/1 is not absolute");
 	}
-	
+
 	@Test
 	public void withResolvedObjectsFailUnequalWorkspaceObjects() throws Exception {
 		final String err = "The resolved workspace objects list must be the same size as "
 				+ "the standard objects list";
-		
+
 		final ProvenanceAction.Builder b = ProvenanceAction.getBuilder().withCaller("c");
 		final ProvExpected e = new ProvExpected().withCaller(opt("c"));
 		failWithResolvedObjects(b, list("1/1/1", "2/2/2"), err);
@@ -1027,7 +1029,7 @@ public class ProvenanceActionTest {
 	private void failWithResolvedObjects(final List<String> input, final String exception) {
 		failWithResolvedObjects(ProvenanceAction.getBuilder(), input, exception);
 	}
-	
+
 	private void failWithResolvedObjects(
 			final ProvenanceAction.Builder b,
 			final List<String> input,
@@ -1039,7 +1041,7 @@ public class ProvenanceActionTest {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(exception));
 		}
 	}
-	
+
 	@Test
 	public void withIncomingArgsFail() throws Exception {
 		failWithIncomingArgs(
@@ -1049,7 +1051,7 @@ public class ProvenanceActionTest {
 				list("foo", "baz", "   \t    "),
 				"Null or whitespace only string in collection incoming args");
 	}
-	
+
 	private void failWithIncomingArgs(final List<String> input, final String exception) {
 		try {
 			ProvenanceAction.getBuilder().withIncomingArgs(input);
@@ -1058,7 +1060,7 @@ public class ProvenanceActionTest {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(exception));
 		}
 	}
-	
+
 	@Test
 	public void withOutgoingArgsFail() throws Exception {
 		failWithOutgoingArgs(
@@ -1068,7 +1070,7 @@ public class ProvenanceActionTest {
 				list("foo", "baz", "   \t    "),
 				"Null or whitespace only string in collection outgoing args");
 	}
-	
+
 	private void failWithOutgoingArgs(final List<String> input, final String exception) {
 		try {
 			ProvenanceAction.getBuilder().withOutgoingArgs(input);
@@ -1077,7 +1079,7 @@ public class ProvenanceActionTest {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(exception));
 		}
 	}
-	
+
 	@Test
 	public void withExternalDataFail() throws Exception {
 		try {
@@ -1091,7 +1093,7 @@ public class ProvenanceActionTest {
 					"Null item in external data"));
 		}
 	}
-	
+
 	@Test
 	public void withSubActionsFail() throws Exception {
 		try {
@@ -1105,7 +1107,7 @@ public class ProvenanceActionTest {
 					"Null item in subactions"));
 		}
 	}
-	
+
 	@Test
 	public void withCustomFail() throws Exception {
 		final Map<String, String> nullMap = new HashMap<>();
@@ -1120,7 +1122,7 @@ public class ProvenanceActionTest {
 					"Null key in custom provenance"));
 		}
 	}
-	
+
 	@Test
 	public void buildFail() throws Exception {
 		failBuild(ProvenanceAction.getBuilder());

@@ -51,8 +51,6 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 
-//import org.apache.commons.lang3.builder.ToStringBuilder;
-
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.DependencyStatus;

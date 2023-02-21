@@ -24,6 +24,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import com.arangodb.ArangoDatabase;
 import com.arangodb.entity.CollectionType;
@@ -65,6 +66,7 @@ import us.kbase.workspace.test.WorkspaceServerThread;
 import us.kbase.workspace.test.controllers.arango.ArangoController;
 import us.kbase.workspace.test.controllers.sample.SampleServiceController;
 
+@Category(us.kbase.common.test.MongoTests.class)
 public class SampleServiceIntegrationTest {
 
 	private static ArangoController ARANGO;
@@ -72,21 +74,21 @@ public class SampleServiceIntegrationTest {
 	private static SampleServiceController SAMPLE;
 	private static AuthController AUTH;
 	private static WorkspaceServer SERVER;
-	
+
 	private static final String USER1 = "user1";
 	private static final String USER2 = "user2";
 	private static final String USER3 = "user3";
 	private static final String SAMPLE_SERVICE_FULL_ADMIN_ROLE = "SamServFull";
-	
+
 	private static AuthToken SAMPLE_SERVICE_ADMIN_TOKEN = null;
 
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
 	private static WorkspaceClient CLIENT3;
 	private static WorkspaceClient CLIENT_NOAUTH;
-	
+
 	private static SampleServiceClient SAMPLE_CLIENT;
-	
+
 	private static final String ARANGO_DB = "ws_sample_service_integration_test";
 	private static final String ARANGO_USER = "arangouser";
 	private static final String ARANGO_PWD = "arangopwd";
@@ -98,9 +100,9 @@ public class SampleServiceIntegrationTest {
 	private static final String ARANGO_COL_DATA_LINK = "dataLinkCol";
 	private static final String ARANGO_COL_WS_OBJ = "wsObjCol";
 	private static final String ARANGO_COL_SCHEMA = "schemaCol";
-	
+
 	private static final String WS_DB = ARANGO_DB;
-	
+
 	private static final String SAMPLE_TYPE = "Samples.SList-0.1";
 	private static final String SAMPLE_REF_TYPE = "Samples.SRef-0.1";
 
@@ -119,7 +121,7 @@ public class SampleServiceIntegrationTest {
 				TestCommon.getArangoExe(),
 				TestCommon.getArangoJS(),
 				Paths.get(TestCommon.getTempDir()));
-		
+
 		// set up auth
 		final String dbname = SampleServiceIntegrationTest.class.getSimpleName() + "Auth";
 		AUTH = new AuthController(
@@ -141,7 +143,7 @@ public class SampleServiceIntegrationTest {
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
 		SAMPLE_SERVICE_ADMIN_TOKEN = new AuthToken(token3, USER3);
-		
+
 		// this is pretty wacky and demonstrates the tight binding between the sample
 		// service and the workspace.
 		final int sampleServicePort = findFreePort();
@@ -167,7 +169,7 @@ public class SampleServiceIntegrationTest {
 		CLIENT_NOAUTH.setIsInsecureHttpConnectionAllowed(true);
 
 		setUpSpecs();
-		
+
 		setUpSampleDB();
 		SAMPLE = new SampleServiceController(
 				sampleServicePort,
@@ -192,21 +194,21 @@ public class SampleServiceIntegrationTest {
 						ARANGO_COL_WS_OBJ,
 						ARANGO_COL_SCHEMA)
 				);
-		
+
 		SAMPLE_CLIENT = new SampleServiceClient(
 				new URL("http://localhost:" + SAMPLE.getPort()), t1);
 		SAMPLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 		System.out.println(String.format("Running sample service v %s at http://localhost:%s",
 				SAMPLE_CLIENT.status().get("version"), SAMPLE.getPort()));
 	}
-	
+
 	private static void setUpSampleDB() throws Exception {
 		ARANGO.getClient().createUser(ARANGO_USER, ARANGO_PWD);
 		ARANGO.getClient().createDatabase(ARANGO_DB);
 		final ArangoDatabase db = ARANGO.getClient().db(ARANGO_DB);
 
 		db.grantAccess(ARANGO_USER);
-		
+
 		final CollectionCreateOptions edge = new CollectionCreateOptions()
 				.type(CollectionType.EDGES);
 		db.createCollection(ARANGO_COL_SAMPLE);
@@ -306,8 +308,8 @@ public class SampleServiceIntegrationTest {
 			MONGO.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
-	
-	
+
+
 	@Before
 	public void clearDB() throws Exception {
 		try (final MongoClient cli = new MongoClient("localhost:" + MONGO.getServerPort())) {
@@ -315,11 +317,11 @@ public class SampleServiceIntegrationTest {
 			TestCommon.destroyDB(db);
 			db.getCollection("dyncfg").insertOne(
 					new Document("key", DynamicConfig.KEY_BACKEND_SCALING).append("value", 1));
-		
+
 		}
 		ARANGO.clearDatabase(ARANGO_DB, false);
 	}
-	
+
 
 	private SampleAddress createGenericSample() throws IOException, JsonClientException {
 		return SAMPLE_CLIENT.createSample(new CreateSampleParams()
@@ -331,36 +333,36 @@ public class SampleServiceIntegrationTest {
 							))
 					));
 	}
-	
+
 	@Test
 	public void status() throws Exception {
 		// only test the parts of the status that are relevant for the sample service
 		final Map<String, Object> status = CLIENT1.status();
-		
+
 //		System.out.println(status);
-		
+
 		assertThat("incorrect status keys", status.keySet(), is(new HashSet<>(Arrays.asList(
 				"state", "message", "dependencies", "version", "git_url", "freemem", "totalmem",
 				"maxmem"))));
-		
+
 		assertThat("incorrect state", status.get("state"), is("OK"));
 
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> deps =
 				(List<Map<String, String>>) status.get("dependencies");
 		assertThat("incorrect dependency count", deps.size(), is(3));
-		
+
 		assertThat("incorrect dep 1", deps.get(0).get("name"), is("MongoDB"));
 		assertThat("incorrect dep 2", deps.get(1).get("name"), is("GridFS"));
-		
+
 		final Map<String, String> sample = deps.get(2);
 		Version.valueOf((String) sample.get("version")); // tests it's a valid semver
 		sample.remove("version");
-		
+
 		assertThat("incorrect sample dep", sample, is(ImmutableMap.of(
 				"name", "Sample service", "state", "OK", "message", "OK")));
 	}
-	
+
 	@Test
 	public void saveSampleAndCheckACLChanges() throws Exception {
 		final SampleAddress samadd = createGenericSample();
@@ -373,26 +375,26 @@ public class SampleServiceIntegrationTest {
 				.withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2, USER3))
 				.withNewPermission("w"));
-		
+
 		for (final WorkspaceClient cli: Arrays.asList(CLIENT1, CLIENT2)) {
 			// test users can save against sample as long as they have admin privs
 			final String objName = cli.getToken().getUserName() + "obj";
 			saveSampleObject(cli, workspace, objName, samadd.getId(), true);
-			
+
 			final ObjectData obj = getObject(cli, "1/" + objName + "/1");
-			
+
 			assertThat("incorrect object name", obj.getInfo().getE2(), is(objName));
-			
+
 			assertThat("incorrect extracted IDs", obj.getExtractedIds(), is(ImmutableMap.of(
 					"sample", Arrays.asList(samadd.getId()))));
-			
+
 			assertThat("incorrect object", obj.getData().asClassInstance(Map.class),
 					is(ImmutableMap.of("samples", Arrays.asList(samadd.getId()))));
 		}
-		
+
 		final SampleACLs expected = addAdmin(initEmptyACLs().withOwner(USER1), USER2);
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), expected);
-		
+
 		// trigger ACL change, first skipping the ACL change with an input param
 		getObject(CLIENT3, "1/" + USER1 + "obj/1", 1L);
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), expected);
@@ -400,7 +402,7 @@ public class SampleServiceIntegrationTest {
 		getObject(CLIENT3, "1/" + USER1 + "obj/1");
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), addRead(expected, USER3));
 	}
-	
+
 	@Test
 	public void publicReadChange() throws Exception {
 		final SampleAddress samadd = createGenericSample();
@@ -408,20 +410,20 @@ public class SampleServiceIntegrationTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace(workspace)
 				.withGlobalread("r"));
-		
+
 		saveSampleObject(CLIENT1, workspace, "myobj", samadd.getId(), true);
-		
+
 		// trigger ACL change for anon user
 		getObject(CLIENT_NOAUTH, "1/myobj/1");
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), initEmptyACLs()
 				.withOwner(USER1).withPublicRead(1L));
-		
+
 		// trigger ACL change for user without direct workspace access
 		getObject(CLIENT2, "1/myobj/1");
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), addRead(initEmptyACLs()
 				.withOwner(USER1).withPublicRead(1L), USER2));
 	}
-	
+
 	@Test
 	public void removeSampleACLAndGet() throws Exception {
 		// Tests that a user can still read a sample after getting a referring object
@@ -433,13 +435,13 @@ public class SampleServiceIntegrationTest {
 				.withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2))
 				.withNewPermission("r"));
-		
+
 		saveSampleObject(CLIENT1, workspace, "myobj", samadd.getId(), true);
 		getObject(CLIENT2, "1/myobj/1");
-		
+
 		final SampleACLs acls = addRead(initEmptyACLs().withOwner(USER1), USER2);
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), acls);
-		
+
 		SAMPLE_CLIENT.updateSampleAcls(new UpdateSampleACLsParams()
 				.withId(samadd.getId())
 				.withRemove(Arrays.asList(USER2)));
@@ -449,7 +451,7 @@ public class SampleServiceIntegrationTest {
 		getObject(CLIENT2, "1/myobj/1");
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), addRead(acls, USER2));
 	}
-	
+
 	@SuppressWarnings("deprecation")
 	@Test
 	public void deprecatedMethods() throws Exception {
@@ -461,7 +463,7 @@ public class SampleServiceIntegrationTest {
 				.withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2))
 				.withNewPermission("r"));
-		
+
 		saveSampleObject(CLIENT1, workspace, "myobj", samadd.getId(), true);
 		CLIENT1.saveObjects(new SaveObjectsParams()
 				.withId(1L)
@@ -471,13 +473,13 @@ public class SampleServiceIntegrationTest {
 						.withData(new UObject(ImmutableMap.of("id", "1/1/1"))))));
 		final SampleACLs acls = initEmptyACLs().withOwner(USER1);
 		final SampleACLs readacls = addRead(initEmptyACLs().withOwner(USER1), USER2);
-		
+
 		// get objects
 		final ObjectData obj = CLIENT2
 				.getObjects(Arrays.asList(new ObjectIdentity().withName("myobj").withWsid(1L)))
 				.get(0);
 		checkExternalIDError(obj);
-		
+
 		assertThat("incorrect object", obj.getData().asClassInstance(Map.class),
 				is(ImmutableMap.of("samples", Arrays.asList(samadd.getId()))));
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), readacls);
@@ -488,11 +490,11 @@ public class SampleServiceIntegrationTest {
 		final us.kbase.workspace.ObjectProvenanceInfo pobj = CLIENT2.getObjectProvenance(
 				Arrays.asList(new ObjectIdentity().withObjid(1L).withWsid(1L))).get(0);
 		checkExternalIDError(pobj.getHandleError(), pobj.getHandleStacktrace());
-		
+
 		assertThat("incorrect ids", pobj.getExtractedIds(),
 				is(ImmutableMap.of("sample", Arrays.asList(samadd.getId()))));
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), readacls);
-		
+
 		// get object subset
 		removeUserFromSampleACLs(SAMPLE_CLIENT, samadd.getId(), USER2);
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), acls);
@@ -506,7 +508,7 @@ public class SampleServiceIntegrationTest {
 		assertThat("incorrect object", sobj.getData().asClassInstance(Map.class),
 				is(ImmutableMap.of("samples", Arrays.asList(samadd.getId()))));
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), readacls);
-		
+
 		// get object by ref
 		removeUserFromSampleACLs(SAMPLE_CLIENT, samadd.getId(), USER2);
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), acls);
@@ -518,19 +520,19 @@ public class SampleServiceIntegrationTest {
 				is(ImmutableMap.of("samples", Arrays.asList(samadd.getId()))));
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), readacls);
 	}
-	
+
 	@Test
 	public void saveSampleFailBadID() throws Exception {
 		createGenericSample(); // put a sample in the database
 		String workspace = "failbadid";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		
+
 		saveSampleObjectFail(CLIENT1, workspace, "whoops", null,
 				new ServerException(
 						"Object #1, whoops failed type checking:\ninstance type (null) not " +
 						"allowed for ID reference (allowed: [\"string\"]), at /samples/0",
 						1, "name"));
-		
+
 		saveSampleObjectFail(CLIENT1, workspace, "whoops", "fakesampleaddress",
 				new ServerException(
 						"Object #1, whoops has invalid reference: The Sample Service reported " +
@@ -538,7 +540,7 @@ public class SampleServiceIntegrationTest {
 						"error code 30001 Illegal input parameter: id fakesampleaddress " +
 						"must be a UUID string at /samples/0", 1, "name"));
 	}
-	
+
 	@Test
 	public void saveSampleFailUnauthorized() throws Exception {
 		final SampleAddress samadd = createGenericSample();
@@ -553,7 +555,7 @@ public class SampleServiceIntegrationTest {
 				.withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2, USER3))
 				.withNewPermission("w"));
-		
+
 		for (final WorkspaceClient cli: Arrays.asList(CLIENT2, CLIENT3)) {
 			saveSampleObjectFail(cli, workspace, "foo", samadd.getId(), new ServerException(
 					String.format(
@@ -562,9 +564,9 @@ public class SampleServiceIntegrationTest {
 						cli.getToken().getUserName(), samadd.getId()),
 					1, "name"));
 		}
-		
+
 	}
-	
+
 	private void saveSampleObject(
 			final WorkspaceClient cli,
 			final String workspace,
@@ -573,7 +575,7 @@ public class SampleServiceIntegrationTest {
 			throws Exception {
 		saveSampleObject(cli, workspace, objectName, sampleid, false);
 	}
-	
+
 	private void saveSampleObject(
 			final WorkspaceClient cli,
 			final String workspace,
@@ -597,7 +599,7 @@ public class SampleServiceIntegrationTest {
 			throw se;
 		}
 	}
-	
+
 	private void saveSampleObjectFail(
 			final WorkspaceClient cli,
 			final String workspace,
@@ -611,16 +613,16 @@ public class SampleServiceIntegrationTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	private void assertAclsCorrect(
 			final SampleServiceClient cli,
 			final String id,
 			final SampleACLs expected)
 			throws Exception {
 		assertAclsCorrect(cli, id, expected, false);
-		
+
 	}
-	
+
 	private void assertAclsCorrect(
 			final SampleServiceClient cli,
 			final String id,
@@ -632,9 +634,9 @@ public class SampleServiceIntegrationTest {
 			System.out.println(acls);
 		}
 		assertAclsCorrect(acls, expected);
-		
+
 	}
-	
+
 	private void assertAclsCorrect(final SampleACLs got, final SampleACLs expected) {
 		// ^(^&*^^^(%_ no equals in SDK objects
 		assertThat("incorrect ACL addl props", got.getAdditionalProperties(),
@@ -645,7 +647,7 @@ public class SampleServiceIntegrationTest {
 		assertThat("incorrect write", got.getWrite(), is(expected.getWrite()));
 		assertThat("incorrect read", got.getRead(), is(expected.getRead()));
 	}
-	
+
 	// Initializes with empty mutable arraylists for the ACLs and false for public read.
 	// Owner is left as null.
 	private SampleACLs initEmptyACLs() {
@@ -655,19 +657,19 @@ public class SampleServiceIntegrationTest {
 				.withWrite(new ArrayList<>())
 				.withRead(new ArrayList<>());
 	}
-	
+
 	// expects that there's a mutable list in the read field
 	private SampleACLs addRead(final SampleACLs initedACLs, final String user) {
 		initedACLs.getRead().add(user);
 		return initedACLs;
 	}
-	
+
 	// expects that there's a mutable list in the admin field
 	private SampleACLs addAdmin(final SampleACLs initedACLs, final String user) {
 		initedACLs.getAdmin().add(user);
 		return initedACLs;
 	}
-	
+
 	private void removeUserFromSampleACLs(
 			final SampleServiceClient cli,
 			final String id,
@@ -681,7 +683,7 @@ public class SampleServiceIntegrationTest {
 	private ObjectData getObject(final WorkspaceClient cli, final String ref) throws Exception {
 		return getObject(cli, ref, null);
 	}
-	
+
 	private ObjectData getObject(
 			final WorkspaceClient cli,
 			final String ref,
@@ -692,12 +694,12 @@ public class SampleServiceIntegrationTest {
 				.withSkipExternalSystemUpdates(skipExternalACLUpdates)
 				).getData().get(0));
 	}
-	
+
 	private ObjectData checkExternalIDError(final ObjectData obj) {
 		checkExternalIDError(obj.getHandleError(), obj.getHandleStacktrace());
 		return obj;
 	}
-	
+
 	private void checkExternalIDError(final String err, final String stack) {
 		if (err != null || stack != null) {
 			throw new TestException("External service reported an error: "

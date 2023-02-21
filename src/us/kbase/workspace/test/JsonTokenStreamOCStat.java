@@ -7,7 +7,7 @@ import us.kbase.common.service.JsonTokenStream;
 
 public class JsonTokenStreamOCStat {
 	private static Map<JsonTokenStream, Exception> openEvents = new LinkedHashMap<JsonTokenStream, Exception>();
-	
+
 	public static void register() {
 		JsonTokenStream.setDebugOpenCloseListener(new JsonTokenStream.DebugOpenCloseListener() {
 			@Override
@@ -27,13 +27,13 @@ public class JsonTokenStreamOCStat {
 			}
 		});
 	}
-	
+
 	public static void showStat() {
 		for (Exception ex : openEvents.values()) {
 			ex.printStackTrace();
 		}
-		final boolean notEmpty = !openEvents.isEmpty();
 		openEvents.clear();
+		final boolean notEmpty = !openEvents.isEmpty();
 		if (notEmpty) {
 			throw new IllegalStateException(
 					"Some JsonTokenStream-related open-close errors occurred (see error log)");

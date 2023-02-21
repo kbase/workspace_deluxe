@@ -32,6 +32,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.junit.experimental.categories.Category;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
@@ -60,15 +61,16 @@ import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
+@Category(us.kbase.common.test.MongoTests.class)
 @RunWith(Parameterized.class)
 public class TypeRegisteringTest {
 	private TestTypeStorage storage = null;
 	private TypeDefinitionDB db = null;
 	private final boolean useMongo;
 	private static String adminUser = "admin";
-	
+
 	private static MongoController mongo = null;
-	
+
 	private static String longstr = "";
 	static {
 		for (int i = 0; i < 256; i++) {
@@ -106,9 +108,9 @@ public class TypeRegisteringTest {
 						if (ex.getCause() instanceof Exception) {
 							throw (Exception)ex.getCause();
 						} else if (ex.getCause() instanceof RuntimeException) {
-							throw (RuntimeException)ex.getCause();							
+							throw (RuntimeException)ex.getCause();
 						} else if (ex.getCause() instanceof Error) {
-							throw (Error)ex.getCause();							
+							throw (Error)ex.getCause();
 						}
 					}
 					throw ex;
@@ -134,13 +136,13 @@ public class TypeRegisteringTest {
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
 		db = new TypeDefinitionDB(storage);
 	}
-	
+
 	public static MongoDatabase createMongoDbConnection() throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(TestCommon.getMongoExe(),
 					Paths.get(TestCommon.getTempDir()),
 					TestCommon.useWiredTigerEngine());
-			System.out.println("Using mongo temp dir " + 
+			System.out.println("Using mongo temp dir " +
 					mongo.getTempDir());
 		}
 		@SuppressWarnings("resource")
@@ -149,33 +151,33 @@ public class TypeRegisteringTest {
 		TestCommon.destroyDB(mdb);
 		return mdb;
 	}
-	
+
 	@Parameters
 	public static Collection<Object[]> generateData() {
 		return Arrays.asList(new Object[][] {
 				{false}, {true}
 		});
 	}
-		
+
 	@Before
 	public void cleanupBefore() throws Exception {
 		storage.removeAllTypeStorageListeners();
 		storage.removeAllData();
 		db.cleanupCaches();
 	}
-	
+
 	@After
 	public void cleanupAfter() throws Exception {
 		cleanupBefore();
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
 			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
-	
+
 	@Test
 	public void testSimple() throws Exception {
 		String user = "Owner";
@@ -213,7 +215,7 @@ public class TypeRegisteringTest {
 		String reg2spec = loadSpec("simple", "Regulation", "2");
 		Map<AbsoluteTypeDefId, String> typeToJsonSchema1 = db.getJsonSchemasForAllTypes(new ModuleDefId("Regulation"));
 		readOnlyMode();
-		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.asList("new_regulator"), 
+		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.asList("new_regulator"),
 				Collections.<String>emptyList(), user, true);
 		assertThat(changes.size(), is(3));
 		assertThat(changes.get(new TypeDefName("Regulation.new_regulator")).isUnregistered(),
@@ -245,7 +247,7 @@ public class TypeRegisteringTest {
 		FuncDetailedInfo fdi = db.getFuncDetailedInfo("Regulation", "get_regulator_binding_sites_and_genes", null, true, user);
 		assertThat(fdi.getSpecDef().contains("("), is(true));
 	}
-			
+
 	@Test
 	public void testDescr() throws Exception {
 		String sequenceSpec = loadSpec("descr", "Descr");
@@ -259,7 +261,7 @@ public class TypeRegisteringTest {
 				is("position of fragment on a sequence"));
 		assertThat(db.getFuncDescription("Descr", "super_func", null), is("The super function."));
 	}
-	
+
 	@Test
 	public void testBackward() throws Exception {
 		String regulationSpec = loadSpec("backward", "Regulation");
@@ -268,7 +270,7 @@ public class TypeRegisteringTest {
 		db.releaseModule("Regulation", adminUser, false);
 		checkTypeVer("Regulation", "binding_site", "1.0");
 		String reg2spec = loadSpec("backward", "Regulation", "2");
-		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.<String>asList(), 
+		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.<String>asList(),
 				Collections.<String>emptyList(), adminUser);
 		assertThat(changes.size(), is(2));
 		assertThat(changes.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString(),
@@ -280,7 +282,7 @@ public class TypeRegisteringTest {
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "2.0");
 		checkFuncVer("Regulation", "get_regulated_genes", "1.1");
 		String reg3spec = loadSpec("backward", "Regulation", "3");
-		Map<TypeDefName, TypeChange> changes3 = db.registerModule(reg3spec, Arrays.<String>asList(), 
+		Map<TypeDefName, TypeChange> changes3 = db.registerModule(reg3spec, Arrays.<String>asList(),
 				Collections.<String>emptyList(), adminUser);
 		assertThat(changes3.size(), is(2));
 		assertThat(changes3.get(new TypeDefName("Regulation.gene"))
@@ -292,7 +294,7 @@ public class TypeRegisteringTest {
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "3.0");
 		checkFuncVer("Regulation", "get_regulated_genes", "1.2");
 		String reg4spec = loadSpec("backward", "Regulation", "4");
-		Map<TypeDefName, TypeChange> changes4 = db.registerModule(reg4spec, Arrays.<String>asList(), 
+		Map<TypeDefName, TypeChange> changes4 = db.registerModule(reg4spec, Arrays.<String>asList(),
 				Collections.<String>emptyList(), adminUser);
 		assertThat(changes4.size(), is(2));
 		assertThat(changes4.get(new TypeDefName("Regulation.gene"))
@@ -350,14 +352,14 @@ public class TypeRegisteringTest {
 		db.releaseModule(exprName, adminUser, false);
 		checkTypeVer(exprName, "ExpressionSeries", "2.0");
 	}
-	
+
 	private static Map<String, String> asMap(List<AbsoluteTypeDefId> list) {
 		Map<String, String> ret = new TreeMap<String, String>();
 		for (AbsoluteTypeDefId item : list)
 			ret.put(item.getType().getTypeString(), item.getVerString());
 		return ret;
 	}
-	
+
 	@Test
 	public void testRollback() throws Exception {
 		String spec1 = loadSpec("rollback", "First");
@@ -383,7 +385,7 @@ public class TypeRegisteringTest {
 			}
 		}
 	}
-	
+
 	@Test
 	public void testRestrict() throws Exception {
 		initModule("Common", adminUser);
@@ -392,7 +394,7 @@ public class TypeRegisteringTest {
 		long commonVer1 = db.getLatestModuleVersion("Common");
 		initModule("Middle", adminUser);
 		db.registerModule(loadSpec("restrict", "Middle"), Arrays.asList("middle_struct"), adminUser);
-		db.releaseModule("Middle", adminUser, false);		
+		db.releaseModule("Middle", adminUser, false);
 		long middleVer1 = db.getLatestModuleVersion("Middle");
 		db.registerModule(loadSpec("restrict", "Common", "2"), Collections.<String>emptyList(), adminUser);
 		db.releaseModule("Common", adminUser, false);
@@ -405,10 +407,10 @@ public class TypeRegisteringTest {
 			assertThat(ex.getMessage().contains("Incompatible module dependecies: Common"),
 					is(true));
 		}
-		db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"), 
+		db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
 				Collections.<String>emptyList(), adminUser, true, restrict("Common", commonVer1));
 		db.refreshModule("Middle", adminUser);
-		db.releaseModule("Middle", adminUser, false);		
+		db.releaseModule("Middle", adminUser, false);
 		try {
 			db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
 					Collections.<String>emptyList(), adminUser, false, restrict("Common", commonVer1));
@@ -418,14 +420,14 @@ public class TypeRegisteringTest {
 		}
 		try {
 			db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
-					Collections.<String>emptyList(), adminUser, false, 
+					Collections.<String>emptyList(), adminUser, false,
 					restrict("Common", commonVer2, "Middle", middleVer1));
 			fail();
 		} catch (SpecParseException ex) {
 			assertThat(ex.getMessage().contains("Version of dependent module Common"), is(true));
 		}
-		Map<TypeDefName, TypeChange> ret = db.registerModule(loadSpec("restrict", "Upper"), 
-				Arrays.asList("upper_struct"), Collections.<String>emptyList(), adminUser, false, 
+		Map<TypeDefName, TypeChange> ret = db.registerModule(loadSpec("restrict", "Upper"),
+				Arrays.asList("upper_struct"), Collections.<String>emptyList(), adminUser, false,
 				restrict("Common", commonVer1, "Middle", middleVer1));
 		assertThat(ret.size(), is(1));
 		assertThat(ret.get(new TypeDefName("Upper.upper_struct")).getTypeVersion().getVerString(),
@@ -434,7 +436,7 @@ public class TypeRegisteringTest {
 		assertThat( db.findModuleVersionsByTypeVersion(
 				new TypeDefId("Upper.upper_struct", "1"), null).size(), is(1));
 	}
-	
+
 	/**
 	 * It's not Unit test. It measures execution time (with indexes and without).
 	 */
@@ -448,7 +450,7 @@ public class TypeRegisteringTest {
 		String regulationSpec = loadSpec("backward", "Regulation");
 		initModule("Regulation", adminUser);
 		long initVer = db.getLatestModuleVersion("Regulation");
-		db.registerModule(regulationSpec, Arrays.asList("sequence_pos1", "gene", "sequence_pos2", 
+		db.registerModule(regulationSpec, Arrays.asList("sequence_pos1", "gene", "sequence_pos2",
 				"binding_site"), adminUser);
 		long regVer = db.getLatestModuleVersion("Regulation");
 		MongoTypeStorage mts = (MongoTypeStorage)storage.getInnerStorage();
@@ -465,7 +467,7 @@ public class TypeRegisteringTest {
 			ModuleInfo info = db.getModuleInfo("Regulation", ver);
 			int refCount = 0;
 			for (String type : info.getTypes().keySet()) {
-				TypeDefId typeDef = new TypeDefId(info.getModuleName() + "." + type, 
+				TypeDefId typeDef = new TypeDefId(info.getModuleName() + "." + type,
 						info.getTypes().get(type).getTypeVersion());
 				db.getJsonSchemaDocument(typeDef);
 				db.getTypeParsingDocument(typeDef);
@@ -483,7 +485,7 @@ public class TypeRegisteringTest {
 		System.out.println("Search time: " + (System.currentTimeMillis() - time));
 	}
 	*/
-	
+
 	@Test
 	public void testMD5() throws Exception {
 		initModule("Common", adminUser);
@@ -516,7 +518,7 @@ public class TypeRegisteringTest {
 				new ModuleDefId("Common", db.getLatestModuleVersion("Common"))), is(true));
 		assertThat(db.getModuleInfo(new ModuleDefId("Common")).getMd5hash(), is(common3hash));
 	}
-	
+
 	@Test
 	public void testRegistration() throws Exception {
 		for (int item = 0; item < 2; item++) {
@@ -531,13 +533,13 @@ public class TypeRegisteringTest {
 			}
 			assertThat(db.getNewModuleRegistrationRequests(adminUser, true).size(), is(0));
 		}
-		
+
 		failReg(null, adminUser, "Module name cannot be null or the empty string");
 		failReg("", adminUser, "Module name cannot be null or the empty string");
 		failReg("a-b", adminUser, "Illegal character in Module name a-b: -");
 		failReg(longstr, adminUser, "Module name size is > 255 bytes");
 	}
-	
+
 	private void failReg(String module, String user, String exp) {
 		try {
 			db.requestModuleRegistration(module, user);
@@ -547,19 +549,19 @@ public class TypeRegisteringTest {
 		} catch (TypeStorageException e) {
 			fail("Wrong exception type");
 		}
-		
+
 	}
 
 	@Test
 	public void testError() throws Exception {
 		// bad module names will be caught at module registration
-		
+
 		List<String> mttypes = new ArrayList<String>();
 		failRegister("LongTypeName", mttypes, adminUser, "error",
 				"Type name size is > 255 bytes");
 		failRegister("LongFuncName", mttypes, adminUser, "error",
 				"Function name size is > 255 bytes");
-		
+
 		initModule("Test", adminUser);
 		try {
 			db.registerModule(loadSpec("error", "Test"), Arrays.asList("bebebe"), adminUser);
@@ -631,7 +633,7 @@ public class TypeRegisteringTest {
 			assertThat("correct exception", ex.getLocalizedMessage(), is (exp));
 		}
 	}
-	
+
 	@Test
 	public void testStop() throws Exception {
 		String moduleName = "Regulation";
@@ -786,7 +788,7 @@ public class TypeRegisteringTest {
 					is(true));
 		}
 		initModule("Dependant", adminUser);
-		db.registerModule(loadSpec("stop", "Dependant"), Arrays.asList("new_type"), Collections.<String>emptyList(), 
+		db.registerModule(loadSpec("stop", "Dependant"), Arrays.asList("new_type"), Collections.<String>emptyList(),
 				adminUser, false, restrict(moduleName, lastModVer));
 		db.resumeModuleSupport(moduleName, adminUser, true);
 		db.registerModule(loadSpec("stop", moduleName, "2"), adminUser);
@@ -795,7 +797,7 @@ public class TypeRegisteringTest {
 			db.refreshModule("Dependant", adminUser);
 			fail();
 		} catch (SpecParseException ex) {}
-		db.registerModule(loadSpec("stop", "Dependant"), Collections.<String>emptyList(), Collections.<String>emptyList(), 
+		db.registerModule(loadSpec("stop", "Dependant"), Collections.<String>emptyList(), Collections.<String>emptyList(),
 				adminUser, false, restrict(moduleName, lastModVer), null, "Test message", false);
 		db.releaseModule("Dependant", adminUser, false);
 		assertThat(db.getModuleInfo("Dependant").getUploadComment(), is("Test message"));
@@ -819,9 +821,9 @@ public class TypeRegisteringTest {
 		releaseModule("DepModule", adminUser);
 		Set<RefInfo> funcs = db.getFuncRefsByRef(new TypeDefId("DepModule.BType", "1.0"));
 		assertThat(funcs.size(), is(1));
-		
+
 	}
-	
+
 	@Test
 	public void testOwnership() throws Exception {
 		String module = "SomeModule";
@@ -914,7 +916,7 @@ public class TypeRegisteringTest {
 					"Module wasn't uploaded: SomeModule"), is(true));
 		}
 	}
-	
+
 	@Test
 	public void testEmpty() throws Exception {
 		String module = "EmptyModule";
@@ -924,7 +926,7 @@ public class TypeRegisteringTest {
 		assertThat(db.getFuncDetailedInfo("EmptyModule", "foo", null, false, "author")
 				.getSpecDef(), is("funcdef foo() returns () authentication none;"));
 	}
-	
+
 	private Map<String, Long> restrict(Object... params) {
 		Map<String, Long> restrictions = new HashMap<String, Long>();
 		for (int i = 0; i < params.length / 2; i++) {
@@ -932,10 +934,10 @@ public class TypeRegisteringTest {
 		}
 		return restrictions;
 	}
-	
+
 	private String getStorageObjects() throws Exception {
 		Map<String, Long> ret = storage.listObjects();
-		for (String key : new ArrayList<String>(ret.keySet())) 
+		for (String key : new ArrayList<String>(ret.keySet()))
 			if (ret.get(key) == 0)
 				ret.remove(key);
 		return "" + ret;
@@ -948,14 +950,14 @@ public class TypeRegisteringTest {
 	private void checkFuncVer(String module, String funcName, String version) throws Exception {
 		assertThat(db.getLatestFuncVersion(module, funcName), is(version));
 	}
-	
+
 	private void readOnlyMode() {
 		storage.addTypeStorageListener(new TypeStorageListener() {
 			@Override
 			public void onMethodStart(String method, Object[] params)
 					throws TypeStorageException {
-				if (method.startsWith("add") || method.startsWith("write") || 
-						method.startsWith("init") || method.startsWith("remove") || 
+				if (method.startsWith("add") || method.startsWith("write") ||
+						method.startsWith("init") || method.startsWith("remove") ||
 						method.startsWith("set") || method.startsWith("change"))
 					throw new TypeStorageException("Type storage is in read only mode.");
 			}
@@ -986,15 +988,15 @@ public class TypeRegisteringTest {
 		db.requestModuleRegistration(moduleName, user);
 		db.approveModuleRegistrationRequest(adminUser, moduleName, true);
 	}
-	
+
 	private void releaseModule(String module, String user) throws Exception {
 		db.releaseModule(module, user, false);
 	}
-	
+
 	private String loadSpec(String testName, String specName) throws Exception {
 		return loadSpec(testName, specName, null);
 	}
-	
+
 	private String loadSpec(String testName, String specName, String version) throws Exception {
 		String resName = testName + "." + specName + (version == null ? "" : ("." +version)) + ".spec.properties";
 		StringWriter sw = new StringWriter();
@@ -1013,11 +1015,11 @@ public class TypeRegisteringTest {
 		pw.close();
 		return sw.toString();
 	}
-	
-	private void checkTypeDep(String depModule, String depType, 
+
+	private void checkTypeDep(String depModule, String depType,
 			String refModule, String refType, String refVer, boolean res) throws Exception {
 		SemanticVersion depVer = new SemanticVersion(db.getLatestTypeVersion(new TypeDefName(depModule + "." + depType)));
-		Set<RefInfo> refs = db.getTypeRefsByDep(new AbsoluteTypeDefId(new TypeDefName(depModule + "." + depType), 
+		Set<RefInfo> refs = db.getTypeRefsByDep(new AbsoluteTypeDefId(new TypeDefName(depModule + "." + depType),
 				depVer.getMajor(), depVer.getMinor()));
 		RefInfo ret = null;
 		for (RefInfo ri : refs) {

@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.opt;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -27,6 +28,7 @@ import us.kbase.workspace.database.provenance.Contributor;
 import us.kbase.workspace.database.provenance.ContributorRole;
 import us.kbase.workspace.database.provenance.Contributor.ContributorType;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class ContributorTest {
 
 	private static final String INCORRECT = "incorrect ";

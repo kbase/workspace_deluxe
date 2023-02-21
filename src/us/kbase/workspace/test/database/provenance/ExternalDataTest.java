@@ -13,16 +13,18 @@ import java.util.Optional;
 import static us.kbase.common.test.TestCommon.ES;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.database.provenance.ExternalData;
 
+@Category(us.kbase.common.test.ProvenanceTests.class)
 public class ExternalDataTest {
-	
+
 	private static final Optional<URL> EU = Optional.empty();
 	private static final Optional<Instant> EI = Optional.empty();
-	
+
 	@Test
 	public void equals() throws Exception {
 		EqualsVerifier.forClass(ExternalData.class).usingGetClass().verify();
@@ -39,10 +41,10 @@ public class ExternalDataTest {
 		assertThat("incorrect date", ed1.getResourceReleaseDate(), is(EI));
 		assertThat("incorrect resource URL", ed1.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed1.getResourceVersion(), is(ES));
-		
+
 		final ExternalData ed2 = ExternalData.getBuilder()
 				.withResourceURL("https://foo.com").build();
-		
+
 		assertThat("incorrect data ID", ed2.getDataID(), is(ES));
 		assertThat("incorrect data URL", ed2.getDataURL(), is(EU));
 		assertThat("incorrect desc", ed2.getDescription(), is(ES));
@@ -52,7 +54,7 @@ public class ExternalDataTest {
 				ed2.getResourceURL(), is(opt(new URL("https://foo.com"))));
 		assertThat("incorrect version", ed2.getResourceVersion(), is(ES));
 	}
-	
+
 	@Test
 	public void buildMinimalOneFieldAtATime() throws Exception {
 		// since at least one field must be populated to build, but that can be any field,
@@ -66,41 +68,41 @@ public class ExternalDataTest {
 		assertThat("incorrect date", ed1.getResourceReleaseDate(), is(EI));
 		assertThat("incorrect resource URL", ed1.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed1.getResourceVersion(), is(ES));
-		
+
 		b.withDataID(null).withDataURL("https://lolcats.com");
 		final ExternalData ed2 = b.build();
 		assertThat("incorrect data ID", ed2.getDataID(), is(ES));
 		assertThat("incorrect data URL",
 				ed2.getDataURL(), is(opt(new URL("https://lolcats.com"))));
-		
+
 		b.withDataURL("").withDescription("my desc");
 		final ExternalData ed3 = b.build();
 		assertThat("incorrect data URL", ed1.getDataURL(), is(EU));
 		assertThat("incorrect desc", ed3.getDescription(), is(opt("my desc")));
-		
+
 		b.withDescription(null).withResourceName("   expendable human resource ID #78698615431");
 		final ExternalData ed4 = b.build();
 		assertThat("incorrect desc", ed4.getDescription(), is(ES));
 		assertThat("incorrect name",
 				ed4.getResourceName(), is(opt("expendable human resource ID #78698615431")));
-		
+
 		b.withResourceName(null).withResourceReleaseDate(inst(70000));
 		final ExternalData ed5 = b.build();
 		assertThat("incorrect name", ed5.getResourceName(), is(ES));
 		assertThat("incorrect date", ed5.getResourceReleaseDate(), is(opt(inst(70000))));
-		
+
 		b.withResourceReleaseDate(null).withResourceURL("https://yay.com");
 		final ExternalData ed6 = b.build();
 		assertThat("incorrect date", ed6.getResourceReleaseDate(), is(EI));
 		assertThat("incorrect resource URL",
 				ed6.getResourceURL(), is(opt(new URL("https://yay.com"))));
-		
+
 		b.withResourceURL("").withResourceVersion(" v0.0.1");
 		final ExternalData ed7 = b.build();
 		assertThat("incorrect resource URL", ed7.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed7.getResourceVersion(), is(opt("v0.0.1")));
 	}
-	
+
 	@Test
 	public void buildMinimalWithStringURLsWithNulls() throws Exception {
 		// build with a couple of fields populated since at least one field must be populated
@@ -120,7 +122,7 @@ public class ExternalDataTest {
 		assertThat("incorrect date", ed1.getResourceReleaseDate(), is(EI));
 		assertThat("incorrect resource URL", ed1.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed1.getResourceVersion(), is(ES));
-		
+
 		final ExternalData ed2 = ExternalData.getBuilder()
 				.withDataID(null)
 				.withDataURL((String) null)
@@ -130,7 +132,7 @@ public class ExternalDataTest {
 				.withResourceURL("https://foo2.com")
 				.withResourceVersion(null)
 				.build();
-		
+
 		assertThat("incorrect data ID", ed2.getDataID(), is(ES));
 		assertThat("incorrect data URL", ed2.getDataURL(), is(EU));
 		assertThat("incorrect desc", ed2.getDescription(), is(ES));
@@ -140,7 +142,7 @@ public class ExternalDataTest {
 				ed2.getResourceURL(), is(opt(new URL("https://foo2.com"))));
 		assertThat("incorrect version", ed2.getResourceVersion(), is(ES));
 	}
-	
+
 	@Test
 	public void buildMinimalWithStringURLsWithEmptyStrings() throws Exception {
 		// build with a couple of fields populated since at least one field must be populated
@@ -160,7 +162,7 @@ public class ExternalDataTest {
 		assertThat("incorrect date", ed1.getResourceReleaseDate(), is(EI));
 		assertThat("incorrect resource URL", ed1.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed1.getResourceVersion(), is(ES));
-		
+
 		final ExternalData ed2 = ExternalData.getBuilder()
 				.withDataID(es)
 				.withDataURL(es)
@@ -169,7 +171,7 @@ public class ExternalDataTest {
 				.withResourceURL("https://foo3.com")
 				.withResourceVersion(es)
 				.build();
-		
+
 		assertThat("incorrect data ID", ed2.getDataID(), is(ES));
 		assertThat("incorrect data URL", ed2.getDataURL(), is(EU));
 		assertThat("incorrect desc", ed2.getDescription(), is(ES));
@@ -179,7 +181,7 @@ public class ExternalDataTest {
 				ed2.getResourceURL(), is(opt(new URL("https://foo3.com"))));
 		assertThat("incorrect version", ed2.getResourceVersion(), is(ES));
 	}
-	
+
 	@Test
 	public void buildMinimalWithClassURLsWithNulls() throws Exception {
 		final ExternalData ed1 = ExternalData.getBuilder()
@@ -195,7 +197,7 @@ public class ExternalDataTest {
 		assertThat("incorrect resource URL", ed1.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed1.getResourceVersion(), is(ES));
 	}
-	
+
 	@Test
 	public void buildMaximalWithStringURLs() throws Exception {
 		// tests stripping of values
@@ -217,7 +219,7 @@ public class ExternalDataTest {
 				ed.getResourceURL(), is(opt(new URL("ftp://bar.com"))));
 		assertThat("incorrect version", ed.getResourceVersion(), is(opt("-99")));
 	}
-	
+
 	@Test
 	public void buildWithClassURLs() throws Exception {
 		final ExternalData ed = ExternalData.getBuilder()
@@ -233,7 +235,7 @@ public class ExternalDataTest {
 				ed.getResourceURL(), is(opt(new URL("ftp://bar.com"))));
 		assertThat("incorrect version", ed.getResourceVersion(), is(ES));
 	}
-	
+
 	@Test
 	public void buildAndOverwriteAllWithEmptyStrings() throws Exception {
 		final ExternalData ed1 = ExternalData.getBuilder()
@@ -257,7 +259,7 @@ public class ExternalDataTest {
 		assertThat("incorrect date", ed1.getResourceReleaseDate(), is(opt(inst(30000))));
 		assertThat("incorrect resource URL", ed1.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed1.getResourceVersion(), is(ES));
-		
+
 		final ExternalData ed2 = ExternalData.getBuilder()
 				.withDataID("  \t   foo    ")
 				.withDataID("    \t   ")
@@ -271,7 +273,7 @@ public class ExternalDataTest {
 		assertThat("incorrect resource URL", ed2.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed2.getResourceVersion(), is(ES));
 	}
-	
+
 	@Test
 	public void buildAndOverwriteAllWithNulls() throws Exception {
 		final ExternalData ed1 = ExternalData.getBuilder()
@@ -296,7 +298,7 @@ public class ExternalDataTest {
 		assertThat("incorrect date", ed1.getResourceReleaseDate(), is(EI));
 		assertThat("incorrect resource URL", ed1.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed1.getResourceVersion(), is(ES));
-		
+
 		final ExternalData ed2 = ExternalData.getBuilder()
 				.withDataID("  \t   foo    ")
 				.withDataID(null)
@@ -310,7 +312,7 @@ public class ExternalDataTest {
 		assertThat("incorrect resource URL", ed2.getResourceURL(), is(EU));
 		assertThat("incorrect version", ed2.getResourceVersion(), is(ES));
 	}
-	
+
 	@Test
 	public void buildAndOverwriteStringURLs() throws Exception {
 		final ExternalData ed = ExternalData.getBuilder()
@@ -328,7 +330,7 @@ public class ExternalDataTest {
 				ed.getResourceURL(), is(opt(new URL("ftp://bar2.com"))));
 		assertThat("incorrect version", ed.getResourceVersion(), is(ES));
 	}
-	
+
 	@Test
 	public void buildAndOverwriteClassURLs() throws Exception {
 		final ExternalData ed = ExternalData.getBuilder()
@@ -356,13 +358,13 @@ public class ExternalDataTest {
 		failWithDataURL("https://foo^bar.com/", new IllegalArgumentException(
 				"Illegal data url 'https://foo^bar.com/': Illegal character in authority at " +
 				"index 8: https://foo^bar.com/"));
-		
+
 		// class input
 		failWithDataURL(new URL("https://foo^bar.com/"), new IllegalArgumentException(
 				"Illegal data url 'https://foo^bar.com/': Illegal character in authority at " +
 				"index 8: https://foo^bar.com/"));
 	}
-	
+
 	@Test
 	public void withResourceURLFail() throws Exception {
 		// string input
@@ -372,13 +374,13 @@ public class ExternalDataTest {
 		failWithResourceURL("https://foo^bar.com/", new IllegalArgumentException(
 				"Illegal resource url 'https://foo^bar.com/': Illegal character in authority at " +
 				"index 8: https://foo^bar.com/"));
-		
+
 		// class input
 		failWithResourceURL(new URL("https://foo^bar.com/"), new IllegalArgumentException(
 				"Illegal resource url 'https://foo^bar.com/': Illegal character in authority at " +
 				"index 8: https://foo^bar.com/"));
 	}
-	
+
 	private void failWithDataURL(final String url, final Exception expected) {
 		try {
 			ExternalData.getBuilder().withDataURL(url);
@@ -387,7 +389,7 @@ public class ExternalDataTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	private void failWithResourceURL(final String url, final Exception expected) {
 		try {
 			ExternalData.getBuilder().withResourceURL(url);
@@ -396,7 +398,7 @@ public class ExternalDataTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	private void failWithDataURL(final URL url, final Exception expected) {
 		try {
 			ExternalData.getBuilder().withDataURL(url);
@@ -405,7 +407,7 @@ public class ExternalDataTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	private void failWithResourceURL(final URL url, final Exception expected) {
 		try {
 			ExternalData.getBuilder().withResourceURL(url);
@@ -414,7 +416,7 @@ public class ExternalDataTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	@Test
 	public void buildFail() throws Exception {
 		try {

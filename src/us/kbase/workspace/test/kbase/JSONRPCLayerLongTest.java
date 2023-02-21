@@ -19,6 +19,7 @@ import java.util.TreeSet;
 import java.util.zip.GZIPInputStream;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import us.kbase.common.service.UObject;
 import us.kbase.kidl.KbList;
@@ -54,14 +55,15 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * that only one backend (the simplest gridFS backend) is tested here, while TestWorkspaces
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
  */
+@Category(us.kbase.common.test.SlowTests.class)
 public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
-	
+
 	private static boolean printMemUsage = false;
-	
+
 	@Test
 	public void saveBigData() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigdata"));
-		
+
 		final boolean[] threadStopWrapper1 = {false};
 		Thread t1 = null;
 		if (printMemUsage) {
@@ -69,7 +71,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			System.out.println("----------------------------------------------------------------------");
 			t1 = watchForMem("[JSONRPCLayerTest.saveBigData] Used memory during preparation", threadStopWrapper1);
 		}
-		
+
 		final boolean[] threadStopWrapper2 = {false};
 		Thread t2 = null;
 		if (printMemUsage) {
@@ -104,7 +106,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			threadStopWrapper2[0] = true;
 			t2.join();
 		}
-				
+
 		final boolean[] threadStopWrapper3 = {false};
 		Thread t3 = null;
 		if (printMemUsage) {
@@ -152,7 +154,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 	@Test
 	public void unicode() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("unicode"));
-		
+
 		Map<String, Object> edata = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		StringBuilder sb = new StringBuilder();
@@ -165,21 +167,21 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		sb.appendCodePoint(0x0A90);
 		sb.appendCodePoint(0x6A);
 		String test = sb.toString();
-		
+
 		int count = 4347900;
-		
+
 		edata.put("subset", subdata);
 		for (int i = 0; i < count; i++) {
 			subdata.add(test);
 		}
-		
+
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
 						.withName("uni").withData(new UObject(edata)))));
 		Map<String, Object> data = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification().withObjid(1L)
 				.withWorkspace("unicode")))).getData().get(0).getData().asInstance();
-		
+
 		assertThat("correct obj keys", data.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
 		@SuppressWarnings("unchecked")
@@ -190,7 +192,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			assertThat(String.format("correct string %s in subdata", i), s, is(test));
 			i++;
 		}
-		
+
 		data.clear();
 		data.put(test, "foo");
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
@@ -199,12 +201,12 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		Map<String, Object> newdata = CLIENT1.getObjects2(new GetObjects2Params()
 			.withObjects(Arrays.asList(new ObjectSpecification().withObjid(2L)
 					.withWorkspace("unicode")))).getData().get(0).getData().asInstance();
-		
+
 		assertThat("unicode key correct", newdata.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList(test))));
 		assertThat("value correct", (String) newdata.get(test), is("foo"));
 	}
-	
+
 	@Test
 	public void randomSpec() throws Exception {
 		String moduleName = "TestRandomSpec";
@@ -215,9 +217,9 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		Random r = new Random(1234567890L);
 		Set<String> registeredTypeNames = new TreeSet<String>();
 		int maxSize = 0;
-		for (int i = 0; i < 150; i++) 
+		for (int i = 0; i < 150; i++)
 			try {
-				int size = registerRandomSpecAndSaveData(r, wsName, moduleName, 3, 
+				int size = registerRandomSpecAndSaveData(r, wsName, moduleName, 3,
 						registeredTypeNames);
 				if (maxSize < size)
 					maxSize = size;
@@ -227,8 +229,8 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			}
 		System.out.println("Max size: " + maxSize);
 	}
-	
-	private static int registerRandomSpecAndSaveData(Random r, String wsName, 
+
+	private static int registerRandomSpecAndSaveData(Random r, String wsName,
 			String moduleName, int typeCount, Set<String> registeredTypeNames) throws Exception {
 		String specDoc = "module " + moduleName + " {\n";
 		List<ObjectSaveData> saveDataList = new ArrayList<ObjectSaveData>();
@@ -275,7 +277,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		}
 		return maxSize;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private static byte[] sortJson(byte[] json) throws Exception {
 		ObjectMapper SORT_MAPPER = new ObjectMapper();
@@ -283,7 +285,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		Map<String, Object> d = SORT_MAPPER.readValue(json, Map.class);
 		return SORT_MAPPER.writeValueAsBytes(d);
 	}
-	
+
 	private static KbType generateRandomType(Random r, List<KbTypedef> registeredTypes, boolean inner, int depth) {
 		int typeKind;
 		if (inner) {
@@ -310,14 +312,14 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		case 4: {
 			if (r.nextInt(10) == 0)	// In 10% cases it'll be unspecified object instead of mapping
 				return new KbUnspecifiedObject();
-			return new KbMapping(new KbScalar("string"), 
+			return new KbMapping(new KbScalar("string"),
 					generateRandomType(r, registeredTypes, true, depth + 1));
 		}
 		case 5: {
 			int size = 1 + r.nextInt(5);	// size of structure can be from 1 to 5
 			List<KbStructItem> items = new ArrayList<KbStructItem>();
 			for (int i = 0; i < size; i++)
-				items.add(new KbStructItem(generateRandomType(r, registeredTypes, true, depth + 1), 
+				items.add(new KbStructItem(generateRandomType(r, registeredTypes, true, depth + 1),
 						"item" + i));
 			return new KbStruct(items);
 		}
@@ -334,7 +336,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		default: throw new IllegalStateException("Unsupported type code: " + typeKind);
 		}
 	}
-	
+
 	private static Object generateRandomData(Random r, KbType type, int[] largeStringCount) {
 		if (type instanceof KbScalar) {
 			switch (((KbScalar)type).getScalarType()) {
@@ -368,7 +370,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			Map<String, Object> ret = new LinkedHashMap<String, Object>();
 			for (int i = 0; i < size; i++)
 				ret.put(generateRandomString(r, 100), generateRandomData(r, itemType, largeStringCount));
-			return ret;			
+			return ret;
 		} else if (type instanceof KbStruct) {
 			Map<String, Object> ret = new LinkedHashMap<String, Object>();
 			for (KbStructItem item : ((KbStruct)type).getItems())
@@ -384,13 +386,13 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			Map<String, Object> ret = new LinkedHashMap<String, Object>();
 			for (int i = 0; i < size; i++)
 				ret.put(generateRandomString(r, 100), generateRandomString(r, 1000));
-			return ret;			
+			return ret;
 		} else if (type instanceof KbTypedef) {
 			return generateRandomData(r, ((KbTypedef)type).getAliasType(), largeStringCount);
 		}
 		throw new IllegalStateException("Unsupported type: " + type.getClass().getName());
 	}
-	
+
 	private static String generateRandomString(Random r, int len) {
 		char[] arr = new char[len];
 		for (int i = 0; i < len; i++)
@@ -407,7 +409,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			return "list<" + getTypeSpecText(ls.getElementType()) + ">";
 		} else if (type instanceof KbMapping) {
 			KbMapping mp = (KbMapping)type;
-			return "mapping<" + getTypeSpecText(mp.getKeyType()) + ", " + 
+			return "mapping<" + getTypeSpecText(mp.getKeyType()) + ", " +
 					getTypeSpecText(mp.getValueType()) + ">";
 		} else if (type instanceof KbTuple) {
 			KbTuple tp = (KbTuple)type;
@@ -467,7 +469,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		InputStream is = new GZIPInputStream(WorkspaceTest.class.getResourceAsStream("long_test_get_object_subset.json.gz.properties"));
 		Map<String, Object> data = UObject.getMapper().readValue(is, Map.class);
 		saveDataList.add(new ObjectSaveData().withType(moduleName + "." + typeName)
-				.withData(new UObject(data)).withName(objName));		
+				.withData(new UObject(data)).withName(objName));
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(wsName).withObjects(saveDataList));
 		/////////////////////////////////////////// get_objects /////////////////////////////////////////////
 		String contigId = null;
