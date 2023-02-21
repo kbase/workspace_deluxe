@@ -65,7 +65,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: 8.0
+          gradle-version: 7.6
 
       - name: build the war file
         run: gradle war --info
@@ -182,7 +182,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: 8.0
+          gradle-version: 7.6
 
       - name: Download artifacts
         uses: actions/download-artifact@v2
