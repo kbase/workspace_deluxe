@@ -62,14 +62,6 @@ jobs:
         with:
           python-version: "3.7"
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 7.6
-
-      - name: build the war file
-        run: gradle war --info
-
       - name: Install dependencies and set up test config
         shell: bash
         run: |
@@ -152,6 +144,14 @@ jobs:
           sed -i "s#^test.arango.exe.*#test.arango.exe=$ARANGO_EXE#" test.cfg
           sed -i "s#^test.arango.js.*#test.arango.js=$ARANGO_JS#" test.cfg
           cat test.cfg
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 7.6
+
+      - name: build the war file
+        run: gradle war --info
 
       - name: run the tests and generate coverage
         if: matrix.test_cmd != 'test_quick_coverage'
