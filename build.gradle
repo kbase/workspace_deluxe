@@ -621,9 +621,9 @@ task createScript {
     dependsOn compileJava
     description = "create cli script"
 
-    def libClasspath = configurations.runtimeDeps.files.join(":")
+    def runtimeClasspath = configurations.runtimeDeps.files.join(":")
     file("update_workspace_database_schema").write("#!/bin/sh\n" +
-            "java -cp ${project.rootDir.absolutePath}/${dist}/${serviceJarFile}:${libClasspath} us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
+            "java -cp ${project.rootDir.absolutePath}/${dist}/${serviceJarFile}:${runtimeClasspath} us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
     file("update_workspace_database_schema").setExecutable(true)
     // always run the script
     outputs.upToDateWhen { false }

@@ -168,6 +168,13 @@ jobs:
           name: coverage${{matrix.test_cmd}}-${{matrix.mongo}}.exec
           path: build/jacoco/test${{matrix.test_cmd}}.exec
 
+      - name: upload build directory
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: build-dir${{matrix.test_cmd}}-${{matrix.mongo}}
+          path: build/
+
       - name: upload test-reports dir
         uses: actions/upload-artifact@v3
         if: always()
