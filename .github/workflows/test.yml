@@ -163,14 +163,14 @@ jobs:
 
       - name: upload jacoco report
         uses: actions/upload-artifact@v3
-        if: matrix.test_cmd != 'test_quick_coverage'
+        if: always() && matrix.test_cmd != 'test_quick_coverage'
         with:
           name: coverage${{matrix.test_cmd}}-${{matrix.mongo}}.exec
           path: build/jacoco/test${{matrix.test_cmd}}.exec
 
       - name: upload test-reports dir
         uses: actions/upload-artifact@v3
-        if: matrix.test_cmd == 'test_quick_coverage'
+        if: always() && matrix.test_cmd == 'test_quick_coverage'
         with:
           name: ${{matrix.test_cmd}}-${{matrix.mongo}}
           path: test-reports

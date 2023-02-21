@@ -234,9 +234,9 @@ dependencies {
     implementation files("$jarDir/kbase/common/kbase-common-0.1.1.jar")
     implementation files("$jarDir/joda/joda-time-2.2.jar")
     implementation files("$jarDir/kbase/auth/kbase-auth-0.4.4.jar")
-    implementation files("$jarDir/jackson/jackson-annotations-${jackson_version}.jar")
-    implementation files("$jarDir/jackson/jackson-core-${jackson_version}.jar")
-    implementation files("$jarDir/jackson/jackson-databind-${jackson_version}.jar")
+    implementation files("$jarDir/jackson/jackson-annotations-2.9.9.jar")
+    implementation files("$jarDir/jackson/jackson-core-2.9.9.jar")
+    implementation files("$jarDir/jackson/jackson-databind-2.9.9.jar")
     implementation files("$jarDir/kbase/shock/shock-client-0.1.0.jar")
     implementation files("$jarDir/apache_commons/commons-logging-1.1.1.jar")
     implementation files("$jarDir/apache_commons/http/httpclient-4.5.9.jar")
@@ -498,6 +498,13 @@ task testMongo(type: Test) {
         includeCategories "us.kbase.common.test.MongoTests"
         excludeCategories "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
     }
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "short"
+        showStandardStreams = true
+        showExceptions = true
+        showCauses = true
+    }
 }
 
 task testQuick(type: Test) {
@@ -524,6 +531,13 @@ task noLongTests(type: Test) {
     // forkEvery 1
     options {
         excludeCategories "us.kbase.common.test.SlowTests", "us.kbase.common.test.TestHelpers"
+    }
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "short"
+        showStandardStreams = true
+        showExceptions = true
+        showCauses = true
     }
 }
 
@@ -609,7 +623,7 @@ task createScript {
 
     def libClasspath = configurations.runtimeDeps.files.join(":")
     file("update_workspace_database_schema").write("#!/bin/sh\n" +
-            "java -cp ${dist}/${serviceJarFile}:${libClasspath} us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
+            "java -cp ${project.rootDir.absolutePath}/{dist}/${serviceJarFile}:${libClasspath} us.kbase.workspace.kbase.SchemaUpdaterCLI \$@\n")
     file("update_workspace_database_schema").setExecutable(true)
     // always run the script
     outputs.upToDateWhen { false }
