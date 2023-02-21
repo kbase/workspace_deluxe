@@ -166,7 +166,7 @@ jobs:
         if: matrix.test_cmd != 'test_quick_coverage'
         with:
           name: ${{matrix.test_cmd}}-${{matrix.mongo}}
-          path: build/reports/jacoco/
+          path: build/
 
       - name: upload test-reports dir
         uses: actions/upload-artifact@v3
