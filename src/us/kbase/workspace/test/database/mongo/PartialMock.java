@@ -36,11 +36,11 @@ import us.kbase.workspace.database.provenance.Provenance;
  *
  */
 public class PartialMock {
-	
+
 	public final MongoWorkspaceDB mdb;
 	public final BlobStore bsmock;
 	public final Clock clockmock;
-	
+
 	public PartialMock(final MongoDatabase db) {
 		bsmock = mock(BlobStore.class);
 		clockmock = mock(Clock.class);
@@ -56,7 +56,7 @@ public class PartialMock {
 					"MongoWorkspaceDB instance creation failed: " + e.getLocalizedMessage(), e);
 		}
 	}
-	
+
 	public Reference saveTestObject(
 			final ResolvedWorkspaceID wsid,
 			final WorkspaceUser u,

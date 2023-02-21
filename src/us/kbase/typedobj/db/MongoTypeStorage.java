@@ -22,9 +22,9 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
 
 public class MongoTypeStorage implements TypeStorage {
-	
+
 	private final MongoDatabase db;
-	
+
 	public static final String TABLE_MODULE_REQUEST = "module_request";
 	public static final String TABLE_MODULE_VERSION = "module_version";
 	public static final String TABLE_MODULE_OWNER = "module_owner";
@@ -38,16 +38,16 @@ public class MongoTypeStorage implements TypeStorage {
 
 	public static final int MAX_REQUESTS_BY_USER = 30;
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-	
+
 	private static final Pattern dotSep = Pattern.compile(Pattern.quote("."));
-	
+
 	public MongoTypeStorage(final MongoDatabase typeDB) {
 		this.db = typeDB;
 		ensureIndeces();
 	}
-	
+
 	private static final IndexOptions UNIQ = new IndexOptions().unique(true);
-	
+
 	private void ensureIndeces() {
 		final MongoCollection<Document> reqs = db.getCollection(TABLE_MODULE_REQUEST);
 		reqs.createIndex(new Document("moduleName", 1).append("ownerUserId", 1), UNIQ);
@@ -86,23 +86,23 @@ public class MongoTypeStorage implements TypeStorage {
 				.append("refVersion", 1));
 		trefs.createIndex(new Document("depModule", 1).append("depModuleVersion", 1));
 	}
-	
+
 	private Map<String, Object> toMap(final Object obj) {
 		return MAPPER.convertValue(obj, new TypeReference<Map<String, Object>>() {});
 	}
-	
+
 	private Document toDBObj(final Object obj) {
 		return new Document(toMap(obj));
 	}
-	
+
 	private <T> T toObj(final Document document, final Class<T> clazz) {
 		return document == null ? null : MAPPER.convertValue(toMapRec(document), clazz);
 	}
-	
+
 	private <T> T toObj(final Document document, final TypeReference<T> tr) {
 		return document == null ? null :  MAPPER.convertValue(toMapRec(document), tr);
 	}
-	
+
 	// These are old notes from the DBObject based legacy Mongo API.
 	// Not sure if they're still applicable here, but switching to the new API is murder
 	// and it's going to take long enough already, so minimizing changes.
@@ -122,7 +122,7 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 		return ret;
 	}
-	
+
 	@Override
 	public void addRefs(Set<RefInfo> typeRefs, Set<RefInfo> funcRefs)
 			throws TypeStorageException {
@@ -147,7 +147,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public long getLastReleasedModuleVersion(String moduleName) throws TypeStorageException {
 		Long ret = getLastModuleVersionOrNull(moduleName);
@@ -155,12 +155,12 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException("Module " + moduleName + " is not registered");
 		return ret;
 	}
-	
+
 	@Override
 	public boolean checkModuleExist(String moduleName) throws TypeStorageException {
 		return getLastModuleVersionOrNull(moduleName) != null;
 	}
-	
+
 	private Long getLastModuleVersionOrNull(String moduleName) throws TypeStorageException {
 		try {
 			final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
@@ -171,12 +171,12 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public boolean checkModuleInfoRecordExist(String moduleName, long version) throws TypeStorageException {
 		return getModuleInfoOrNull(moduleName, version) != null;
 	}
-	
+
 	@Override
 	public boolean checkModuleSpecRecordExist(String moduleName, long version) throws TypeStorageException {
 		return getModuleSpecOrNull(moduleName, version) != null;
@@ -216,7 +216,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public Set<String> getAllRegisteredModules(boolean withUnsupported) throws TypeStorageException {
 		try {
@@ -237,7 +237,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public boolean getModuleSupportedState(String moduleName)
 			throws TypeStorageException {
@@ -254,7 +254,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public String getFuncParseRecord(String moduleName, String funcName,
@@ -273,7 +273,7 @@ public class MongoTypeStorage implements TypeStorage {
 					"for " + moduleName + "." + funcName + "." + version);
 		return ret.get("document").toString();
 	}
-	
+
 	@Override
 	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc,
 			String version) throws TypeStorageException {
@@ -284,7 +284,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType,
 			String version) throws TypeStorageException {
@@ -295,7 +295,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public ModuleInfo getModuleInfoRecord(String moduleName, long version)
 			throws TypeStorageException {
@@ -304,7 +304,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException("Info-record was not found for module: " + moduleName);
 		return ret;
 	}
-	
+
 	@Override
 	public String getModuleSpecRecord(String moduleName, long version)
 			throws TypeStorageException {
@@ -313,13 +313,13 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException("Spec-record was not found for module: " + moduleName);
 		return ret;
 	}
-	
+
 	@Override
 	public TreeMap<Long, Boolean> getAllModuleVersions(String moduleName) throws TypeStorageException {
 		try {
 			final MongoCollection<Document> infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
 			Map<Long, Boolean> map = getProjection(
-					infos, new Document("moduleName", moduleName), "versionTime", Long.class, 
+					infos, new Document("moduleName", moduleName), "versionTime", Long.class,
 					"released", Boolean.class);
 			long releaseVer = getLastReleasedModuleVersion(moduleName);
 			TreeMap<Long, Boolean> ret = new TreeMap<Long, Boolean>();
@@ -334,7 +334,7 @@ public class MongoTypeStorage implements TypeStorage {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <KT, VT> Map<KT, VT> getProjection(
 			final MongoCollection<Document> infos,
-			final Document whereCondition, 
+			final Document whereCondition,
 			final String keySelectField,
 			final Class<KT> keyType,
 			final String valueSelectField,
@@ -361,7 +361,7 @@ public class MongoTypeStorage implements TypeStorage {
 			final Class<T> clazz) {
 		return find(collectionName, whereCondition, new Document(), clazz);
 	}
-	
+
 	private <T> List<T> find(
 			final String collectionName,
 			final Document whereCondition,
@@ -369,7 +369,7 @@ public class MongoTypeStorage implements TypeStorage {
 			final Class<T> clazz) {
 		return find(db.getCollection(collectionName), whereCondition, projection, clazz);
 	}
-	
+
 	private <T> List<T> find(
 			final MongoCollection<Document> col,
 			final Document whereCondition,
@@ -381,14 +381,14 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 		return data;
 	}
-	
+
 	private <T> List<T> find(
 			final String collectionName,
 			final Document whereCondition,
 			final TypeReference<T> tr) {
 		return find(collectionName, whereCondition, new Document(), tr);
 	}
-	
+
 	private <T> List<T> find(
 			final String collectionName,
 			final Document whereCondition,
@@ -396,7 +396,7 @@ public class MongoTypeStorage implements TypeStorage {
 			final TypeReference<T> tr) {
 		return find(db.getCollection(collectionName), whereCondition, projection, tr);
 	}
-	
+
 	private <T> List<T> find(
 			final MongoCollection<Document> col,
 			final Document whereCondition,
@@ -408,7 +408,7 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 		return data;
 	}
-	
+
 	private static Object getMongoProp(Map<?,?> data, String propWithDots) {
 		String[] parts = dotSep.split(propWithDots);
 		Object value = null;
@@ -446,7 +446,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public Map<String, Boolean> getAllFuncVersions(String moduleName, String funcName) throws TypeStorageException {
 		if (funcName.contains("'"))
@@ -472,7 +472,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public long generateNewModuleVersion(String moduleName) throws TypeStorageException {
 		long ret = System.currentTimeMillis();
@@ -481,7 +481,7 @@ public class MongoTypeStorage implements TypeStorage {
 			ret = value + 1;
 		return ret;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public String getTypeParseRecord(String moduleName, String typeName,
@@ -500,7 +500,7 @@ public class MongoTypeStorage implements TypeStorage {
 					"for " + moduleName + "." + typeName + "." + version);
 		return ret.get("document").toString();
 	}
-	
+
 	@Override
 	public Set<RefInfo> getTypeRefsByDep(String depModule, String depType,
 			String version) throws TypeStorageException {
@@ -512,7 +512,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public Set<RefInfo> getTypeRefsByRef(String refModule, String refType,
 			String version) throws TypeStorageException {
@@ -523,7 +523,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	private <T> T findOne(
 			final String collectionName,
 			final Document query,
@@ -533,9 +533,9 @@ public class MongoTypeStorage implements TypeStorage {
 			return toObj(db.getCollection(collectionName).find(query).first(), tr);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
-		}	
+		}
 	}
-	
+
 	@Override
 	public String getTypeSchemaRecord(String moduleName, String typeName,
 			String version) throws TypeStorageException {
@@ -581,9 +581,9 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	private static final Document MT_DBO = new Document();
-	
+
 	@Override
 	public void removeAllData() throws TypeStorageException {
 		db.getCollection(TABLE_TYPE_REFS).deleteMany(MT_DBO);
@@ -597,9 +597,9 @@ public class MongoTypeStorage implements TypeStorage {
 		db.getCollection(TABLE_MODULE_INFO_HISTORY).deleteMany(MT_DBO);
 		db.getCollection(TABLE_MODULE_VERSION).deleteMany(MT_DBO);
 	}
-	
+
 	// removed removeModule method after 3ad9e2d. Untested, unused.
-		
+
 	@Override
 	public void writeFuncParseRecord(String moduleName, String funcName,
 			String version, long moduleVersion, String parseText) throws TypeStorageException {
@@ -620,7 +620,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	private void writeModuleVersion(String moduleName, long version) throws TypeStorageException {
 		try {
 			final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
@@ -642,7 +642,7 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 
 	@Override
-	public void writeModuleRecords(ModuleInfo info,  String specDocument, long version) 
+	public void writeModuleRecords(ModuleInfo info,  String specDocument, long version)
 			throws TypeStorageException {
 		writeModuleVersion(info.getModuleName(), version);
 		writeModuleInfo(info, version);
@@ -664,7 +664,7 @@ public class MongoTypeStorage implements TypeStorage {
 		writeModuleVersion(info.getModuleName(), version);
 		writeModuleInfo(info, version);
 	}
-	
+
 	private void writeModuleInfo(ModuleInfo info, long version) throws TypeStorageException {
 		try {
 			final MongoCollection<Document> infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
@@ -674,7 +674,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public void writeTypeParseRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document) throws TypeStorageException {
@@ -695,9 +695,9 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
-	public Map<Long, Boolean> getModuleVersionsForTypeVersion(String moduleName, String typeName, 
+	public Map<Long, Boolean> getModuleVersionsForTypeVersion(String moduleName, String typeName,
 			String typeVersion) throws TypeStorageException {
 		if (typeName.contains("'"))
 			throw new TypeStorageException("Type names with symbol ['] are not supperted");
@@ -713,9 +713,9 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
-	public Map<Long, Boolean> getModuleVersionsForFuncVersion(String moduleName, 
+	public Map<Long, Boolean> getModuleVersionsForFuncVersion(String moduleName,
 			String funcName, String funcVersion) throws TypeStorageException {
 		if (funcName.contains("'"))
 			throw new TypeStorageException("Function names with symbol ['] are not supperted");
@@ -730,7 +730,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public void writeTypeSchemaRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document, String md5) throws TypeStorageException {
@@ -752,7 +752,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public void addNewModuleRegistrationRequest(String moduleName, String userId)
 			throws TypeStorageException {
@@ -782,7 +782,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public String getOwnerForNewModuleRegistrationRequest(String moduleName)
 			throws TypeStorageException {
@@ -798,7 +798,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException("There is no request for module " + moduleName);
 		return ret.getOwnerUserId();
 	}
-	
+
 	@Override
 	public void addOwnerToModule(String moduleName, String userId,
 			boolean withChangeOwnersPrivilege) throws TypeStorageException {
@@ -815,7 +815,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public List<OwnerInfo> getNewModuleRegistrationRequests()
 			throws TypeStorageException {
@@ -825,7 +825,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public Map<String, OwnerInfo> getOwnersForModule(String moduleName)
 			throws TypeStorageException {
@@ -866,7 +866,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public void removeOwnerFromModule(String moduleName, String userId)
 			throws TypeStorageException {
@@ -877,7 +877,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public Map<String, Long> listObjects() throws TypeStorageException {
 		String[] tables = {
@@ -899,7 +899,7 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 		return ret;
 	}
-	
+
 	@Override
 	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName,
 			long versionToDelete, long versionToSwitchTo)
@@ -933,7 +933,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException("Module" + moduleName + " was not registered");
 		return ret;
 	}
-	
+
 	private Long getLastModuleVersionWithUnreleasedOrNull(String moduleName)
 			throws TypeStorageException {
 		try {
@@ -947,7 +947,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	@Override
 	public void setModuleReleaseVersion(String moduleName, long version)
 			throws TypeStorageException {
@@ -971,7 +971,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	// used to be a method here called copyModuleVersion, removed after commit 3ad9e2d.
 
 	@Override
@@ -992,147 +992,147 @@ public class MongoTypeStorage implements TypeStorage {
 			throw new TypeStorageException(e);
 		}
 	}
-	
+
 	public static class ModuleSpec {
 		private String moduleName;
 		private String document;
 		private long versionTime;
-		
+
 		public String getModuleName() {
 			return moduleName;
 		}
-		
+
 		public void setModuleName(String moduleName) {
 			this.moduleName = moduleName;
 		}
-		
+
 		public String getDocument() {
 			return document;
 		}
-		
+
 		public void setDocument(String document) {
 			this.document = document;
 		}
-		
+
 		public long getVersionTime() {
 			return versionTime;
 		}
-		
+
 		public void setVersionTime(long versionTime) {
 			this.versionTime = versionTime;
 		}
 	}
-	
+
 	public static class ModuleVersion {
 		private String moduleName;
 		private long versionTime;
 		private long releasedVersionTime;
 		private boolean supported;
-		
+
 		public String getModuleName() {
 			return moduleName;
 		}
-		
+
 		public void setModuleName(String moduleName) {
 			this.moduleName = moduleName;
 		}
-		
+
 		public long getVersionTime() {
 			return versionTime;
 		}
-		
+
 		public void setVersionTime(long versionTime) {
 			this.versionTime = versionTime;
 		}
-		
+
 		public long getReleasedVersionTime() {
 			return releasedVersionTime;
 		}
-		
+
 		public void setReleasedVersionTime(long releasedVersionTime) {
 			this.releasedVersionTime = releasedVersionTime;
 		}
-		
+
 		public boolean isSupported() {
 			return supported;
 		}
-		
+
 		public void setSupported(boolean supported) {
 			this.supported = supported;
 		}
 	}
-	
+
 	public class TypeRecord {
-		private String moduleName; 
+		private String moduleName;
 		private String typeName;
-		private String version; 
+		private String version;
 		private long moduleVersion;
 		private String document;
 		private String md5hash;
-		
+
 		public TypeRecord() {
 		}
-		
+
 		public String getModuleName() {
 			return moduleName;
 		}
-		
+
 		public void setModuleName(String moduleName) {
 			this.moduleName = moduleName;
 		}
-		
+
 		public String getTypeName() {
 			return typeName;
 		}
-		
+
 		public void setTypeName(String typeName) {
 			this.typeName = typeName;
 		}
-		
+
 		public String getVersion() {
 			return version;
 		}
-		
+
 		public void setVersion(String version) {
 			this.version = version;
 		}
-		
+
 		public long getModuleVersion() {
 			return moduleVersion;
 		}
-		
+
 		public void setModuleVersion(long moduleVersion) {
 			this.moduleVersion = moduleVersion;
 		}
-		
+
 		public String getDocument() {
 			return document;
 		}
-		
+
 		public void setDocument(String document) {
 			this.document = document;
 		}
-		
+
 		public String getMd5hash() {
 			return md5hash;
 		}
-		
+
 		public void setMd5hash(String md5hash) {
 			this.md5hash = md5hash;
 		}
 	}
-	
+
 	public class FuncRecord {
-		private String moduleName; 
+		private String moduleName;
 		private String funcName;
-		private String version; 
+		private String version;
 		private long moduleVersion;
 		private String document;
-		
+
 		public String getModuleName() {
 			return moduleName;
 		}
-		
+
 		public void setModuleName(String moduleName) {
 			this.moduleName = moduleName;
 		}
@@ -1140,31 +1140,31 @@ public class MongoTypeStorage implements TypeStorage {
 		public String getFuncName() {
 			return funcName;
 		}
-		
+
 		public void setFuncName(String funcName) {
 			this.funcName = funcName;
 		}
-		
+
 		public String getVersion() {
 			return version;
 		}
-		
+
 		public void setVersion(String version) {
 			this.version = version;
 		}
-		
+
 		public long getModuleVersion() {
 			return moduleVersion;
 		}
-		
+
 		public void setModuleVersion(long moduleVersion) {
 			this.moduleVersion = moduleVersion;
 		}
-		
+
 		public String getDocument() {
 			return document;
 		}
-		
+
 		public void setDocument(String document) {
 			this.document = document;
 		}
