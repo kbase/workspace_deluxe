@@ -3,42 +3,38 @@ package us.kbase.workspace.test.database.provenance;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-
-import org.junit.Test;
-
-import nl.jqno.equalsverifier.EqualsVerifier;
-import us.kbase.common.test.TestCommon;
-
-import com.google.common.collect.ImmutableMap;
-import java.util.List;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Collections;
-import java.util.Optional;
-
-import static us.kbase.common.test.TestCommon.opt;
 import static us.kbase.common.test.TestCommon.ES;
-
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
+import static us.kbase.common.test.TestCommon.opt;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.ABNORMAL_URL_MAP;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_PID_LIST;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_URL_BAD_PROTOCOL_MAP;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_URL_MAP;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_URL_NO_USER_INFO;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_URL_USER_INFO_LIST;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.VALID_PID_MAP;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.VALID_URL_LIST;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_URL_MAP;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_URL_BAD_PROTOCOL_MAP;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_URL_USER_INFO_LIST;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_URL_NO_USER_INFO;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.ABNORMAL_URL_MAP;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
+import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.Test;
+
+import us.kbase.common.test.TestCommon;
+import us.kbase.workspace.database.provenance.Contributor;
+import us.kbase.workspace.database.provenance.Contributor.ContributorType;
 import us.kbase.workspace.database.provenance.CreditMetadata;
 import us.kbase.workspace.database.provenance.CreditMetadata.ResourceType;
-import us.kbase.workspace.database.provenance.Contributor;
 import us.kbase.workspace.database.provenance.Event;
 import us.kbase.workspace.database.provenance.EventDate;
 import us.kbase.workspace.database.provenance.FundingReference;
 import us.kbase.workspace.database.provenance.PermanentID;
 import us.kbase.workspace.database.provenance.Title;
-import us.kbase.workspace.database.provenance.Contributor.ContributorType;
 
 public class CreditMetadataTest {
 

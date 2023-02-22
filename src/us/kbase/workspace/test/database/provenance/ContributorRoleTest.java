@@ -1,15 +1,14 @@
 package us.kbase.workspace.test.database.provenance;
 
-import org.junit.Test;
-
-import us.kbase.workspace.database.provenance.ContributorRole;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import us.kbase.common.test.TestCommon;
-
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
+
+import org.junit.Test;
+
+import us.kbase.common.test.TestCommon;
+import us.kbase.workspace.database.provenance.ContributorRole;
 
 public class ContributorRoleTest {
 
