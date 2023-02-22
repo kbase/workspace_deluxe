@@ -70,15 +70,15 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /** Workspace library level integration tests that don't need to be run against multiple
  * backends or with varying memory usage strategies. See the notes in {@link WorkspaceTest}.
- * 
+ *
  * These tests cover user API agnostic behavior. API layers should also have their own
  * integration tests. As of this writing, the only API layer for the workspace is the JSONRPC
  * API implemented in {@link WorkspaceServer}.
- * 
+ *
  * These tests all run against a GridFS backend for object storage.
  */
 public class WorkspaceIntegrationWithGridFSTest {
-	
+
 	private static final WorkspaceUser USER = new WorkspaceUser("user");
 	private static final Date SOME_DATE = Date.from(Instant.ofEpochMilli(10000));
 	private static final WorkspaceIdentifier WS1 = new WorkspaceIdentifier("ws1");
@@ -87,23 +87,23 @@ public class WorkspaceIntegrationWithGridFSTest {
 	private static final WorkspaceIdentifier WS2 = new WorkspaceIdentifier("ws2");
 	private static final ResolvedWorkspaceID RWS2 = new ResolvedWorkspaceID(
 			2, "ws2", false, false);
-	
+
 	private static final String WSDB_NAME = WorkspaceIntegrationWithGridFSTest.class
 			.getSimpleName();
 	private static final String TYPEDB_NAME = WSDB_NAME + "_types";
-	
+
 	private static MongoController MONGO;
 	private static TempFilesManager TFM;
 	private static Workspace WORK;
 	private static MongoDatabase WSDB;
 	private static MongoDatabase TYPEDB;
-	
+
 	static {
 		// mongo is really chatty
 		((Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
 				.setLevel(Level.OFF);
 	}
-	
+
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		MONGO = new MongoController(TestCommon.getMongoExe(),
@@ -111,7 +111,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		System.out.println("Started test mongo instance at localhost: " + MONGO.getServerPort());
-		
+
 		@SuppressWarnings("resource")
 		final MongoClient mcli = new MongoClient("localhost:" + MONGO.getServerPort());
 		WSDB = mcli.getDatabase(WSDB_NAME);
@@ -120,7 +120,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 		TestCommon.destroyDB(TYPEDB);
 		TFM = new TempFilesManager(new File(TestCommon.getTempDir()));
 		TFM.cleanup();
-		
+
 		final TypeDefinitionDB typeDB = new TypeDefinitionDB(new MongoTypeStorage(TYPEDB));
 		final TypedObjectValidator val = new TypedObjectValidator(new LocalTypeProvider(typeDB));
 		WORK = new Workspace(
@@ -130,7 +130,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				TFM);
 		WorkspaceTestCommon.installBasicSpecs(new WorkspaceUser("user"), new Types(typeDB));
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (MONGO != null) {
@@ -141,7 +141,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 			TFM.cleanup();
 		}
 	}
-	
+
 	@Before
 	public void clearDB() throws Exception {
 		try (final MongoClient mongoClient = new MongoClient(
@@ -149,16 +149,16 @@ public class WorkspaceIntegrationWithGridFSTest {
 			TestCommon.destroyDB(mongoClient.getDatabase(WSDB_NAME));
 		}
 	}
-	
+
 	@After
 	public void after() throws Exception {
 		TestCommon.assertNoTempFilesExist(TFM);
 	}
-	
+
 	private ObjectIDNoWSNoVer objID(final String id) {
 		return new ObjectIDNoWSNoVer(id);
 	}
-	
+
 	private ObjectInformation oinf(
 			final ResolvedWorkspaceID wsi,
 			final int id,
@@ -168,7 +168,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				id, "o" + id, type.getTypeString(), SOME_DATE, version, USER, wsi,
 				SAFE_DATA_MD5, SAFE_DATA_SIZE, null);
 	}
-	
+
 	private List<ObjectInformation> cleanDates(final List<ObjectInformation> toBeCleaned) {
 		return toBeCleaned.stream().map(o -> new ObjectInformation(
 				o.getObjectId(),
@@ -183,14 +183,14 @@ public class WorkspaceIntegrationWithGridFSTest {
 				o.getUserMetaData()))
 				.collect(Collectors.toList());
 	}
-	
+
 	private IdReferenceHandlerSetFactory getIdFactory() {
 		return getIdFactory(100000);
 	}
 	private IdReferenceHandlerSetFactory getIdFactory(final int maxIDs) {
 		return IdReferenceHandlerSetFactoryBuilder.getBuilder(maxIDs).build().getFactory(null);
 	}
-	
+
 	private void saveObjects(
 			final WorkspaceIdentifier wsi,
 			final int start,				// inclusive
@@ -204,7 +204,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				.collect(Collectors.toList());
 		WORK.saveObjects(USER, wsi, objects, getIdFactory());
 	}
-	
+
 	private void setUpTypeSort() throws Exception {
 		WORK.createWorkspace(USER, WS1.getName(), false, null, null);
 		WORK.createWorkspace(USER, WS2.getName(), false, null, null);
@@ -226,24 +226,24 @@ public class WorkspaceIntegrationWithGridFSTest {
 		}
 		assertThat("incorrect object count", ret.size(), is(expected.size()));
 	}
-	
+
 	@Test
 	public void dynamicConfig() throws Exception {
 		// db should be detroyed at the beginning of every test
 		final DynamicConfig empty = DynamicConfig.getBuilder().build();
 		assertThat("incorrect config", WORK.getConfig(), is(empty));
-		
+
 		// but on creation config should be initialized
 		createWorkspaceClass();
 		final DynamicConfig expected1 = DynamicConfig.getBuilder().withBackendScaling(1).build();
 		assertThat("incorrect config", WORK.getConfig(), is(expected1));
-		
+
 		// test that recreating the workspace doesn't set things back to the default
 		WORK.setConfig(DynamicConfigUpdate.getBuilder().withBackendScaling(42).build());
-		
+
 		final DynamicConfig expected42 = DynamicConfig.getBuilder().withBackendScaling(42).build();
 		assertThat("incorrect config", WORK.getConfig(), is(expected42));
-		
+
 		createWorkspaceClass();
 		assertThat("incorrect config", WORK.getConfig(), is(expected42));
 	}
@@ -257,14 +257,14 @@ public class WorkspaceIntegrationWithGridFSTest {
 				TFM
 				);
 	}
-	
+
 	@Test
 	public void sortWithVersions() throws Exception {
 		setUpTypeSort();
-		
+
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true).build();
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 1, 1, ATYPE2_2_1),
@@ -287,19 +287,19 @@ public class WorkspaceIntegrationWithGridFSTest {
 				);
 		checkSort(p, expected);
 	}
-	
+
 	@Test
 	public void sortWithVersionsWithStartFrom() throws Exception {
 		// this test will cover most of the start from interactions, with other tests
 		// having fewer cases
 		setUpTypeSort();
-		
+
 		final Builder lob = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true);
-		
+
 		// case 1: no UPA filter, ws only
 		ListObjectsParameters p = lob.withStartFrom(RefLimit.build(1L, null, null)).build();
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 1, 1, ATYPE2_2_1),
@@ -321,27 +321,27 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p, expected);
-		
+
 		// case 2: no UPA filter, id & ws
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, null)).build();
 		checkSort(p, expected);
-		
+
 		// case 3: no UPA filter, full spec
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, 2)).build();
 		checkSort(p, expected);
-		
+
 		// case 4: exclude first version in list
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, 1)).build();
 		checkSort(p, expected.subList(1, expected.size()));
-		
+
 		// case 5: exclude objects and a version
 		p = lob.withStartFrom(RefLimit.build(1L, 3L, 1)).build();
 		checkSort(p, expected.subList(5, expected.size()));
-		
+
 		// case 6: exclude workspaces
 		p = lob.withStartFrom(RefLimit.build(2L, null, null)).build();
 		checkSort(p, expected.subList(17, expected.size()));
-		
+
 		// case 7: exclude workspaces with full spec
 		p = lob.withStartFrom(RefLimit.build(2L, 1L, 1)).build();
 		checkSort(p, expected.subList(17, expected.size()));
@@ -353,7 +353,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 		// case 9: exclude everything by object
 		p = lob.withStartFrom(RefLimit.build(2L, 2L, null)).build();
 		checkSort(p, Collections.emptyList());
-		
+
 		// case 10: hidden and deleted objects
 		WORK.setObjectsDeleted(USER, Arrays.asList(
 				ObjectIdentifier.getBuilder(WS1).withID(7L).build()), true);
@@ -375,15 +375,15 @@ public class WorkspaceIntegrationWithGridFSTest {
 				);
 		checkSort(p, expected);
 	}
-	
+
 	@Test
 	public void sortWithVersionsWithObjectRange() throws Exception {
 		setUpTypeSort();
-		
+
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true)
 				.withMinObjectID(3).withMaxObjectID(7).build();
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 3, 2, ATYPE2_0_1),
 				oinf(RWS1, 3, 1, ATYPE2_1_0),
@@ -397,14 +397,14 @@ public class WorkspaceIntegrationWithGridFSTest {
 				);
 		checkSort(p, expected);
 	}
-	
+
 	@Test
 	public void sortWithNoVersions() throws Exception {
 		setUpTypeSort();
-		
+
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).build();
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 2, 2, ATYPE2_1_0),
@@ -419,17 +419,17 @@ public class WorkspaceIntegrationWithGridFSTest {
 				);
 		checkSort(p, expected);
 	}
-	
+
 	@Test
 	public void sortWithNoVersionsWithStartFrom() throws Exception {
 		setUpTypeSort();
-		
+
 		final Builder lob = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER);
-		
+
 		// case 1: no UPA filter, ws only
 		ListObjectsParameters p = lob.withStartFrom(RefLimit.build(1L, null, null)).build();
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 2, 2, ATYPE2_1_0),
@@ -443,15 +443,15 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p, expected);
-		
+
 		// case 2: no UPA filter, id & ws
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, null)).build();
 		checkSort(p, expected);
-		
+
 		// case 3: no UPA filter, full spec
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, 2)).build();
 		checkSort(p, expected);
-		
+
 		// case 4: exclude first object in list by version
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, 1)).build();
 		checkSort(p, expected.subList(1, expected.size()));
@@ -459,24 +459,24 @@ public class WorkspaceIntegrationWithGridFSTest {
 		// case 5: exclude first object in list by object ID
 		p = lob.withStartFrom(RefLimit.build(1L, 2L, null)).build();
 		checkSort(p, expected.subList(1, expected.size()));
-		
-		// case 6: exclude objects 
+
+		// case 6: exclude objects
 		p = lob.withStartFrom(RefLimit.build(1L, 3L, 1)).build();
 		checkSort(p, expected.subList(3, expected.size()));
-		
+
 		// case 7: exclude workspaces
 		p = lob.withStartFrom(RefLimit.build(2L, null, null)).build();
 		checkSort(p, expected.subList(9, expected.size()));
 	}
-	
+
 	@Test
 	public void sortWithNoVersionsWithObjectRange() throws Exception {
 		setUpTypeSort();
-		
+
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER)
 				.withMinObjectID(2).withMaxObjectID(8).build();
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 2, 2, ATYPE2_1_0),
 				oinf(RWS1, 3, 2, ATYPE2_0_1),
@@ -488,14 +488,14 @@ public class WorkspaceIntegrationWithGridFSTest {
 				);
 		checkSort(p, expected);
 	}
-	
+
 	@Test
 	public void sortWithVersionsFullTypeFilter() throws Exception {
 		setUpTypeSort();
-		
+
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true);
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 1, 1, ATYPE2_2_1),
 				oinf(RWS1, 4, 2, ATYPE2_2_1),
@@ -503,7 +503,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS1, 9, 2, ATYPE2_2_1)
 				);
 		checkSort(p.withType(ATYPE2_2_1).build(), expected);
-				
+
 		expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 2, 1, ATYPE2_2_0),
@@ -511,7 +511,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS1, 7, 1, ATYPE2_2_0)
 				);
 		checkSort(p.withType(ATYPE2_2_0).build(), expected);
-		
+
 		expected = Arrays.asList(
 				oinf(RWS1, 2, 2, ATYPE2_1_0),
 				oinf(RWS1, 3, 1, ATYPE2_1_0),
@@ -520,7 +520,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p.withType(ATYPE2_1_0).build(), expected);
-		
+
 		expected = Arrays.asList(
 				oinf(RWS1, 3, 2, ATYPE2_0_1),
 				oinf(RWS1, 4, 1, ATYPE2_0_1),
@@ -529,14 +529,14 @@ public class WorkspaceIntegrationWithGridFSTest {
 				);
 		checkSort(p.withType(ATYPE2_0_1).build(), expected);
 	}
-	
+
 	@Test
 	public void sortWithVersionsFullTypeFilterWithStartFrom() throws Exception {
 		setUpTypeSort();
-		
+
 		final Builder lob = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true).withType(ATYPE2_1_0);
-		
+
 		// case 1: no UPA filtering
 		ListObjectsParameters p = lob.withStartFrom(RefLimit.build(1L, 2L, 2)).build();
 		List<ObjectInformation> expected = Arrays.asList(
@@ -547,91 +547,91 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p, expected);
-		
+
 		// case 1: UPA filter first object
 		p = lob.withStartFrom(RefLimit.build(1L, 2L, 1)).build();
 		checkSort(p, expected.subList(1, expected.size()));
-		
+
 		// case 2: UPA filter a few objects
 		p = lob.withStartFrom(RefLimit.build(1L, 7L, 1)).build();
 		checkSort(p, expected.subList(3, expected.size()));
-		
+
 		// case 3: UPA filter a workspace
 		p = lob.withStartFrom(RefLimit.build(1L, 9L, 2)).build();
 		checkSort(p, expected.subList(4, expected.size()));
-		
+
 		// case 4: UPA filter a workspace by the wsid
 		p = lob.withStartFrom(RefLimit.build(2L, null, null)).build();
 		checkSort(p, expected.subList(4, expected.size()));
 	}
-	
+
 	@Test
 	public void sortWithVersionsFullTypeFilterWithObjectRange() throws Exception {
 		setUpTypeSort();
-		
+
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true)
 				.withMinObjectID(3).withMaxObjectID(7).withType(ATYPE2_1_0).build();
-		
+
 		final List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 3, 1, ATYPE2_1_0),
 				oinf(RWS1, 7, 2, ATYPE2_1_0)
 				);
 		checkSort(p, expected);
 	}
-	
+
 	@Test
 	public void sortWithoutVersionsFullTypeFilter() throws Exception {
 		setUpTypeSort();
-		
+
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER);
-				
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 4, 2, ATYPE2_2_1),
 				oinf(RWS1, 9, 2, ATYPE2_2_1)
 				);
 		checkSort(p.withType(ATYPE2_2_1).build(), expected);
-				
+
 		expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 6, 2, ATYPE2_2_0)
 				);
 		checkSort(p.withType(ATYPE2_2_0).build(), expected);
-		
+
 		expected = Arrays.asList(
 				oinf(RWS1, 2, 2, ATYPE2_1_0),
 				oinf(RWS1, 7, 2, ATYPE2_1_0),
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p.withType(ATYPE2_1_0).build(), expected);
-		
+
 		expected = Arrays.asList(
 				oinf(RWS1, 3, 2, ATYPE2_0_1),
 				oinf(RWS1, 8, 2, ATYPE2_0_1)
 				);
 		checkSort(p.withType(ATYPE2_0_1).build(), expected);
 	}
-	
+
 	@Test
 	public void sortWithoutVersionsFullTypeFilterWithObjectRange() throws Exception {
 		setUpTypeSort();
-		
+
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withMinObjectID(3).withMaxObjectID(7)
 				.withType(ATYPE2_1_0).build();
-				
+
 		checkSort(p, Arrays.asList(oinf(RWS1, 7, 2, ATYPE2_1_0)));
 	}
-		
+
 
 	@Test
 	public void sortWithVersionsMajorVersionTypeFilter() throws Exception {
 		setUpTypeSort();
-		
+
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true);
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 1, 1, ATYPE2_2_1),
@@ -643,7 +643,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS1, 9, 2, ATYPE2_2_1)
 				);
 		checkSort(p.withType(new TypeDefId(ATYPE2, 2)).build(), expected);
-		
+
 		expected = Arrays.asList(
 				oinf(RWS1, 2, 2, ATYPE2_1_0),
 				oinf(RWS1, 3, 1, ATYPE2_1_0),
@@ -652,7 +652,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p.withType(new TypeDefId(ATYPE2, 1)).build(), expected);
-		
+
 		expected = Arrays.asList(
 				oinf(RWS1, 3, 2, ATYPE2_0_1),
 				oinf(RWS1, 4, 1, ATYPE2_0_1),
@@ -661,14 +661,14 @@ public class WorkspaceIntegrationWithGridFSTest {
 				);
 		checkSort(p.withType(new TypeDefId(ATYPE2, 0)).build(), expected);
 	}
-	
+
 	@Test
 	public void sortWithVersionsMajorVersionTypeFilterWithStartFrom() throws Exception {
 		setUpTypeSort();
-		
+
 		final Builder lob = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true).withType(new TypeDefId(ATYPE2, 2));
-		
+
 		// case 1: no UPA filtering
 		ListObjectsParameters p = lob.withStartFrom(RefLimit.build(1L, 1L, null)).build();
 		List<ObjectInformation> expected = Arrays.asList(
@@ -682,7 +682,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS1, 9, 2, ATYPE2_2_1)
 				);
 		checkSort(p, expected);
-		
+
 		// case 2: UPA filter a version
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, 1)).build();
 		checkSort(p, expected.subList(1, expected.size()));
@@ -695,15 +695,15 @@ public class WorkspaceIntegrationWithGridFSTest {
 		p = lob.withStartFrom(RefLimit.build(1L, 6L, 1)).build();
 		checkSort(p, expected.subList(5, expected.size()));
 	}
-	
+
 	@Test
 	public void sortWithVersionsMajorVersionTypeFilterWithObjectRange() throws Exception {
 		setUpTypeSort();
-		
+
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true)
 				.withMinObjectID(3).withMaxObjectID(8).withType(new TypeDefId(ATYPE2, 2)).build();
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 4, 2, ATYPE2_2_1),
 				oinf(RWS1, 6, 2, ATYPE2_2_0),
@@ -712,14 +712,14 @@ public class WorkspaceIntegrationWithGridFSTest {
 				);
 		checkSort(p, expected);
 	}
-	
+
 	@Test
 	public void sortWithNoVersionsMajorVersionTypeFilter() throws Exception {
 		setUpTypeSort();
-		
+
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER);
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 4, 2, ATYPE2_2_1),
@@ -727,44 +727,44 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS1, 9, 2, ATYPE2_2_1)
 				);
 		checkSort(p.withType(new TypeDefId(ATYPE2, 2)).build(), expected);
-		
+
 		expected = Arrays.asList(
 				oinf(RWS1, 2, 2, ATYPE2_1_0),
 				oinf(RWS1, 7, 2, ATYPE2_1_0),
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p.withType(new TypeDefId(ATYPE2, 1)).build(), expected);
-		
+
 		expected = Arrays.asList(
 				oinf(RWS1, 3, 2, ATYPE2_0_1),
 				oinf(RWS1, 8, 2, ATYPE2_0_1)
 				);
 		checkSort(p.withType(new TypeDefId(ATYPE2, 0)).build(), expected);
 	}
-	
+
 	@Test
 	public void sortWithNoVersionsMajorVersionTypeFilterWithObjectRange() throws Exception {
 		setUpTypeSort();
-		
+
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withMinObjectID(5).withMaxObjectID(10)
 				.withType(new TypeDefId(ATYPE2, 2)).build();
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 6, 2, ATYPE2_2_0),
 				oinf(RWS1, 9, 2, ATYPE2_2_1)
 				);
 		checkSort(p, expected);
 	}
-	
+
 	@Test
 	public void sortWithVersionsTypeNameFilter() throws Exception {
 		// don't really think no version / object limit versions of this test are needed
 		setUpTypeSort();
-		
+
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true);
-		
+
 		List<ObjectInformation> expected = Arrays.asList(
 				oinf(RWS1, 1, 2, ATYPE2_2_0),
 				oinf(RWS1, 1, 1, ATYPE2_2_1),
@@ -785,18 +785,18 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p.withType(new TypeDefId(ATYPE2)).build(), expected);
-		
+
 		expected = Arrays.asList(oinf(RWS1, 5, 1, ATYPE_1_0));
 		checkSort(p.withType(new TypeDefId(ATYPE)).build(), expected);
 	}
-	
+
 	@Test
 	public void sortWithVersionsTypeNameFilterWithStartFrom() throws Exception {
 		setUpTypeSort();
-		
+
 		final Builder lop = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
 				.withUser(USER).withShowAllVersions(true).withType(new TypeDefId(ATYPE2));
-		
+
 		// case 1: no UPA filtering
 		ListObjectsParameters p = lop.withStartFrom(RefLimit.build(1L, 1L, 3)).build();
 		List<ObjectInformation> expected = Arrays.asList(
@@ -819,11 +819,11 @@ public class WorkspaceIntegrationWithGridFSTest {
 				oinf(RWS2, 1, 1, ATYPE2_1_0)
 				);
 		checkSort(p, expected);
-		
+
 		// case 2: UPA filter a version
 		p = lop.withStartFrom(RefLimit.build(1L, 1L, 1)).build();
 		checkSort(p, expected.subList(1, expected.size()));
-		
+
 		// case 3: UPA filter some objects
 		p = lop.withStartFrom(RefLimit.build(1L, 4L, 2)).build();
 		checkSort(p, expected.subList(6, expected.size()));
