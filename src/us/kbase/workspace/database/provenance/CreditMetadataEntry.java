@@ -40,6 +40,9 @@ public class CreditMetadataEntry {
 	/**
 	 * Gets the version of the credit metadata schema used in this record.
 	 *
+	 * The credit metadata schema version is documented in the Credit Engine
+	 * repo at https://github.com/kbase/credit_engine/.
+	 *
 	 * @return the schema version.
 	 */
 	public String getCreditMetadataSchemaVersion() {
@@ -91,7 +94,9 @@ public class CreditMetadataEntry {
 	 *                workspace user
 	 * @param creditMetadataSchemaVersion
 	 *                version of the metadata schema being used
-         * @param timestamp
+	 *                The credit metadata schema version is documented in the
+	 *                Credit Engine repo at https://github.com/kbase/credit_engine/.
+     * @param timestamp
 	 *                timestamp for submission of this credit metadata
 	 * @param creditMetadata
 	 *                creditMetadata object to be saved

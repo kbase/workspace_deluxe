@@ -3,6 +3,7 @@ package us.kbase.workspace.test.database.provenance;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
 import java.time.Instant;
@@ -26,6 +27,7 @@ public class CreditMetadataEntryTest {
 	private static final String USER = "user";
 	private static final String SCHEMA_VERSION = "credit metadata schema version";
 	private static final String CREDIT_METADATA = "credit metadata";
+	private static final String TIMESTAMP = "timestamp";
 
 	// field values
 	private static final String VERSION_STRING = "1.2.3";
@@ -35,6 +37,7 @@ public class CreditMetadataEntryTest {
 	private static final String INCORRECT_USER = INCORRECT + USER;
 	private static final String INCORRECT_SCHEMA_VERSION = INCORRECT + SCHEMA_VERSION;
 	private static final String INCORRECT_CREDIT_METADATA = INCORRECT + CREDIT_METADATA;
+	private static final String INCORRECT_TIMESTAMP = INCORRECT + TIMESTAMP;
 
 	// error messages
 	private static final String USER_NON_NULL = "user cannot be null";
@@ -93,12 +96,13 @@ public class CreditMetadataEntryTest {
 			final CreditMetadataEntry creditMetadataEntry,
 			final WorkspaceUser user,
 			final String version,
-			final CreditMetadata creditMetadata) {
+			final CreditMetadata creditMetadata,
+			final Instant timestamp) {
 		assertThat(INCORRECT_USER, creditMetadataEntry.getUser(), is(user));
 		assertThat(INCORRECT_SCHEMA_VERSION,
 				creditMetadataEntry.getCreditMetadataSchemaVersion(),
 				is(version));
-		TestCommon.assertCloseToNow(creditMetadataEntry.getTimestamp());
+		assertThat(INCORRECT_TIMESTAMP, creditMetadataEntry.getTimestamp(), is(timestamp));
 		assertThat(INCORRECT_CREDIT_METADATA,
 				creditMetadataEntry.getCreditMetadata(),
 				is(creditMetadata));
@@ -107,12 +111,13 @@ public class CreditMetadataEntryTest {
 	@Test
 	public void buildResourceMetadata() throws Exception {
 		final WorkspaceUser user = new WorkspaceUser("worst_ws_user");
+		final Instant ts = inst(70000);
 		final CreditMetadataEntry cmc = CreditMetadataEntry.build(
 				user,
 				VERSION_STRING_UNTRIMMED,
-				Instant.now(),
+				ts,
 				CREDIT_METADATA_EXAMPLE);
-		assertResourceMetadataFields(cmc, user, VERSION_STRING, CREDIT_METADATA_EXAMPLE);
+		assertResourceMetadataFields(cmc, user, VERSION_STRING, CREDIT_METADATA_EXAMPLE, ts);
 	}
 
 	/**
@@ -148,12 +153,6 @@ public class CreditMetadataEntryTest {
 				CREDIT_METADATA_EXAMPLE,
 				Instant.now(),
 				USER_NON_NULL);
-		buildResourceMetadataFailWithError(
-				(WorkspaceUser) null,
-				VERSION_STRING_UNTRIMMED,
-				CREDIT_METADATA_EXAMPLE,
-				Instant.now(),
-				USER_NON_NULL);
 	}
 
 	@Test
@@ -185,13 +184,6 @@ public class CreditMetadataEntryTest {
 				null,
 				Instant.now(),
 				CREDIT_METADATA_NON_NULL);
-
-		buildResourceMetadataFailWithError(
-				new WorkspaceUser("not_another_boring_old_fart"),
-				VERSION_STRING_UNTRIMMED,
-				(CreditMetadata) null,
-				Instant.now(),
-				CREDIT_METADATA_NON_NULL);
 	}
 
 
@@ -202,13 +194,6 @@ public class CreditMetadataEntryTest {
 				VERSION_STRING_UNTRIMMED,
 				CREDIT_METADATA_EXAMPLE,
 				null,
-				TIMESTAMP_NON_NULL);
-
-		buildResourceMetadataFailWithError(
-				new WorkspaceUser("not_another_boring_old_fart"),
-				VERSION_STRING_UNTRIMMED,
-				CREDIT_METADATA_EXAMPLE,
-				(Instant) null,
 				TIMESTAMP_NON_NULL);
 	}
 
@@ -230,14 +215,6 @@ public class CreditMetadataEntryTest {
 					null,
 					null,
 					errorString);
-
-			buildResourceMetadataFailWithError(
-					(WorkspaceUser) null,
-					nullOrWs,
-					(CreditMetadata) null,
-					(Instant) null,
-					errorString);
-		}
 
 		for (final String invalidSemVer : INVALID_SEM_VER_STRINGS) {
 			buildResourceMetadataFailWithError(
