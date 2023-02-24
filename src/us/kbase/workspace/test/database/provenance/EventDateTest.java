@@ -3,18 +3,17 @@ package us.kbase.workspace.test.database.provenance;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-
-import org.junit.Test;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Collections;
-
-import nl.jqno.equalsverifier.EqualsVerifier;
-import us.kbase.common.test.TestCommon;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
-import us.kbase.workspace.database.provenance.EventDate;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.Test;
+
+import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.database.provenance.Event;
+import us.kbase.workspace.database.provenance.EventDate;
 
 public class EventDateTest {
 	static final String INCORRECT_DATE = "incorrect date";

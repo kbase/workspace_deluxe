@@ -3,29 +3,26 @@ package us.kbase.workspace.test.database.provenance;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.ES;
 import static us.kbase.common.test.TestCommon.opt;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_PID_LIST;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
-import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
+import com.google.common.collect.ImmutableMap;
 import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.Test;
+
 import us.kbase.common.test.TestCommon;
-import static us.kbase.common.test.TestCommon.ES;
-
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_PID_LIST;
-
-import us.kbase.workspace.database.provenance.Organization;
 import us.kbase.workspace.database.provenance.Contributor;
-import us.kbase.workspace.database.provenance.ContributorRole;
 import us.kbase.workspace.database.provenance.Contributor.ContributorType;
+import us.kbase.workspace.database.provenance.ContributorRole;
+import us.kbase.workspace.database.provenance.Organization;
 
 public class ContributorTest {
 
