@@ -215,6 +215,7 @@ public class CreditMetadataEntryTest {
 					null,
 					null,
 					errorString);
+		}
 
 		for (final String invalidSemVer : INVALID_SEM_VER_STRINGS) {
 			buildResourceMetadataFailWithError(
