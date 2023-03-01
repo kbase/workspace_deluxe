@@ -51,7 +51,7 @@ public class CreditMetadata {
 	private final List<Contributor> contributors;
 	private final List<EventDate> dates;
 	private final List<FundingReference> funding;
-	private final List<PermanentID> relatedIdentifiers;
+	private final List<PermanentId> relatedIdentifiers;
 	private final List<Title> titles;
 
 	private CreditMetadata(
@@ -63,7 +63,7 @@ public class CreditMetadata {
 			final List<Contributor> contributors,
 			final List<EventDate> dates,
 			final List<FundingReference> funding,
-			final List<PermanentID> relatedIdentifiers,
+			final List<PermanentId> relatedIdentifiers,
 			final List<Title> titles) {
 		this.comments = comments;
 		this.contributors = contributors;
@@ -153,9 +153,9 @@ public class CreditMetadata {
 	/*
 	 * Gets the list of related identifiers.
 	 *
-	 * @return list of PermanentID objects
+	 * @return list of PermanentId objects
 	 */
-	public List<PermanentID> getRelatedIdentifiers() {
+	public List<PermanentId> getRelatedIdentifiers() {
 		return Common.getList(relatedIdentifiers);
 	}
 
@@ -287,7 +287,7 @@ public class CreditMetadata {
 		private final List<Contributor> contributors;
 		private List<EventDate> dates = null;
 		private List<FundingReference> funding = null;
-		private List<PermanentID> relatedIdentifiers = null;
+		private List<PermanentId> relatedIdentifiers = null;
 		private final List<Title> titles;
 		private List<String> errorList;
 
@@ -407,11 +407,11 @@ public class CreditMetadata {
 		 * Sets the related identifiers.
 		 *
 		 * @param withRelatedIdentifiers
-		 *                list of {@link PermanentID}s.
+		 *                list of {@link PermanentId}s.
 		 *                Duplicate and null entries are removed from the list.
 		 * @return this builder
 		 */
-		public Builder withRelatedIdentifiers(final List<PermanentID> relatedIdentifiers) {
+		public Builder withRelatedIdentifiers(final List<PermanentId> relatedIdentifiers) {
 			this.relatedIdentifiers = Common.dedupeSimpleList(relatedIdentifiers);
 			return this;
 		}

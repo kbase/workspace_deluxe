@@ -76,7 +76,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         the resource.
  *                 titles - one or more titles for the resource.
  * </pre>
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
@@ -111,7 +111,7 @@ public class CreditMetadata {
     @JsonProperty("funding")
     private List<FundingReference> funding;
     @JsonProperty("related_identifiers")
-    private List<PermanentID> relatedIdentifiers;
+    private List<PermanentId> relatedIdentifiers;
     @JsonProperty("titles")
     private List<Title> titles;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -237,16 +237,16 @@ public class CreditMetadata {
     }
 
     @JsonProperty("related_identifiers")
-    public List<PermanentID> getRelatedIdentifiers() {
+    public List<PermanentId> getRelatedIdentifiers() {
         return relatedIdentifiers;
     }
 
     @JsonProperty("related_identifiers")
-    public void setRelatedIdentifiers(List<PermanentID> relatedIdentifiers) {
+    public void setRelatedIdentifiers(List<PermanentId> relatedIdentifiers) {
         this.relatedIdentifiers = relatedIdentifiers;
     }
 
-    public CreditMetadata withRelatedIdentifiers(List<PermanentID> relatedIdentifiers) {
+    public CreditMetadata withRelatedIdentifiers(List<PermanentId> relatedIdentifiers) {
         this.relatedIdentifiers = relatedIdentifiers;
         return this;
     }
