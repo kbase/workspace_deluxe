@@ -5,7 +5,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import static us.kbase.common.test.TestCommon.optn;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_PID_LIST;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
 import java.net.URL;
@@ -196,15 +195,11 @@ public class FundingReferenceTest {
 	@Test
 	public void buildFailAllFieldsWithValidation() throws Exception {
 		final String notAnURL = "this is not an URL";
-		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-			for (String invalidPid : INVALID_PID_LIST) {
-				buildFundingRefFailWithError(
-						FundingReference.getBuilder(null)
-								.withGrantURL(notAnURL),
-								"funder cannot be null\n" +
-								"Illegal grantURL url '" + notAnURL + "': no protocol: "
-								+ notAnURL);
-			}
-		}
+		buildFundingRefFailWithError(
+				FundingReference.getBuilder(null)
+						.withGrantURL(notAnURL),
+						"funder cannot be null\n" +
+						"Illegal grantURL url '" + notAnURL + "': no protocol: "
+						+ notAnURL);
 	}
 }
