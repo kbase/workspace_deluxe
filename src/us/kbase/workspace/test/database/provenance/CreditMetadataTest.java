@@ -33,12 +33,14 @@ import us.kbase.workspace.database.provenance.CreditMetadata.ResourceType;
 import us.kbase.workspace.database.provenance.Event;
 import us.kbase.workspace.database.provenance.EventDate;
 import us.kbase.workspace.database.provenance.FundingReference;
+import us.kbase.workspace.database.provenance.Organization;
 import us.kbase.workspace.database.provenance.PermanentID;
 import us.kbase.workspace.database.provenance.Title;
 
 public class CreditMetadataTest {
 
 	private static final String INCORRECT = "incorrect ";
+	private static final String NO_MUTATION = "no mutation";
 	// field names
 	private static final String COMMENTS = "comments";
 	private static final String ID = "identifier";
@@ -134,11 +136,13 @@ public class CreditMetadataTest {
 	private static final List<EventDate> DATE_LIST_DUPES_NULLS = Arrays.asList(
 			ED1, ED2, null, ED1, ED2, null, ED1, ED2, null);
 
+	private static final Organization ORG_1 = Organization.getBuilder("Ransome the Clown's Emporium of Wonder").build();
+	private static final Organization ORG_2 = Organization.getBuilder("Pillowtronics").build();
 
 	private static final FundingReference F1 = FundingReference
-			.getBuilder("New World Order LLC").build();
+			.getBuilder(ORG_1).build();
 	private static final FundingReference F2 = FundingReference
-			.getBuilder("Daddy Warbucks").build();
+			.getBuilder(ORG_2).build();
 
 	private static final List<FundingReference> FUNDING_LIST = Arrays.asList(F1);
 	private static final List<FundingReference> FUNDING_LIST_DUPES_NULLS = Arrays.asList(
@@ -508,7 +512,7 @@ public class CreditMetadataTest {
 
 		// mutating the input list should not affect the contributor list
 		contributorList.add(C3);
-		assertThat("no mutation", contributorList, is(Arrays.asList(C1, C2, C3)));
+		assertThat(NO_MUTATION, contributorList, is(Arrays.asList(C1, C2, C3)));
 		assertThat(INCORRECT_CONTRIBUTORS, cm.getContributors(), is(CONTRIBUTOR_LIST));
 
 		try {
@@ -534,7 +538,7 @@ public class CreditMetadataTest {
 
 		// mutating the input list should not affect the comments
 		commentList.add("blah blah blah");
-		assertThat("no mutation", commentList, is(Arrays.asList(
+		assertThat(NO_MUTATION, commentList, is(Arrays.asList(
 				"What a load of nonsense",
 				"Prime codswallop",
 				"blah blah blah"
@@ -564,7 +568,7 @@ public class CreditMetadataTest {
 
 		// mutating the input list should not affect the date list
 		dateList.add(ED3);
-		assertThat("no mutation", dateList, is(Arrays.asList(ED1, ED2, ED3)));
+		assertThat(NO_MUTATION, dateList, is(Arrays.asList(ED1, ED2, ED3)));
 		assertThat(INCORRECT_DATES, cm.getDates(), is(DATE_LIST));
 
 		try {
@@ -588,7 +592,7 @@ public class CreditMetadataTest {
 
 		// mutating the input list should not affect the funding list
 		fundingList.add(F2);
-		assertThat("no mutation", fundingList, is(Arrays.asList(F1, F2)));
+		assertThat(NO_MUTATION, fundingList, is(Arrays.asList(F1, F2)));
 		assertThat(INCORRECT_FUNDING, cm.getFunding(), is(FUNDING_LIST));
 
 		try {
@@ -611,7 +615,7 @@ public class CreditMetadataTest {
 				.build();
 		// mutating the input list should not affect the related ID list
 		pidList.add(PID3);
-		assertThat("no mutation", pidList, is(Arrays.asList(PID1, PID2, PID3)));
+		assertThat(NO_MUTATION, pidList, is(Arrays.asList(PID1, PID2, PID3)));
 		assertThat(INCORRECT_RELATED_IDS, cm.getRelatedIdentifiers(), is(RELATED_ID_LIST));
 
 		try {
@@ -633,7 +637,7 @@ public class CreditMetadataTest {
 				.build();
 		// mutating the input list should not affect the title list
 		titleList.add(T3);
-		assertThat("no mutation", titleList, is(Arrays.asList(T1, T2, T3)));
+		assertThat(NO_MUTATION, titleList, is(Arrays.asList(T1, T2, T3)));
 		assertThat(INCORRECT_TITLES, cm.getTitles(), is(TITLE_LIST));
 
 		try {
