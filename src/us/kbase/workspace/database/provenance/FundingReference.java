@@ -98,7 +98,7 @@ public class FundingReference {
 	/** A builder for an {@link FundingReference}. */
 	public static class Builder {
 
-		private Organization funder;
+		private final Organization funder;
 		private String grantID = null;
 		private String grantTitle = null;
 		private URL grantURL = null;

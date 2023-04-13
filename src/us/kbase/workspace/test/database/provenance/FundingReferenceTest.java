@@ -160,8 +160,8 @@ public class FundingReferenceTest {
 	@Test
 	public void buildFailInvalidGrantURL() throws Exception {
 		buildFundingRefFailWithError(
-				FundingReference.getBuilder(ORG_1).withGrantURL(GRANT_ID_STRING),
-				"Illegal grantURL url '" + GRANT_ID_STRING + "': no protocol: " + GRANT_ID_STRING);
+				FundingReference.getBuilder(ORG_1).withGrantURL("ror:123"),
+				"Illegal grantURL url 'ror:123': unknown protocol: ror");
 
 		buildFundingRefFailWithError(
 				FundingReference.getBuilder(ORG_1)
@@ -184,10 +184,6 @@ public class FundingReferenceTest {
 	@Test
 	public void buildFailNullFunder() throws Exception {
 		buildFundingRefFailWithError(
-				FundingReference.getBuilder(null),
-				"funder cannot be null");
-
-		buildFundingRefFailWithError(
 			FundingReference.getBuilder((Organization) null),
 			"funder cannot be null");
 	}
@@ -196,7 +192,7 @@ public class FundingReferenceTest {
 	public void buildFailAllFieldsWithValidation() throws Exception {
 		final String notAnURL = "this is not an URL";
 		buildFundingRefFailWithError(
-				FundingReference.getBuilder(null)
+				FundingReference.getBuilder((Organization) null)
 						.withGrantURL(notAnURL),
 						"funder cannot be null\n" +
 						"Illegal grantURL url '" + notAnURL + "': no protocol: "
