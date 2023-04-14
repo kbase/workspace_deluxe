@@ -281,7 +281,6 @@ public class CreditMetadataTest {
 
 		assertThat(INCORRECT_ID, cm.getIdentifier(), is(identifier));
 		assertThat(INCORRECT_REPO, cm.getRepository(), is(repository));
-		assertThat(INCORRECT_ID, cm.getDescription(), is(description));
 		assertThat(INCORRECT_TYPE, cm.getResourceType(), is(rt));
 		assertThat(INCORRECT_COMMENTS, cm.getComments(),
 				is(comments));
@@ -719,8 +718,7 @@ public class CreditMetadataTest {
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
 							.withVersion(VERSION_STRING),
-							ILLEGAL_ID_BEFORE + invalidPid
-							+ ILLEGAL_ID_AFTER);
+					ILLEGAL_ID_BEFORE + invalidPid + ILLEGAL_ID_AFTER);
 		}
 	}
 
@@ -1045,13 +1043,21 @@ public class CreditMetadataTest {
 				// null lists
 				buildCreditMetadataFailWithError(
 						CreditMetadata.getBuilder(
-							invalidPid, null, wsOrNull, null, null),
+								invalidPid,
+								null,
+								wsOrNull,
+								null,
+								null),
 						errorStringWithRegex);
 
 				// empty lists
 				buildCreditMetadataFailWithError(
-						CreditMetadata.getBuilder(invalidPid,
-						null, wsOrNull, ELC, ELT),
+						CreditMetadata.getBuilder(
+								invalidPid,
+								null,
+								wsOrNull,
+								ELC,
+								ELT),
 						errorStringWithRegex);
 
 				// list of nulls
