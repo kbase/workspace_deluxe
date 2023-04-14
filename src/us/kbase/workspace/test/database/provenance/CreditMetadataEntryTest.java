@@ -17,6 +17,7 @@ import us.kbase.workspace.database.provenance.Contributor;
 import us.kbase.workspace.database.provenance.CreditMetadata;
 import us.kbase.workspace.database.provenance.CreditMetadata.ResourceType;
 import us.kbase.workspace.database.provenance.CreditMetadataEntry;
+import us.kbase.workspace.database.provenance.Organization;
 import us.kbase.workspace.database.provenance.Title;
 import us.kbase.workspace.database.WorkspaceUser;
 
@@ -56,8 +57,11 @@ public class CreditMetadataEntryTest {
 			Title.getBuilder("\t\t\f\t\n\rA Series of Unfortunate Elephants\n\n\n   ")
 					.build());
 
+	private static final Organization ORG_1 = Organization.getBuilder("Pillowtronics").build();
+
 	private static final CreditMetadata CREDIT_METADATA_EXAMPLE = CreditMetadata
 			.getBuilder("some:boring_identifier",
+					ORG_1,
 					ResourceType.DATASET,
 					CONTRIBUTOR_LIST,
 					TITLE_LIST)
