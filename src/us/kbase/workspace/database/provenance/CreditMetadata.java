@@ -43,9 +43,11 @@ public class CreditMetadata {
 		}
 	}
 
+	private final String description;
 	private final String identifier;
 	private final String license;
 	private final String version;
+	private final Organization repository;
 	private final ResourceType resourceType;
 	private final List<String> comments;
 	private final List<Contributor> contributors;
@@ -55,9 +57,11 @@ public class CreditMetadata {
 	private final List<Title> titles;
 
 	private CreditMetadata(
+			final String description,
 			final String identifier,
 			final String license,
 			final String version,
+			final Organization repository,
 			final ResourceType resourceType,
 			final List<String> comments,
 			final List<Contributor> contributors,
@@ -68,10 +72,12 @@ public class CreditMetadata {
 		this.comments = comments;
 		this.contributors = contributors;
 		this.dates = dates;
+		this.description = description;
 		this.funding = funding;
 		this.identifier = identifier;
 		this.license = license;
 		this.relatedIdentifiers = relatedIdentifiers;
+		this.repository = repository;
 		this.resourceType = resourceType;
 		this.titles = titles;
 		this.version = version;
@@ -84,6 +90,15 @@ public class CreditMetadata {
 	 */
 	public String getIdentifier() {
 		return identifier;
+	}
+
+	/**
+	 * Gets the description of the resource.
+	 *
+	 * @return description (if present)
+	 */
+	public Optional<String> getDescription() {
+		return Optional.ofNullable(description);
 	}
 
 	/*
@@ -103,6 +118,15 @@ public class CreditMetadata {
 	 */
 	public Optional<String> getVersion() {
 		return Optional.ofNullable(version);
+	}
+
+	/*
+	 * Gets the repository for the resource.
+	 *
+	 * @return the repository
+	 */
+	public Organization getRepository() {
+		return repository;
 	}
 
 	/*
@@ -173,10 +197,12 @@ public class CreditMetadata {
 		return Objects.hash(comments,
 				contributors,
 				dates,
+				description,
 				funding,
 				identifier,
 				license,
 				relatedIdentifiers,
+				repository,
 				resourceType,
 				titles,
 				version);
@@ -194,10 +220,12 @@ public class CreditMetadata {
 		return Objects.equals(comments, other.comments)
 				&& Objects.equals(contributors, other.contributors)
 				&& Objects.equals(dates, other.dates)
+				&& Objects.equals(description, other.description)
 				&& Objects.equals(funding, other.funding)
 				&& Objects.equals(identifier, other.identifier)
 				&& Objects.equals(license, other.license)
 				&& Objects.equals(relatedIdentifiers, other.relatedIdentifiers)
+				&& Objects.equals(repository, other.repository)
 				&& Objects.equals(resourceType, other.resourceType)
 				&& Objects.equals(titles, other.titles)
 				&& Objects.equals(version, other.version);
@@ -210,6 +238,9 @@ public class CreditMetadata {
 	 *                unique persistent ID for the resource (i.e. the source data for this
 	 *                workspace object). Should be in the format
 	 *                <database name>:<identifier within database>
+	 * @param repository
+	 *                the repository (as an {@link Organization}) from which the resource can
+	 *                be accessed
 	 * @param resourceType
 	 *                type of the resource, as a {@link ResourceType}
 	 * @param contributors
@@ -222,6 +253,7 @@ public class CreditMetadata {
 	 */
 	public static Builder getBuilder(
 			final String identifier,
+			final Organization repository,
 			final ResourceType resourceType,
 			final List<Contributor> contributors,
 			final List<Title> titles) {
@@ -229,7 +261,7 @@ public class CreditMetadata {
 		if (resourceType == null) {
 			errorList.add("resourceType cannot be null");
 		}
-		return new Builder(identifier, resourceType, contributors, titles,
+		return new Builder(identifier, repository, resourceType, contributors, titles,
 				errorList);
 	}
 
@@ -240,6 +272,9 @@ public class CreditMetadata {
 	 *                unique persistent ID for the resource (i.e. the source data for this
 	 *                workspace object). Should be in the format
 	 *                <database name>:<identifier within database>
+	 * @param repository
+	 *                the repository (as an {@link Organization}) from which the resource can
+	 *                be accessed
 	 * @param resourceType
 	 *                type of the resource as a string
 	 * @param contributors
@@ -252,6 +287,7 @@ public class CreditMetadata {
 	 */
 	public static Builder getBuilder(
 			final String identifier,
+			final Organization repository,
 			final String resourceType,
 			final List<Contributor> contributors,
 			final List<Title> titles) {
@@ -268,7 +304,7 @@ public class CreditMetadata {
 				errorList.add(e.getMessage());
 			}
 		}
-		return new Builder(identifier, rt, contributors, titles, errorList);
+		return new Builder(identifier, repository, rt, contributors, titles, errorList);
 	}
 
 
@@ -282,7 +318,9 @@ public class CreditMetadata {
 		private final String identifier;
 		private String license = null;
 		private String version = null;
+		private final Organization repository;
 		private final ResourceType resourceType;
+		private String description = null;
 		private List<String> comments = null;
 		private final List<Contributor> contributors;
 		private List<EventDate> dates = null;
@@ -293,13 +331,19 @@ public class CreditMetadata {
 
 		private Builder(
 				final String identifier,
+				final Organization repository,
 				final ResourceType resourceType,
 				final List<Contributor> contributors,
 				final List<Title> titles,
 				final List<String> errorList) {
 
 			this.errorList = errorList;
+			this.repository = repository;
 			this.resourceType = resourceType;
+
+			if (repository == null) {
+				this.errorList.add("repository cannot be null");
+			}
 
 			String checkedPid = identifier;
 			try {
@@ -342,6 +386,18 @@ public class CreditMetadata {
 			else {
 				this.comments = null;
 			}
+			return this;
+		}
+
+		/**
+		 * Sets the description for the resource.
+		 *
+		 * @param description
+		 *                resource description as a string
+		 * @return this builder
+		 */
+		public Builder withDescription(final String description) {
+			this.description = Common.processString(description);
 			return this;
 		}
 
@@ -458,9 +514,11 @@ public class CreditMetadata {
 
 			if (errorList.isEmpty()) {
 				return new CreditMetadata(
+						description,
 						identifier,
 						license,
 						version,
+						repository,
 						resourceType,
 						comments,
 						contributors,
