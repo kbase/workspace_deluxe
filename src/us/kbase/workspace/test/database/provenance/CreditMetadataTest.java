@@ -33,17 +33,21 @@ import us.kbase.workspace.database.provenance.CreditMetadata.ResourceType;
 import us.kbase.workspace.database.provenance.Event;
 import us.kbase.workspace.database.provenance.EventDate;
 import us.kbase.workspace.database.provenance.FundingReference;
+import us.kbase.workspace.database.provenance.Organization;
 import us.kbase.workspace.database.provenance.PermanentID;
 import us.kbase.workspace.database.provenance.Title;
 
 public class CreditMetadataTest {
 
 	private static final String INCORRECT = "incorrect ";
+	private static final String NO_MUTATION = "no mutation";
 	// field names
 	private static final String COMMENTS = "comments";
 	private static final String ID = "identifier";
+	private static final String DESCRIPTION = "description";
 	private static final String LICENSE = "license";
 	private static final String VERSION = "version";
+	private static final String REPO = "repository";
 	private static final String TYPE = "resource type";
 	private static final String CONTRIBUTORS = "contributors";
 	private static final String DATES = "dates";
@@ -54,8 +58,10 @@ public class CreditMetadataTest {
 	// test error strings
 	private static final String INCORRECT_COMMENTS = INCORRECT + COMMENTS;
 	private static final String INCORRECT_ID = INCORRECT + ID;
+	private static final String INCORRECT_DESCRIPTION = INCORRECT + DESCRIPTION;
 	private static final String INCORRECT_LICENSE = INCORRECT + LICENSE;
 	private static final String INCORRECT_TYPE = INCORRECT + TYPE;
+	private static final String INCORRECT_REPO = INCORRECT + REPO;
 	private static final String INCORRECT_VERSION = INCORRECT + VERSION;
 	private static final String INCORRECT_CONTRIBUTORS = INCORRECT + CONTRIBUTORS;
 	private static final String INCORRECT_DATES = INCORRECT + DATES;
@@ -66,6 +72,7 @@ public class CreditMetadataTest {
 	// error messages
 	private static final String CONTRIBUTOR_AT_LEAST_ONE = "at least one contributor must be provided";
 	private static final String IDENTIFIER_NON_NULL_WS = "identifier cannot be null or whitespace only";
+	private static final String REPO_NON_NULL = "repository cannot be null";
 	private static final String RESOURCE_TYPE_NON_NULL = "resourceType cannot be null";
 	private static final String RESOURCE_TYPE_NON_WS_NULL = "resourceType cannot be null or whitespace only";
 	private static final String TITLE_AT_LEAST_ONE = "at least one title must be provided";
@@ -73,12 +80,17 @@ public class CreditMetadataTest {
 			"or one or more 'dates', ideally indicating when the resource was " +
 			"published or when it was last updated";
 	private static final String LICENSE_URL_ILLEGAL = "Illegal license url '";
+	private static final String ILLEGAL_ID_BEFORE = "Illegal format for identifier: \"";
+	private static final String ILLEGAL_ID_AFTER = "\"\nIt should match the pattern " +
+			"\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"";
 
 	// field values
 	private static final String IDENTIFIER_STRING = "SOME:identifier";
 	private static final ResourceType RESOURCE_TYPE = ResourceType.DATASET;
 	private static final String RESOURCE_TYPE_STRING = "dataset";
 
+	private static final String DESC_STRING = "World's worst description.";
+	private static final String DESC_STRING_UNTRIMMED = "\t\tWorld's worst description.\r\n  \r\n";
 	private static final String LICENSE_STRING = "Apache 2.0";
 	private static final String LICENSE_STRING_UNTRIMMED = "    \n \n Apache 2.0 \t\t  ";
 	private static final String VERSION_STRING = "1.2.3.4.c";
@@ -134,11 +146,13 @@ public class CreditMetadataTest {
 	private static final List<EventDate> DATE_LIST_DUPES_NULLS = Arrays.asList(
 			ED1, ED2, null, ED1, ED2, null, ED1, ED2, null);
 
+	private static final Organization ORG_1 = Organization.getBuilder("Ransome the Clown's Emporium of Wonder").build();
+	private static final Organization ORG_2 = Organization.getBuilder("Pillowtronics").build();
 
 	private static final FundingReference F1 = FundingReference
-			.getBuilder("New World Order LLC").build();
+			.getBuilder(ORG_1).build();
 	private static final FundingReference F2 = FundingReference
-			.getBuilder("Daddy Warbucks").build();
+			.getBuilder(ORG_2).build();
 
 	private static final List<FundingReference> FUNDING_LIST = Arrays.asList(F1);
 	private static final List<FundingReference> FUNDING_LIST_DUPES_NULLS = Arrays.asList(
@@ -220,6 +234,8 @@ public class CreditMetadataTest {
 	 *                instance to check
 	 * @param identifier
 	 *                expected resource ID
+	 * @param repository
+	 *                expected repository
 	 * @param rt
 	 *                expected ResourceType
 	 * @param contributors
@@ -228,9 +244,12 @@ public class CreditMetadataTest {
 	 * @param titles
 	 *                list of Title objects expected to be returned by
 	 *                `getTitles`;
-	 * @param expectedMap
-	 *                key/value pairs are the field names and values for the string
-	 *                fields that are expected not to be null
+	 * @param description
+	 *                optional string returned by `getDescription`
+	 * @param license
+	 *                optional string returned by `getLicense`
+	 * @param version
+	 *                optional string returned by `getVersion`
 	 * @param comments
 	 *                list of strings expected to be returned by `getComments`;
 	 * @param dates
@@ -248,9 +267,11 @@ public class CreditMetadataTest {
 	 */
 	private void assertCreditMetadataFields(final CreditMetadata cm,
 			final String identifier,
+			final Organization repository,
 			final ResourceType rt,
 			final List<Contributor> contributors,
 			final List<Title> titles,
+			final Optional<String> description,
 			final Optional<String> license,
 			final Optional<String> version,
 			final List<String> comments,
@@ -259,6 +280,7 @@ public class CreditMetadataTest {
 			final List<PermanentID> relatedIdentifiers) {
 
 		assertThat(INCORRECT_ID, cm.getIdentifier(), is(identifier));
+		assertThat(INCORRECT_REPO, cm.getRepository(), is(repository));
 		assertThat(INCORRECT_TYPE, cm.getResourceType(), is(rt));
 		assertThat(INCORRECT_COMMENTS, cm.getComments(),
 				is(comments));
@@ -272,6 +294,7 @@ public class CreditMetadataTest {
 				is(relatedIdentifiers));
 		assertThat(INCORRECT_TITLES, cm.getTitles(),
 				is(titles));
+		assertThat(INCORRECT_DESCRIPTION, cm.getDescription(), is(description));
 		assertThat(INCORRECT_LICENSE, cm.getLicense(), is(license));
 		assertThat(INCORRECT_VERSION, cm.getVersion(), is(version));
 	}
@@ -279,13 +302,15 @@ public class CreditMetadataTest {
 	private void assertCreditMetadataFields(
 			final CreditMetadata cm,
 			final String identifier,
+			final Organization repository,
 			final ResourceType rt,
 			final List<Contributor> contributors,
 			final List<Title> titles,
+			final Optional<String> description,
 			final Optional<String> license,
 			final Optional<String> version) {
-		assertCreditMetadataFields(cm, identifier, rt, contributors, titles,
-				license, version, ELS, ELD, ELF, ELRI);
+		assertCreditMetadataFields(cm, identifier, repository, rt, contributors, titles,
+				description, license, version, ELS, ELD, ELF, ELRI);
 	}
 
 	@Test
@@ -293,12 +318,12 @@ public class CreditMetadataTest {
 		for (final ResourceType rt : ResourceType.values()) {
 			for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 				final CreditMetadata cm = CreditMetadata
-						.getBuilder(entry.getKey(), rt,
+						.getBuilder(entry.getKey(), ORG_1, rt,
 								CONTRIBUTOR_LIST, TITLE_LIST)
 						.withVersion(VERSION_STRING)
 						.build();
-				assertCreditMetadataFields(cm, entry.getValue(), rt,
-						CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
+				assertCreditMetadataFields(cm, entry.getValue(), ORG_1, rt,
+						CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, opt(VERSION_STRING));
 			}
 		}
 	}
@@ -308,13 +333,13 @@ public class CreditMetadataTest {
 		for (Map.Entry<String, ResourceType> rtes : VALID_RESOURCE_TYPE_MAP.entrySet()) {
 			for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 				final CreditMetadata cm = CreditMetadata
-						.getBuilder(entry.getKey(), rtes.getKey(),
+						.getBuilder(entry.getKey(), ORG_1, rtes.getKey(),
 								CONTRIBUTOR_LIST, TITLE_LIST)
 						.withVersion(VERSION_STRING)
 						.build();
-				assertCreditMetadataFields(cm, entry.getValue(),
+				assertCreditMetadataFields(cm, entry.getValue(), ORG_1,
 						rtes.getValue(), CONTRIBUTOR_LIST, TITLE_LIST,
-						ES, opt(VERSION_STRING));
+						ES, ES, opt(VERSION_STRING));
 			}
 		}
 	}
@@ -323,14 +348,14 @@ public class CreditMetadataTest {
 	@Test
 	public void buildCleanAndTrimComments() throws Exception {
 		final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withComments(COMMENTS_LIST_UNTRIMMED)
 				.withVersion(VERSION_STRING_UNTRIMMED)
 				.build();
 
-		assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING),
+		assertCreditMetadataFields(cm, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, opt(VERSION_STRING),
 				COMMENTS_LIST, ELD, ELF, ELRI);
 	}
 
@@ -338,28 +363,30 @@ public class CreditMetadataTest {
 	public void buildCleanURLTypeLicense() throws Exception {
 		for (final String licenseURL : VALID_URL_LIST) {
 			final CreditMetadata cm2 = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+					.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST, TITLE_LIST)
 					.withLicense(licenseURL)
 					.withDates(DATE_LIST)
 					.build();
-			assertCreditMetadataFields(cm2, IDENTIFIER_STRING, RESOURCE_TYPE,
-					CONTRIBUTOR_LIST, TITLE_LIST, opt(licenseURL), ES,
+			assertCreditMetadataFields(cm2, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
+					CONTRIBUTOR_LIST, TITLE_LIST,
+					ES, opt(licenseURL), ES,
 					ELS, DATE_LIST, ELF, ELRI);
 		}
 
 		// trim, tidy, and normalise the URL
 		for (Map.Entry<String, String> entry : ABNORMAL_URL_MAP.entrySet()) {
 			final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withLicense(entry.getKey())
-				.withVersion(VERSION_STRING_UNTRIMMED)
+				.withDates(DATE_LIST)
 				.build();
 
-			assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
+			assertCreditMetadataFields(cm, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
 					CONTRIBUTOR_LIST, TITLE_LIST,
-					opt(entry.getValue()), opt(VERSION_STRING));
+					ES, opt(entry.getValue()), ES,
+					ELS, DATE_LIST, ELF, ELRI);
 		}
 	}
 
@@ -367,7 +394,7 @@ public class CreditMetadataTest {
 	public void buildMinimalNullEmptyLists() throws Exception {
 		// empty list inputs
 		final CreditMetadata cm1 = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withVersion(VERSION_STRING)
 				.withComments(ELS)
@@ -375,12 +402,12 @@ public class CreditMetadataTest {
 				.withFunding(ELF)
 				.withRelatedIdentifiers(ELRI)
 				.build();
-		assertCreditMetadataFields(cm1, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
+		assertCreditMetadataFields(cm1, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, opt(VERSION_STRING));
 
 		// list of nulls
 		final CreditMetadata cm2 = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withVersion(VERSION_STRING)
 				.withComments(Arrays.asList(null, null, null, null, null))
@@ -389,12 +416,12 @@ public class CreditMetadataTest {
 				.withRelatedIdentifiers(
 						Arrays.asList(null, null, null, null, null))
 				.build();
-		assertCreditMetadataFields(cm2, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
+		assertCreditMetadataFields(cm2, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, opt(VERSION_STRING));
 
 		// plain nulls
 		final CreditMetadata cm3 = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withVersion(VERSION_STRING)
 				.withComments(null)
@@ -402,22 +429,23 @@ public class CreditMetadataTest {
 				.withFunding(null)
 				.withRelatedIdentifiers(null)
 				.build();
-		assertCreditMetadataFields(cm3, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
+		assertCreditMetadataFields(cm3, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, opt(VERSION_STRING));
 	}
 
 	@Test
 	public void buildMinimalNullEmptyString() throws Exception {
 		for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final CreditMetadata cm = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+					.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST, TITLE_LIST)
+					.withDescription(nullOrWs)
 					.withLicense(nullOrWs)
 					.withVersion(nullOrWs)
 					.withDates(DATE_LIST)
 					.build();
-			assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-					CONTRIBUTOR_LIST, TITLE_LIST, ES, ES,
+			assertCreditMetadataFields(cm, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
+					CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, ES,
 					ELS, DATE_LIST, ELF, ELRI);
 		}
 	}
@@ -426,8 +454,9 @@ public class CreditMetadataTest {
 	public void buildMaximal() throws Exception {
 		for (Map.Entry<String, String> entry : VALID_PID_MAP.entrySet()) {
 			final CreditMetadata cm = CreditMetadata
-					.getBuilder(entry.getKey(), RESOURCE_TYPE_STRING,
+					.getBuilder(entry.getKey(), ORG_1, RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST, TITLE_LIST)
+					.withDescription(DESC_STRING_UNTRIMMED)
 					.withLicense(LICENSE_STRING_UNTRIMMED)
 					.withVersion(VERSION_STRING_UNTRIMMED)
 					.withComments(COMMENTS_LIST_UNTRIMMED)
@@ -435,9 +464,9 @@ public class CreditMetadataTest {
 					.withFunding(FUNDING_LIST)
 					.withRelatedIdentifiers(RELATED_ID_LIST)
 					.build();
-			assertCreditMetadataFields(cm, entry.getValue(), RESOURCE_TYPE,
+			assertCreditMetadataFields(cm, entry.getValue(), ORG_1, RESOURCE_TYPE,
 					CONTRIBUTOR_LIST, TITLE_LIST,
-					opt(LICENSE_STRING), opt(VERSION_STRING),
+					opt(DESC_STRING), opt(LICENSE_STRING), opt(VERSION_STRING),
 					COMMENTS_LIST, DATE_LIST, FUNDING_LIST,
 					RELATED_ID_LIST);
 		}
@@ -447,16 +476,18 @@ public class CreditMetadataTest {
 	public void buildMinimalOverwriteNullEmptyString() throws Exception {
 		for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final CreditMetadata cm = CreditMetadata
-					.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+					.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST, TITLE_LIST)
+					.withDescription(DESC_STRING_UNTRIMMED)
+					.withDescription(nullOrWs)
 					.withLicense(LICENSE_STRING_UNTRIMMED)
 					.withLicense(nullOrWs)
 					.withVersion(VERSION_STRING_UNTRIMMED)
 					.withVersion(nullOrWs)
 					.withDates(DATE_LIST)
 					.build();
-			assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-					CONTRIBUTOR_LIST, TITLE_LIST, ES, ES,
+			assertCreditMetadataFields(cm, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
+					CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, ES,
 					ELS, DATE_LIST, ELF, ELRI);
 		}
 	}
@@ -464,7 +495,7 @@ public class CreditMetadataTest {
 	@Test
 	public void buildMaximalOverwriteNullEmptyLists() throws Exception {
 		final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withDates(DATE_LIST)
 				.withDates(Arrays.asList(null, null, null, null))
@@ -474,14 +505,15 @@ public class CreditMetadataTest {
 				.withRelatedIdentifiers(ELRI)
 				.withVersion(VERSION_STRING_UNTRIMMED)
 				.build();
-		assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, ES, opt(VERSION_STRING));
+		assertCreditMetadataFields(cm, IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE,
+				CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, opt(VERSION_STRING));
 	}
 
 	@Test
 	public void buildMaximalDedupeLists() throws Exception {
 		final CreditMetadata cm = CreditMetadata
 				.getBuilder(IDENTIFIER_STRING,
+						ORG_1,
 						RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST_DUPES_NULLS,
 						TITLE_LIST_DUPES_NULLS)
@@ -490,8 +522,8 @@ public class CreditMetadataTest {
 				.withFunding(FUNDING_LIST_DUPES_NULLS)
 				.withRelatedIdentifiers(RELATED_ID_LIST_DUPES_NULLS)
 				.build();
-				assertCreditMetadataFields(cm, IDENTIFIER_STRING, RESOURCE_TYPE,
-				CONTRIBUTOR_LIST, TITLE_LIST, ES, ES,
+				assertCreditMetadataFields(cm, IDENTIFIER_STRING, ORG_1,
+				RESOURCE_TYPE, CONTRIBUTOR_LIST, TITLE_LIST, ES, ES, ES,
 				COMMENTS_LIST, DATE_LIST, FUNDING_LIST,
 				RELATED_ID_LIST);
 	}
@@ -501,14 +533,14 @@ public class CreditMetadataTest {
 		// same as CONTRIBUTOR_LIST
 		final List<Contributor> contributorList = new ArrayList<>(Arrays.asList(C1, C2));
 		final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						contributorList, TITLE_LIST)
 				.withDates(DATE_LIST)
 				.build();
 
 		// mutating the input list should not affect the contributor list
 		contributorList.add(C3);
-		assertThat("no mutation", contributorList, is(Arrays.asList(C1, C2, C3)));
+		assertThat(NO_MUTATION, contributorList, is(Arrays.asList(C1, C2, C3)));
 		assertThat(INCORRECT_CONTRIBUTORS, cm.getContributors(), is(CONTRIBUTOR_LIST));
 
 		try {
@@ -526,7 +558,7 @@ public class CreditMetadataTest {
 				"Prime codswallop"
 		));
 		final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withDates(DATE_LIST)
 				.withComments(commentList)
@@ -534,7 +566,7 @@ public class CreditMetadataTest {
 
 		// mutating the input list should not affect the comments
 		commentList.add("blah blah blah");
-		assertThat("no mutation", commentList, is(Arrays.asList(
+		assertThat(NO_MUTATION, commentList, is(Arrays.asList(
 				"What a load of nonsense",
 				"Prime codswallop",
 				"blah blah blah"
@@ -557,14 +589,14 @@ public class CreditMetadataTest {
 		// same as DATE_LIST
 		final List<EventDate> dateList = new ArrayList<>(Arrays.asList(ED1, ED2));
 		final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withDates(dateList)
 				.build();
 
 		// mutating the input list should not affect the date list
 		dateList.add(ED3);
-		assertThat("no mutation", dateList, is(Arrays.asList(ED1, ED2, ED3)));
+		assertThat(NO_MUTATION, dateList, is(Arrays.asList(ED1, ED2, ED3)));
 		assertThat(INCORRECT_DATES, cm.getDates(), is(DATE_LIST));
 
 		try {
@@ -580,7 +612,7 @@ public class CreditMetadataTest {
 		// same as CONTRIBUTOR_LIST
 		final List<FundingReference> fundingList = new ArrayList<>(Arrays.asList(F1));
 		final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withDates(DATE_LIST)
 				.withFunding(fundingList)
@@ -588,7 +620,7 @@ public class CreditMetadataTest {
 
 		// mutating the input list should not affect the funding list
 		fundingList.add(F2);
-		assertThat("no mutation", fundingList, is(Arrays.asList(F1, F2)));
+		assertThat(NO_MUTATION, fundingList, is(Arrays.asList(F1, F2)));
 		assertThat(INCORRECT_FUNDING, cm.getFunding(), is(FUNDING_LIST));
 
 		try {
@@ -604,14 +636,14 @@ public class CreditMetadataTest {
 		// same as RELATED_ID_LIST
 		final List<PermanentID> pidList = new ArrayList<>(Arrays.asList(PID1, PID2));
 		final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)
 				.withDates(DATE_LIST)
 				.withRelatedIdentifiers(pidList)
 				.build();
 		// mutating the input list should not affect the related ID list
 		pidList.add(PID3);
-		assertThat("no mutation", pidList, is(Arrays.asList(PID1, PID2, PID3)));
+		assertThat(NO_MUTATION, pidList, is(Arrays.asList(PID1, PID2, PID3)));
 		assertThat(INCORRECT_RELATED_IDS, cm.getRelatedIdentifiers(), is(RELATED_ID_LIST));
 
 		try {
@@ -627,13 +659,13 @@ public class CreditMetadataTest {
 		// same as TITLE_LIST
 		final List<Title> titleList = new ArrayList<>(Arrays.asList(T1, T2));
 		final CreditMetadata cm = CreditMetadata
-				.getBuilder(IDENTIFIER_STRING, RESOURCE_TYPE_STRING,
+				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, titleList)
 				.withDates(DATE_LIST)
 				.build();
 		// mutating the input list should not affect the title list
 		titleList.add(T3);
-		assertThat("no mutation", titleList, is(Arrays.asList(T1, T2, T3)));
+		assertThat(NO_MUTATION, titleList, is(Arrays.asList(T1, T2, T3)));
 		assertThat(INCORRECT_TITLES, cm.getTitles(), is(TITLE_LIST));
 
 		try {
@@ -669,6 +701,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							nullOrWs,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
@@ -680,15 +713,26 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							invalidPid,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
 							.withVersion(VERSION_STRING),
-					"Illegal format for identifier: \"" + invalidPid
-							+ "\"\n" +
-							"It should match the pattern "
-							+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
+					ILLEGAL_ID_BEFORE + invalidPid + ILLEGAL_ID_AFTER);
 		}
+	}
+
+	@Test
+	public void buildFailInvalidRepository() throws Exception {
+		buildCreditMetadataFailWithError(
+				CreditMetadata.getBuilder(
+						IDENTIFIER_STRING,
+						null,
+						RESOURCE_TYPE_STRING,
+						CONTRIBUTOR_LIST,
+						TITLE_LIST)
+						.withVersion(VERSION_STRING),
+				REPO_NON_NULL);
 	}
 
 	@Test
@@ -697,6 +741,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							rt,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
@@ -708,6 +753,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							wsOrNull,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
@@ -718,6 +764,7 @@ public class CreditMetadataTest {
 		buildCreditMetadataFailWithError(
 				CreditMetadata.getBuilder(
 						IDENTIFIER_STRING,
+						ORG_1,
 						(ResourceType) null,
 						CONTRIBUTOR_LIST,
 						TITLE_LIST)
@@ -732,6 +779,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
@@ -747,6 +795,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
@@ -760,6 +809,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
@@ -776,6 +826,7 @@ public class CreditMetadataTest {
 		buildCreditMetadataFailWithError(
 				CreditMetadata.getBuilder(
 						IDENTIFIER_STRING,
+						ORG_1,
 						RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST,
 						TITLE_LIST),
@@ -786,6 +837,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
@@ -796,6 +848,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST,
 							TITLE_LIST)
@@ -808,6 +861,7 @@ public class CreditMetadataTest {
 		buildCreditMetadataFailWithError(
 				CreditMetadata.getBuilder(
 						IDENTIFIER_STRING,
+						ORG_1,
 						RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST,
 						TITLE_LIST)
@@ -818,6 +872,7 @@ public class CreditMetadataTest {
 		buildCreditMetadataFailWithError(
 				CreditMetadata.getBuilder(
 						IDENTIFIER_STRING,
+						ORG_1,
 						RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST,
 						TITLE_LIST)
@@ -827,6 +882,7 @@ public class CreditMetadataTest {
 		buildCreditMetadataFailWithError(
 				CreditMetadata.getBuilder(
 						IDENTIFIER_STRING,
+						ORG_1,
 						RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST,
 						TITLE_LIST)
@@ -838,6 +894,7 @@ public class CreditMetadataTest {
 		buildCreditMetadataFailWithError(
 				CreditMetadata.getBuilder(
 						IDENTIFIER_STRING,
+						ORG_1,
 						RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST,
 						TITLE_LIST)
@@ -849,6 +906,7 @@ public class CreditMetadataTest {
 		buildCreditMetadataFailWithError(
 				CreditMetadata.getBuilder(
 						IDENTIFIER_STRING,
+						ORG_1,
 						RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST,
 						TITLE_LIST)
@@ -859,6 +917,7 @@ public class CreditMetadataTest {
 		buildCreditMetadataFailWithError(
 				CreditMetadata.getBuilder(
 						IDENTIFIER_STRING,
+						ORG_1,
 						RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST,
 						TITLE_LIST)
@@ -873,6 +932,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							null,
 							TITLE_LIST)
@@ -883,6 +943,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							ELC,
 							TITLE_LIST)
@@ -892,6 +953,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							Arrays.asList(null, null, null, null),
 							TITLE_LIST)
@@ -905,6 +967,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST, null)
 							.withVersion(VERSION_STRING),
@@ -914,6 +977,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST, ELT)
 							.withVersion(VERSION_STRING),
@@ -922,6 +986,7 @@ public class CreditMetadataTest {
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							IDENTIFIER_STRING,
+							ORG_1,
 							RESOURCE_TYPE_STRING,
 							CONTRIBUTOR_LIST,
 							Arrays.asList(null, null, null, null))
@@ -933,6 +998,7 @@ public class CreditMetadataTest {
 	public void buildMinimalFailAllFields() throws Exception {
 		final String[] errs = {
 				RESOURCE_TYPE_NON_WS_NULL,
+				REPO_NON_NULL,
 				IDENTIFIER_NON_NULL_WS,
 				CONTRIBUTOR_AT_LEAST_ONE,
 				TITLE_AT_LEAST_ONE,
@@ -943,18 +1009,19 @@ public class CreditMetadataTest {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			// null contributor and title lists
 			buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(nullOrWs, nullOrWs, null, null),
+					CreditMetadata.getBuilder(nullOrWs, null, nullOrWs, null, null),
 					errorString);
 
 			// empty contributor and title lists
 			buildCreditMetadataFailWithError(
-					CreditMetadata.getBuilder(nullOrWs, nullOrWs, ELC, ELT),
+					CreditMetadata.getBuilder(nullOrWs, null, nullOrWs, ELC, ELT),
 					errorString);
 
 			// list of nulls
 			buildCreditMetadataFailWithError(
 					CreditMetadata.getBuilder(
 							nullOrWs,
+							null,
 							nullOrWs,
 							Arrays.asList(null, null, null, null),
 							Arrays.asList(null, null, null, null)),
@@ -964,9 +1031,8 @@ public class CreditMetadataTest {
 		for (String invalidPid : INVALID_PID_LIST) {
 			final String[] errs2 = {
 					RESOURCE_TYPE_NON_WS_NULL,
-					"Illegal format for identifier: \"" + invalidPid + "\"\n" +
-							"It should match the pattern "
-							+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"",
+					REPO_NON_NULL,
+					ILLEGAL_ID_BEFORE + invalidPid + ILLEGAL_ID_AFTER,
 					CONTRIBUTOR_AT_LEAST_ONE,
 					TITLE_AT_LEAST_ONE,
 					VERSIONING_DATES_REQUIRED
@@ -977,18 +1043,28 @@ public class CreditMetadataTest {
 				// null lists
 				buildCreditMetadataFailWithError(
 						CreditMetadata.getBuilder(
-							invalidPid, wsOrNull, null, null),
+								invalidPid,
+								null,
+								wsOrNull,
+								null,
+								null),
 						errorStringWithRegex);
 
 				// empty lists
 				buildCreditMetadataFailWithError(
-						CreditMetadata.getBuilder(invalidPid, wsOrNull, ELC, ELT),
+						CreditMetadata.getBuilder(
+								invalidPid,
+								null,
+								wsOrNull,
+								ELC,
+								ELT),
 						errorStringWithRegex);
 
 				// list of nulls
 				buildCreditMetadataFailWithError(
 						CreditMetadata.getBuilder(
 								invalidPid,
+								null,
 								wsOrNull,
 								Arrays.asList(null, null, null),
 								Arrays.asList(null, null, null)),
@@ -1001,15 +1077,15 @@ public class CreditMetadataTest {
 	public void buildFailManyFields() throws Exception {
 
 		for (String invalidPid : INVALID_PID_LIST) {
-			final String invalidPidError = "Illegal format for identifier: \"" + invalidPid + "\"\n" +
-			"It should match the pattern "
-			+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"";
+			final String invalidPidError = ILLEGAL_ID_BEFORE + invalidPid
+					+ ILLEGAL_ID_AFTER;
 			for (Map.Entry<String, String> entry : INVALID_URL_MAP.entrySet()) {
 				final String invalidLicenseUrlError = LICENSE_URL_ILLEGAL
 				+ entry.getKey() + "': " + entry.getValue();
 
 				final String[] errs = {
 					RESOURCE_TYPE_NON_WS_NULL,
+					REPO_NON_NULL,
 					invalidPidError,
 					CONTRIBUTOR_AT_LEAST_ONE,
 					TITLE_AT_LEAST_ONE,
@@ -1021,19 +1097,19 @@ public class CreditMetadataTest {
 				for (String wsOrNull : WHITESPACE_STRINGS_WITH_NULL) {
 					// null lists
 					buildCreditMetadataFailWithError(
-							CreditMetadata.getBuilder(invalidPid, wsOrNull, null, null)
+							CreditMetadata.getBuilder(invalidPid, null, wsOrNull, null, null)
 									.withLicense(entry.getKey()),
 							errorStringWithRegex);
 
 					// empty lists
 					buildCreditMetadataFailWithError(
-							CreditMetadata.getBuilder(invalidPid, wsOrNull, ELC, ELT)
+							CreditMetadata.getBuilder(invalidPid,  null, wsOrNull, ELC, ELT)
 									.withLicense(entry.getKey()),
 							errorStringWithRegex);
 
 					// list of nulls
 					buildCreditMetadataFailWithError(
-							CreditMetadata.getBuilder(invalidPid, wsOrNull,
+							CreditMetadata.getBuilder(invalidPid, null, wsOrNull,
 									Arrays.asList(null, null, null),
 									Arrays.asList(null, null, null))
 									.withLicense(entry.getKey()),
