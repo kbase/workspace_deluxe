@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           # set up python dependencies
-          pip install pytest requests
+          pip install pytest requests sphinx
 
       - name: Run tests
         shell: bash
@@ -149,13 +149,11 @@ jobs:
           sed -i "s#^test.arango.js.*#test.arango.js=$ARANGO_JS#" test.cfg
           cat test.cfg
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 7.6
+          # install sphinx for generating documentation
+          pip install sphinx
 
       - name: build the war file (requires compileJava, javadoc)
-        run: gradle war --info
+        run: ./gradlew war --info
 
       - name: run the ${{matrix.test_cmd}} tests and generate coverage
         run: |
@@ -163,7 +161,7 @@ jobs:
           if [ "${{matrix.test_cmd}}" = "test_quick_coverage" ]; then
             ant "${{matrix.test_cmd}}"
           else
-            gradle "coverage${{matrix.test_cmd}}" --info
+            ./gradlew "coverage${{matrix.test_cmd}}" --info
           fi
 
       - name: Upload coverage to Codecov

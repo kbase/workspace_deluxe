@@ -19,6 +19,7 @@ ext {
 	// directories
 	src = "src"
 	dist = "dist"
+	docs = "docs"
 	downloadDir = "$buildDir/download"
 	tempunpack = "$buildDir/tmp/unpackedjars"
 	// other config
@@ -220,8 +221,16 @@ tasks.javadoc {
 	}
 }
 
+task buildDocs(type: Exec) {
+    description "Run sphinx-build and pod2html"
+    group "Documentation"
+	// Set the command to run sphinx-build and pod2html
+	commandLine "make", "docs"
+}
+
 tasks.war {
 	dependsOn javadoc
+	dependsOn buildDocs
 	description = "Build the WAR file. Assumes compilation has been run."
 	archiveFileName = warFile
 	destinationDirectory = file("$dist")
@@ -239,10 +248,17 @@ tasks.war {
 	into("WEB-INF/classes") {
 		from sourceSets.main.output.classesDirs
 	}
-	// copy in the documentation
+
+	// copy over the non-java documentation
+	into("WEB-INF/classes/server_docs") {
+		from docs
+	}
+
+	// copy over the javadoc
 	into("WEB-INF/classes/server_docs/javadoc") {
 		from javadoc.destinationDir
 	}
+
 }
 
 task expandWar(type: Copy) {
