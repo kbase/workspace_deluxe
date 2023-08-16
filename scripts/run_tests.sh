@@ -40,7 +40,7 @@ while [ $counter -lt $max_retries ]; do
     fi
     echo "Waiting for the workspace to be ready..."
     counter=$(( counter + 1))
-    sleep 2
+    sleep 5
 done
 
 if [ $counter -eq $max_retries ]; then
