@@ -34,7 +34,7 @@ import us.kbase.workspace.database.provenance.Event;
 import us.kbase.workspace.database.provenance.EventDate;
 import us.kbase.workspace.database.provenance.FundingReference;
 import us.kbase.workspace.database.provenance.Organization;
-import us.kbase.workspace.database.provenance.PermanentID;
+import us.kbase.workspace.database.provenance.PermanentId;
 import us.kbase.workspace.database.provenance.Title;
 
 public class CreditMetadataTest {
