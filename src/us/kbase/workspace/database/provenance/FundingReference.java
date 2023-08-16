@@ -5,83 +5,69 @@ import java.util.Objects;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
-import us.kbase.workspace.database.Util;
 
 /**
- * A funding reference for a resource, including the funding body and the grant
- * awarded.
+ * A funding reference for a resource, including the funding body and the grant.
  */
 public class FundingReference {
 
-	private final String funderId;
-	private final String funderName;
-	private final String awardId;
-	private final String awardTitle;
-	private final URL awardUrl;
+	private final Organization funder;
+	private final String grantID;
+	private final String grantTitle;
+	private final URL grantURL;
 
 	private FundingReference(
-			final String funderId,
-			final String funderName,
-			final String awardId,
-			final String awardTitle,
-			final URL awardUrl) {
-		this.funderId = funderId;
-		this.funderName = funderName;
-		this.awardId = awardId;
-		this.awardTitle = awardTitle;
-		this.awardUrl = awardUrl;
+			final Organization funder,
+			final String grantID,
+			final String grantTitle,
+			final URL grantURL) {
+		this.funder = funder;
+		this.grantID = grantID;
+		this.grantTitle = grantTitle;
+		this.grantURL = grantURL;
 	}
 
 	/**
-	 * Gets the funder ID, for example ROR:04xm1d337.
+	 * Gets the funding organization.
 	 *
-	 * @return the funder ID, if present.
+	 * @return the funder organization.
 	 */
-	public Optional<String> getFunderId() {
-		return Optional.ofNullable(funderId);
+	public Organization getFunder() {
+		return funder;
 	}
 
 	/**
-	 * Gets the funder name, for example US Department of Energy.
-	 *
-	 * @return the funder name.
-	 */
-	public String getFunderName() {
-		return funderName;
-	}
-
-	/**
-	 * Gets the code assigned by the funder to the award, for example
+	 * Gets the code assigned by the funder to the grant, for example
 	 * DOI:10.46936/10.25585/60000745.
 	 *
-	 * @return the award ID, if present.
+	 * @return the grant ID, if present.
 	 */
-	public Optional<String> getAwardId() {
-		return Optional.ofNullable(awardId);
+	public Optional<String> getGrantID() {
+		return Optional.ofNullable(grantID);
 	}
 
 	/**
-	 * Gets the title of the award, for example "Metagenomic analysis of the
+	 * Gets the title of the grant, for example "Metagenomic analysis of the
 	 * rhizosphere of three biofuel crops at the KBS intensive site".
 	 *
-	 * @return the award title, if present.
+	 * @return the grant title, if present.
 	 */
-	public Optional<String> getAwardTitle() {
-		return Optional.ofNullable(awardTitle);
+	public Optional<String> getGrantTitle() {
+		return Optional.ofNullable(grantTitle);
 	}
 
 	/**
-	 * Gets the URL of the award.
+	 * Gets the URL of the grant.
 	 *
-	 * @return the award URL, if present.
+	 * @return the grant URL, if present.
 	 */
-	public Optional<URL> getAwardUrl() {
-		return Optional.ofNullable(awardUrl);
+	public Optional<URL> getGrantURL() {
+		return Optional.ofNullable(grantURL);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(awardId, awardTitle, awardUrl, funderId, funderName);
+		return Objects.hash(grantID, grantTitle, grantURL, funder);
 	}
 
 	@Override
@@ -93,97 +79,77 @@ public class FundingReference {
 		if (getClass() != obj.getClass())
 			return false;
 		FundingReference other = (FundingReference) obj;
-		return Objects.equals(awardId, other.awardId) && Objects.equals(awardTitle, other.awardTitle)
-				&& Objects.equals(awardUrl, other.awardUrl) && Objects.equals(funderId, other.funderId)
-				&& Objects.equals(funderName, other.funderName);
+		return Objects.equals(grantID, other.grantID) && Objects.equals(grantTitle, other.grantTitle)
+				&& Objects.equals(grantURL, other.grantURL) && Objects.equals(funder, other.funder);
 	}
 
 	/**
 	 * Gets a builder for an {@link FundingReference}.
 	 *
-	 * @param funderName
-	 *                name of the funding body
+	 * @param funder
+	 *                the funding body
 	 *
 	 * @return the builder.
 	 */
-	public static Builder getBuilder(final String funderName) {
-		return new Builder(funderName);
+	public static Builder getBuilder(final Organization funder) {
+		return new Builder(funder);
 	}
 
 	/** A builder for an {@link FundingReference}. */
 	public static class Builder {
 
-		private String funderId = null;
-		private String funderName;
-		private String awardId = null;
-		private String awardTitle = null;
-		private URL awardUrl = null;
+		private final Organization funder;
+		private String grantID = null;
+		private String grantTitle = null;
+		private URL grantURL = null;
 		private List<String> errorList = new ArrayList<>();
 
-		private Builder(final String funderName) {
-			try {
-				this.funderName = Util.checkString(funderName, "funderName");
-			} catch (Exception e) {
-				this.errorList.add(e.getMessage());
+		private Builder(final Organization funder) {
+			if (funder == null) {
+				this.errorList.add("funder cannot be null");
 			}
+			this.funder = funder;
 		}
 
 		/**
-		 * Sets the ID of the funder, for example ROR:04xm1d337.
+		 * Sets the ID of the grant, for example DOI:10.46936/10.25585/60000745.
+		 * N.b. not all grant IDs conform to the standard PID syntax.
 		 *
-		 * @param funderId
-		 *                the ID of the funder. Null or the empty string removes any
+		 * @param grantID
+		 *                the ID of the grant. Null or the empty string removes any
 		 *                current ID in the builder.
 		 * @return this builder.
 		 */
-		public Builder withFunderId(final String funderId) {
-			try {
-				this.funderId = Common.checkPid(funderId, "funderId", true);
-			} catch (Exception e) {
-				this.errorList.add(e.getMessage());
-			}
+		public Builder withGrantID(final String grantID) {
+			this.grantID = Common.processString(grantID);
 			return this;
 		}
 
 		/**
-		 * Sets the ID of the award, for example DOI:10.46936/10.25585/60000745.
-		 * N.b. not all award IDs conform to the standard PID syntax.
-		 *
-		 * @param awardId
-		 *                the ID of the award. Null or the empty string removes any
-		 *                current ID in the builder.
-		 * @return this builder.
-		 */
-		public Builder withAwardId(final String awardId) {
-			this.awardId = Common.processString(awardId);
-			return this;
-		}
-
-		/**
-		 * Sets the title of the award, for example "Metagenomic analysis of the
+		 * Sets the title of the grant, for example "Metagenomic analysis of the
 		 * rhizosphere of three biofuel crops at the KBS intensive site".
 		 *
-		 * @param awardTitle
-		 *                the title of the award. Null or the empty string removes
+		 * @param grantTitle
+		 *                the title of the grant. Null or the empty string removes
 		 *                any current ID in the builder.
 		 * @return this builder.
 		 */
-		public Builder withAwardTitle(final String awardTitle) {
-			this.awardTitle = Common.processString(awardTitle);
+		public Builder withGrantTitle(final String grantTitle) {
+			this.grantTitle = Common.processString(grantTitle);
 			return this;
 		}
 
 		/**
-		 * Sets the URL for the award.
+		 * Sets the URL for the grant.
 		 *
-		 * @param awardUrl
-		 *                the URL for the award. Null or the empty string removes any
+		 * @param grantURL
+		 *                the URL for the grant. Null or the empty string removes any
 		 *                current url in the builder.
 		 * @return this builder.
 		 */
-		public Builder withAwardUrl(final String awardUrl) {
+		public Builder withGrantURL(final String grantURL) {
 			try {
-				this.awardUrl = Common.processURL(awardUrl, "awardUrl");
+				this.grantURL = Common.processURL(grantURL, "grantURL");
 			} catch (Exception e) {
 				this.errorList.add(e.getMessage());
 			}
@@ -191,16 +157,16 @@ public class FundingReference {
 		}
 
 		/**
-		 * Sets the URL for the award.
+		 * Sets the URL for the grant.
 		 *
-		 * @param awardUrl
-		 *                the URL of the award. Null removes any current url in the
+		 * @param grantURL
+		 *                the URL of the grant. Null removes any current url in the
 		 *                builder.
 		 * @return this builder.
 		 */
-		public Builder withAwardUrl(final URL awardUrl) {
+		public Builder withGrantURL(final URL grantURL) {
 			try {
-				this.awardUrl = Common.processURL(awardUrl, "awardUrl");
+				this.grantURL = Common.processURL(grantURL, "grantURL");
 			} catch (Exception e) {
 				this.errorList.add(e.getMessage());
 			}
@@ -214,7 +180,7 @@ public class FundingReference {
 		 */
 		public FundingReference build() {
 			if (errorList.isEmpty()) {
-				return new FundingReference(funderId, funderName, awardId, awardTitle, awardUrl);
+				return new FundingReference(funder, grantID, grantTitle, grantURL);
 			}
 			throw new IllegalArgumentException("Errors in FundingReference construction:\n" +
 					String.join("\n", errorList));
