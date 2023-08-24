@@ -295,6 +295,16 @@ task testNoLongTests(type: Test) {
 	}
 }
 
+task testLongTestsOnly(type: Test) {
+	description = "run the slow tests"
+	systemProperty "test.cfg", testConfig
+	forkEvery 1
+	filter {
+		includeTestsMatching "*LongTest"
+	}
+}
+
+
 // output from coverage tasks is saved to build/reports/jacoco/<testName>
 tasks.withType(JacocoReport) {
 	reports {
@@ -309,6 +319,12 @@ task coverageNoLongTests(type: JacocoReport, dependsOn: testNoLongTests) {
 	group = "Reporting"
 	description = "Generate code coverage reports for all tests except the slow tests"
 	executionData(testNoLongTests)
+}
+
+task coverageLongTests(type: JacocoReport, dependsOn: testLongTestsOnly) {
+	group = "Reporting"
+	description = "Generate code coverage reports for the slow tests"
+	executionData(testLongTestsOnly)
 }
 
 task createScript {
