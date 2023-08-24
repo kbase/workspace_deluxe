@@ -11,11 +11,11 @@ import us.kbase.workspace.database.Util;
  */
 public class Organization {
 	private final String organizationName;
-	private final String organizationID;
+	private final String organizationId;
 
-	private Organization(final String organizationName, final String organizationID) {
+	private Organization(final String organizationName, final String organizationId) {
 		this.organizationName = organizationName;
-		this.organizationID = organizationID;
+		this.organizationId = organizationId;
 	}
 
 	/**
@@ -32,13 +32,13 @@ public class Organization {
 	 *
 	 * @return the data id, if present.
 	 */
-	public Optional<String> getOrganizationID() {
-		return Optional.ofNullable(organizationID);
+	public Optional<String> getOrganizationId() {
+		return Optional.ofNullable(organizationId);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(organizationID, organizationName);
+		return Objects.hash(organizationId, organizationName);
 	}
 
 	@Override
@@ -48,7 +48,7 @@ public class Organization {
 		if ((obj == null) || (getClass() != obj.getClass()))
 			return false;
 		Organization other = (Organization) obj;
-		return Objects.equals(organizationID, other.organizationID)
+		return Objects.equals(organizationId, other.organizationId)
 				&& Objects.equals(organizationName, other.organizationName);
 	}
 
@@ -66,7 +66,7 @@ public class Organization {
 	public static class Builder {
 
 		private String organizationName;
-		private String organizationID = null;
+		private String organizationId = null;
 		private List<String> errorList = new ArrayList<>();
 
 		private Builder(final String organizationName) {
@@ -80,14 +80,14 @@ public class Organization {
 		/**
 		 * Set the ID of the organization, for example ROR:03rmrcq20.
 		 *
-		 * @param organizationID
+		 * @param organizationId
 		 *                the organization ID. Null or the empty string removes
 		 *                any current organization ID in the builder.
 		 * @return this builder.
 		 */
-		public Builder withOrganizationID(final String organizationID) {
+		public Builder withOrganizationId(final String organizationId) {
 			try {
-				this.organizationID = Common.checkPid(organizationID, "organizationID", true);
+				this.organizationId = Common.checkPid(organizationId, "organizationId", true);
 			} catch (Exception e) {
 				this.errorList.add(e.getMessage());
 			}
@@ -101,7 +101,7 @@ public class Organization {
 		 */
 		public Organization build() {
 			if (errorList.isEmpty()) {
-				return new Organization(organizationName, organizationID);
+				return new Organization(organizationName, organizationId);
 			}
 			throw new IllegalArgumentException("Errors in Organization construction:\n" +
 					String.join("\n", errorList));

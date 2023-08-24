@@ -34,7 +34,7 @@ import us.kbase.workspace.database.provenance.Event;
 import us.kbase.workspace.database.provenance.EventDate;
 import us.kbase.workspace.database.provenance.FundingReference;
 import us.kbase.workspace.database.provenance.Organization;
-import us.kbase.workspace.database.provenance.PermanentID;
+import us.kbase.workspace.database.provenance.PermanentId;
 import us.kbase.workspace.database.provenance.Title;
 
 public class CreditMetadataTest {
@@ -158,11 +158,11 @@ public class CreditMetadataTest {
 	private static final List<FundingReference> FUNDING_LIST_DUPES_NULLS = Arrays.asList(
 			F1, F1, F1, F1, F1, F1, F1, null);
 
-	private static final PermanentID PID1 = PermanentID.getBuilder("this:ID").build();
-	private static final PermanentID PID2 = PermanentID.getBuilder("that:ID").build();
-	private static final PermanentID PID3 = PermanentID.getBuilder("the:other ID").build();
-	private static final List<PermanentID> RELATED_ID_LIST = Arrays.asList(PID1, PID2);
-	private static final List<PermanentID> RELATED_ID_LIST_DUPES_NULLS = Arrays.asList(
+	private static final PermanentId PID1 = PermanentId.getBuilder("this:ID").build();
+	private static final PermanentId PID2 = PermanentId.getBuilder("that:ID").build();
+	private static final PermanentId PID3 = PermanentId.getBuilder("the:other ID").build();
+	private static final List<PermanentId> RELATED_ID_LIST = Arrays.asList(PID1, PID2);
+	private static final List<PermanentId> RELATED_ID_LIST_DUPES_NULLS = Arrays.asList(
 			PID1, PID2, PID1, PID2, null, PID2, PID2, PID1);
 
 	// titles
@@ -187,7 +187,7 @@ public class CreditMetadataTest {
 	private static final List<Contributor> ELC = Collections.emptyList();
 	private static final List<EventDate> ELD = Collections.emptyList();
 	private static final List<FundingReference> ELF = Collections.emptyList();
-	private static final List<PermanentID> ELRI = Collections.emptyList();
+	private static final List<PermanentId> ELRI = Collections.emptyList();
 	private static final List<Title> ELT = Collections.emptyList();
 
 	private static final String EXP_EXC = "expected exception";
@@ -261,7 +261,7 @@ public class CreditMetadataTest {
 	 *                `getFunding`;
 	 *                if null, should return an empty list
 	 * @param relatedIdentifiers
-	 *                list of PermanentIDs expected to be returned by
+	 *                list of PermanentIds expected to be returned by
 	 *                `getRelatedIdentifiers`;
 	 *                if null, should return an empty list
 	 */
@@ -277,7 +277,7 @@ public class CreditMetadataTest {
 			final List<String> comments,
 			final List<EventDate> dates,
 			final List<FundingReference> funding,
-			final List<PermanentID> relatedIdentifiers) {
+			final List<PermanentId> relatedIdentifiers) {
 
 		assertThat(INCORRECT_ID, cm.getIdentifier(), is(identifier));
 		assertThat(INCORRECT_REPO, cm.getRepository(), is(repository));
@@ -634,7 +634,7 @@ public class CreditMetadataTest {
 	@Test
 	public void assertRelatedIdentifiersImmutable() throws Exception {
 		// same as RELATED_ID_LIST
-		final List<PermanentID> pidList = new ArrayList<>(Arrays.asList(PID1, PID2));
+		final List<PermanentId> pidList = new ArrayList<>(Arrays.asList(PID1, PID2));
 		final CreditMetadata cm = CreditMetadata
 				.getBuilder(IDENTIFIER_STRING, ORG_1, RESOURCE_TYPE_STRING,
 						CONTRIBUTOR_LIST, TITLE_LIST)

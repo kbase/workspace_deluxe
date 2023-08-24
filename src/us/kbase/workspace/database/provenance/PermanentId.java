@@ -11,13 +11,13 @@ import us.kbase.workspace.database.Util;
  * relationship to some other entity. That entity is expected to hold a
  * reference to the PID.
  */
-public class PermanentID {
+public class PermanentId {
 
 	private final String id;
 	private final String description;
 	private final RelationshipType relationshipType;
 
-	private PermanentID(final String id, final String description, final RelationshipType relationshipType) {
+	private PermanentId(final String id, final String description, final RelationshipType relationshipType) {
 		this.id = id;
 		this.description = description;
 		this.relationshipType = relationshipType;
@@ -28,7 +28,7 @@ public class PermanentID {
 	 *
 	 * @return the id.
 	 */
-	public String getID() {
+	public String getId() {
 		return id;
 	}
 
@@ -43,7 +43,7 @@ public class PermanentID {
 
 	/**
 	 * Gets the relationship between the ID and some other entity. For
-	 * example, when a {@link PermanentID] class is used to represent
+	 * example, when a {@link PermanentId] class is used to represent
 	 * objects in a {@link CitationMetadata}'s 'related_identifiers' field, this
 	 * field captures the relationship between the {@link CitationMetadata} and
 	 * the entity represented by this.id.
@@ -58,7 +58,7 @@ public class PermanentID {
 	}
 
 	/**
-	 * Gets a builder for an {@link PermanentID}.
+	 * Gets a builder for an {@link PermanentId}.
 	 *
 	 * @param id
 	 *                the permanent ID, for example DOI:10.25982/59912.37.
@@ -79,12 +79,12 @@ public class PermanentID {
 			return true;
 		if ((obj == null) || (getClass() != obj.getClass()))
 			return false;
-		PermanentID other = (PermanentID) obj;
+		PermanentId other = (PermanentId) obj;
 		return Objects.equals(description, other.description) && Objects.equals(id, other.id)
 				&& Objects.equals(relationshipType, other.relationshipType);
 	}
 
-	/** A builder for an {@link PermanentID}. */
+	/** A builder for an {@link PermanentId}. */
 	public static class Builder {
 
 		private String id;
@@ -153,15 +153,15 @@ public class PermanentID {
 		}
 
 		/**
-		 * Builds the {@link PermanentID}.
+		 * Builds the {@link PermanentId}.
 		 *
 		 * @return the permanent ID.
 		 */
-		public PermanentID build() {
+		public PermanentId build() {
 			if (errorList.isEmpty()) {
-				return new PermanentID(id, description, relationshipType);
+				return new PermanentId(id, description, relationshipType);
 			}
-			throw new IllegalArgumentException("Errors in PermanentID construction:\n" +
+			throw new IllegalArgumentException("Errors in PermanentId construction:\n" +
 					String.join("\n", errorList));
 		}
 	}

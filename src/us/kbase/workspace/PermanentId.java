@@ -12,9 +12,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 
 /**
- * <p>Original spec-file type: PermanentID</p>
+ * <p>Original spec-file type: PermanentId</p>
  * <pre>
- * PermanentID
+ * PermanentId
  *                 Represents a persistent unique identifier for an entity, with an optional
  *                 relationship to some other entity.
  *                 The 'id' field is required; all other fields are optional.
@@ -33,7 +33,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         Examples:
  *                                 - Amaranthus hypochondriacus genome
  *                 relationship_type (optional) - relationship between the ID and some other entity.
- *                         For example, when a PermanentID class is used to represent objects in the
+ *                         For example, when a PermanentId class is used to represent objects in the
  *                         CreditMetadata field 'related_identifiers', the 'relationship_type' field
  *                         captures the relationship between the CreditMetadata and this ID.
  *                         Valid 'relationship_type' values:
@@ -101,7 +101,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                                 - Crossref:IsTranslationOf
  *                                 - Crossref:Replaces
  * </pre>
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
@@ -110,7 +110,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "description",
     "relationship_type"
 })
-public class PermanentID {
+public class PermanentId {
 
     @JsonProperty("id")
     private String id;
@@ -130,7 +130,7 @@ public class PermanentID {
         this.id = id;
     }
 
-    public PermanentID withId(String id) {
+    public PermanentId withId(String id) {
         this.id = id;
         return this;
     }
@@ -145,7 +145,7 @@ public class PermanentID {
         this.description = description;
     }
 
-    public PermanentID withDescription(String description) {
+    public PermanentId withDescription(String description) {
         this.description = description;
         return this;
     }
@@ -160,7 +160,7 @@ public class PermanentID {
         this.relationshipType = relationshipType;
     }
 
-    public PermanentID withRelationshipType(String relationshipType) {
+    public PermanentId withRelationshipType(String relationshipType) {
         this.relationshipType = relationshipType;
         return this;
     }
@@ -177,7 +177,7 @@ public class PermanentID {
 
     @Override
     public String toString() {
-        return ((((((((("PermanentID"+" [id=")+ id)+", description=")+ description)+", relationshipType=")+ relationshipType)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((("PermanentId"+" [id=")+ id)+", description=")+ description)+", relationshipType=")+ relationshipType)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

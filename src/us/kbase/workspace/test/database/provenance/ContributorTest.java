@@ -32,7 +32,7 @@ public class ContributorTest {
 	// field names
 	private static final String NAME = "name";
 	private static final String CREDIT_NAME = "creditName";
-	private static final String CONTRIB_ID = "contributorID";
+	private static final String CONTRIB_ID = "contributorId";
 
 	private static final String INCORRECT_NAME = INCORRECT + NAME;
 	private static final String INCORRECT_CREDIT_NAME = INCORRECT + CREDIT_NAME;
@@ -351,7 +351,7 @@ public class ContributorTest {
 		assertThat(INCORRECT_NAME, contributor.getName(), is(expectedMap.get(NAME)));
 		assertThat(INCORRECT_CREDIT_NAME, contributor.getCreditName(),
 				is(expectedMap.containsKey(CREDIT_NAME) ? opt(expectedMap.get(CREDIT_NAME)) : ES));
-		assertThat(INCORRECT_CONTRIB_ID, contributor.getContributorID(),
+		assertThat(INCORRECT_CONTRIB_ID, contributor.getContributorId(),
 				is(expectedMap.containsKey(CONTRIB_ID) ? opt(expectedMap.get(CONTRIB_ID)) : ES));
 
 		assertThat(INCORRECT_AFFILIATIONS, contributor.getAffiliations(),
@@ -390,7 +390,7 @@ public class ContributorTest {
 	public void buildMinimalWithNameContribID() throws Exception {
 		for (final ContributorType ct : ContributorType.values()) {
 			final Contributor contributor = Contributor.getBuilder(ct, NAME_STRING)
-					.withContributorID(CONTRIB_ID_STRING)
+					.withContributorId(CONTRIB_ID_STRING)
 					.build();
 			assertContributorFields(contributor, ct, NAME_ID_MAP);
 		}
@@ -445,7 +445,7 @@ public class ContributorTest {
 	public void buildMaximal1AffiliationManyRoles() throws Exception {
 		final Contributor contributor = Contributor.getBuilder(CONTRIB_TYPE, NAME_STRING)
 				.withCreditName(CREDIT_NAME_STRING)
-				.withContributorID(CONTRIB_ID_STRING)
+				.withContributorId(CONTRIB_ID_STRING)
 				.withAffiliations(SINGLE_AFFILIATION)
 				.withContributorRoles(ROLES)
 				.build();
@@ -457,7 +457,7 @@ public class ContributorTest {
 	public void buildMaximal3AffiliationsManyRoles() throws Exception {
 		final Contributor contributor = Contributor.getBuilder(CONTRIB_TYPE, NAME_STRING)
 				.withCreditName(CREDIT_NAME_STRING)
-				.withContributorID(CONTRIB_ID_STRING)
+				.withContributorId(CONTRIB_ID_STRING)
 				.withAffiliations(AFFILIATIONS)
 				.withContributorRoles(ROLES)
 				.build();
@@ -468,7 +468,7 @@ public class ContributorTest {
 	public void buildMaximalContributorRoleStrings() throws Exception {
 		final Contributor contributor = Contributor.getBuilder(CONTRIB_TYPE, NAME_STRING)
 				.withCreditName(CREDIT_NAME_STRING)
-				.withContributorID(CONTRIB_ID_STRING)
+				.withContributorId(CONTRIB_ID_STRING)
 				.withAffiliations(AFFILIATIONS)
 				.withContributorRoleStrings(ROLE_INPUT_STRINGS)
 				.build();
@@ -482,8 +482,8 @@ public class ContributorTest {
 				final Contributor contributor = Contributor.getBuilder(ct, NAME_STRING)
 						.withCreditName(CREDIT_NAME_STRING)
 						.withCreditName(nullOrWs)
-						.withContributorID(CONTRIB_ID_STRING)
-						.withContributorID(nullOrWs)
+						.withContributorId(CONTRIB_ID_STRING)
+						.withContributorId(nullOrWs)
 						.build();
 				assertContributorFields(contributor, ct, NAME_MAP);
 			}
@@ -757,13 +757,13 @@ public class ContributorTest {
 	public void buildFailInvalidContributorId() {
 		for (final String invalidPid : INVALID_PID_LIST) {
 			final List<String> errorStrings = Arrays.asList(
-					"Illegal format for contributorID: \"" + invalidPid + "\"",
+					"Illegal format for contributorId: \"" + invalidPid + "\"",
 					"It should match the pattern "
 							+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\"");
 			for (final ContributorType ct : ContributorType.values()) {
 				buildContributorFailWithError(
 						Contributor.getBuilder(ct, NAME_STRING)
-								.withContributorID(invalidPid),
+								.withContributorId(invalidPid),
 						errorStrings);
 			}
 		}
@@ -790,13 +790,13 @@ public class ContributorTest {
 	public void buildFailErrorCombinations() throws Exception {
 
 		for (final String invalidPid : INVALID_PID_LIST) {
-			// all the following entries have an invalid name and contributorID,
+			// all the following entries have an invalid name and contributorId,
 			// plus additional extra errors as indicated.
 			final List<String> errorStrings = Arrays.asList(
 					// no valid name supplied
 					NAME_NON_NULL,
-					// invalid contributorID error
-					"Illegal format for contributorID: \"" + invalidPid + "\"",
+					// invalid contributorId error
+					"Illegal format for contributorId: \"" + invalidPid + "\"",
 					"It should match the pattern "
 							+ "\"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\""
 					);
@@ -807,7 +807,7 @@ public class ContributorTest {
 			for (final String invalidType : INVALID_CONTRIB_TYPES) {
 				buildContributorFailWithError(
 						Contributor.getBuilder(invalidType, null)
-								.withContributorID(invalidPid),
+								.withContributorId(invalidPid),
 						"Invalid contributorType: " + invalidType + "\n" + errorString);
 			}
 
@@ -815,14 +815,14 @@ public class ContributorTest {
 			for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 				buildContributorFailWithError(
 						Contributor.getBuilder(nullOrWs, "\n\n\n\n")
-								.withContributorID(invalidPid),
+								.withContributorId(invalidPid),
 						CONTRIBUTOR_TYPE_NON_NULL + "\n" + errorString);
 			}
 
 			// ContributorType null
 			buildContributorFailWithError(
 					Contributor.getBuilder((ContributorType) null, "")
-							.withContributorID(invalidPid),
+							.withContributorId(invalidPid),
 					"contributorType cannot be null" + "\n" + errorString);
 
 			final String errorWithInvalidRoles = errorString + "\n" + String.join("\n", INVALID_ROLE_INPUT_STRING_ERRORS);
@@ -830,14 +830,14 @@ public class ContributorTest {
 				// valid contributorType, invalid contributor role strings
 				buildContributorFailWithError(
 						Contributor.getBuilder(ct, "")
-								.withContributorID(invalidPid)
+								.withContributorId(invalidPid)
 								.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS),
 								errorWithInvalidRoles);
 
 				// same thing plus whitespace and nulls
 				buildContributorFailWithError(
 						Contributor.getBuilder(ct, null)
-							.withContributorID(invalidPid)
+							.withContributorId(invalidPid)
 							.withContributorRoleStrings(INVALID_ROLE_INPUT_STRINGS_WITH_WS_NULL),
 								errorWithInvalidRoles);
 			}
