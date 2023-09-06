@@ -29,17 +29,6 @@ jobs:
               id: compute-key
               run: echo "cache-key=deps-${{ inputs.os }}-${{ inputs.mongo }}-${{ hashFiles('.github/workflows/test_set_up.yml') }}" >> $GITHUB_OUTPUT
 
-            - name: Set up java
-              uses: actions/setup-java@v3
-              with:
-                  distribution: "temurin"
-                  java-version: 11
-
-            - name: Set up Python 3.7 # sample service is on 3.7, handle service is on sdkbase2.latest
-              uses: actions/setup-python@v3
-              with:
-                  python-version: "3.7"
-
             - name: Cache dependencies
               id: cache-deps
               uses: actions/cache@v3
