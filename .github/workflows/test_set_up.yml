@@ -1,0 +1,183 @@
+name: Setup Dependencies
+
+on:
+    workflow_call:
+        inputs:
+            os:
+                required: true
+                type: string
+            mongo:
+                required: true
+                type: string
+        outputs:
+            cache-key:
+                description: "Cache key"
+                value: ${{ jobs.setup.outputs.cache-key }}
+        secrets:
+            cache-token:
+                required: true
+
+jobs:
+    setup:
+        runs-on: ${{ inputs.os }}
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Compute cache key
+              id: compute-key
+              run: echo "cache-key=deps-${{ inputs.os }}-${{ inputs.mongo }}-${{ hashFiles('.github/workflows/test_set_up.yml') }}" >> $GITHUB_OUTPUT
+
+            - name: Set up java
+              uses: actions/setup-java@v3
+              with:
+                  distribution: "temurin"
+                  java-version: 11
+
+            - name: Set up Python 3.7 # sample service is on 3.7, handle service is on sdkbase2.latest
+              uses: actions/setup-python@v3
+              with:
+                  python-version: "3.7"
+
+            - name: Cache dependencies
+              id: cache-deps
+              uses: actions/cache@v3
+              with:
+                  path: |
+                      ${{ github.workspace }}
+                  key: ${{ steps.compute-key.outputs.cache-key }}
+
+            - name: Install dependencies, set up env vars and test cfg
+              shell: bash
+              if: steps.cache-deps.outputs.cache-hit != 'true'
+              run: |
+                  set -x
+                  export HOMEDIR=$(pwd)
+                  echo "HOMEDIR=$(pwd)" >> env-vars.txt
+                  cd ..
+                  export BASEDIR=$(pwd)
+                  echo "BASEDIR=$(pwd)" >> env-vars.txt
+                  export MINIO_VER='2019-05-23T00-29-34Z'
+                  echo "MINIO_VER='2019-05-23T00-29-34Z'" >> env-vars.txt
+                  export MONGO_VER='mongodb-linux-x86_64-${{inputs.mongo}}'
+                  echo "MONGO_VER='mongodb-linux-x86_64-${{inputs.mongo}}'" >> env-vars.txt
+                  # 3.6.13 has wired_tiger set to 'false', 3.6.23 has wired_tiger 'true'
+                  if [ "${{inputs.mongo}}" = "3.6.13" ]; then
+                  export WIRED_TIGER="false"
+                  echo "WIRED_TIGER="false"" >> env-vars.txt
+                  else
+                  export WIRED_TIGER="true"
+                  echo "WIRED_TIGER="true"" >> env-vars.txt
+                  fi
+                  export ARANGODB_VER=3.9.1
+                  echo "ARANGODB_VER=3.9.1" >> env-vars.txt
+                  export ARANGODB_V=39
+                  echo "ARANGODB_V=39" >> env-vars.txt
+                  export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
+                  echo "HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c" >> env-vars.txt
+                  export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
+                  echo "LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806" >> env-vars.txt
+                  export SAMPLE_COMMIT=6813fb148e95db2b11db6eea04f4d1d45cbb7119
+                  echo "SAMPLE_COMMIT=6813fb148e95db2b11db6eea04f4d1d45cbb7119" >> env-vars.txt
+
+                  # set up python dependencies
+                  cd $HOMEDIR/python_dependencies
+                  pip install pipenv
+                  pipenv sync --system
+                  # install sphinx for generating documentation
+                  pip install sphinx
+
+                  # move to parent dir of homedir to install binaries etc
+                  cd $BASEDIR
+                  # if [ "${{ inputs.test_cmd }}" = "test_quick_coverage" ]; then
+                  # set up jars
+                  git clone https://github.com/kbase/jars
+
+                  export JARSDIR=$BASEDIR/jars/lib/jars/
+                  echo "JARSDIR=$BASEDIR/jars/lib/jars/" >> env-vars.txt
+                  # else
+                  #   export JARSDIR=$BASEDIR/build/download/
+                  #   echo "JARSDIR=$HOMEDIR/build/download/" >> env-vars.txt
+                  # fi
+
+                  # set up arango
+                  curl -O https://download.arangodb.com/arangodb$ARANGODB_V/Community/Linux/arangodb3-linux-$ARANGODB_VER.tar.gz
+                  tar -xf arangodb3-linux-$ARANGODB_VER.tar.gz
+
+                  export ARANGO_EXE=$BASEDIR/arangodb3-linux-$ARANGODB_VER/bin/arangod
+                  echo "ARANGO_EXE=$BASEDIR/arangodb3-linux-$ARANGODB_VER/bin/arangod" >> env-vars.txt
+                  export ARANGO_JS=$BASEDIR/arangodb3-linux-$ARANGODB_VER/usr/share/arangodb3/js/
+                  echo "ARANGO_JS=$BASEDIR/arangodb3-linux-$ARANGODB_VER/usr/share/arangodb3/js/" >> env-vars.txt
+
+                  # set up handle service
+                  git clone https://github.com/kbase/handle_service2.git
+                  cd handle_service2/
+                  # $BASEDIR/handle_service2
+                  git checkout $HS_COMMIT
+                  sudo chmod -R 777 .
+                  mkdir lib/biokbase
+                  cd lib/biokbase/
+                  # $BASEDIR/handle_service2/lib/biokbase
+                  wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
+
+                  export HSDIR=$BASEDIR/handle_service2/lib
+                  echo "HSDIR=$BASEDIR/handle_service2/lib" >> env-vars.txt
+
+                  # set up sample service
+                  cd $BASEDIR
+                  git clone https://github.com/kbase/sample_service.git
+                  cd sample_service
+                  # $BASEDIR/sample_service
+                  git checkout $SAMPLE_COMMIT
+
+                  export SAMPLE_DIR=$BASEDIR/sample_service/lib
+                  echo "SAMPLE_DIR=$BASEDIR/sample_service/lib" >> env-vars.txt
+
+                  # set up blobstore
+                  cd $BASEDIR
+                  wget -q -O blobstore https://github.com/kbase/blobstore/releases/download/v0.1.2/blobstore_linux_amd64  || { echo "Failed to wget the blobstore"; exit 1; }
+                  chmod a+x blobstore
+
+                  export BLOBEXE=$BASEDIR/blobstore
+                  echo "BLOBEXE=$BASEDIR/blobstore" >> env-vars.txt
+
+                  # set up mongo
+                  wget -q http://fastdl.mongodb.org/linux/$MONGO_VER.tgz
+                  tar xfz $MONGO_VER.tgz
+
+                  export MONGOD=$BASEDIR/$MONGO_VER/bin/mongod
+                  echo "MONGOD=$BASEDIR/$MONGO_VER/bin/mongod" >> env-vars.txt
+
+                  # set up minio
+                  # wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.$MINIO_VER -O minio
+                  cp $HOMEDIR/ws_deps/minio.RELEASE.2019-05-23T00-29-34Z minio
+                  chmod a+x minio
+
+                  export MINIOD=$BASEDIR/minio
+                  echo "MINIOD=$BASEDIR/minio" >> env-vars.txt
+
+                  # write the test config
+                  set -a
+                  source env-vars.txt
+                  set +a
+                  env
+
+                  # set up test config
+                  cd $HOMEDIR
+                  cp -n test.cfg.example test.cfg
+                  sed -i "s#^test.temp.dir =.*#test.temp.dir=temp_test_dir#" test.cfg
+                  sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
+                  sed -i "s#^test.minio.exe.*#test.minio.exe=$MINIOD#" test.cfg
+                  sed -i "s#^test.mongo.useWiredTiger.*#test.mongo.useWiredTiger=$WIRED_TIGER#" test.cfg
+                  sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
+                  sed -i "s#^test.blobstore.exe.*#test.blobstore.exe=$BLOBEXE#" test.cfg
+                  sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
+                  sed -i "s#^test.sampleservice.dir.*#test.sampleservice.dir=$SAMPLE_DIR#" test.cfg
+                  sed -i "s#^test.arango.exe.*#test.arango.exe=$ARANGO_EXE#" test.cfg
+                  sed -i "s#^test.arango.js.*#test.arango.js=$ARANGO_JS#" test.cfg
+                  cat test.cfg
+
+            - name: Set cache-key output
+              id: set-cache-key-output
+              run: echo "cache-key=${{ steps.compute-key.outputs.cache-key }}" >> "$GITHUB_OUTPUT"
