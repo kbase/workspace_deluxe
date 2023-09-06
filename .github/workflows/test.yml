@@ -49,6 +49,20 @@ jobs:
         runs-on: ${{ matrix.os }}
 
         steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Set up java
+              uses: actions/setup-java@v3
+              with:
+                  distribution: "temurin"
+                  java-version: 11
+
+            - name: Set up Python 3.7 # sample service is on 3.7, handle service is on sdkbase2.latest
+              uses: actions/setup-python@v3
+              with:
+                  python-version: "3.7"
+
             - name: set up environment
               uses: ./.github/workflows/test_set_up.yml
               with:
