@@ -50,7 +50,7 @@ jobs:
 
         steps:
             - name: set up environment
-              uses: kbase/workspace_deluxe/.github/workflows/test_set_up.yml
+              uses: ./.github/workflows/test_set_up.yml
               with:
                   cache-token: ${{ secrets.GITHUB_TOKEN }}
                   os: ${{ matrix.os }}
