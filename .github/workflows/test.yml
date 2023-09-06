@@ -44,7 +44,7 @@ jobs:
             matrix:
                 os: [ubuntu-22.04] #, ubuntu-20.04, ubuntu-18.04]
                 mongo: ["3.6.13", "3.6.23"]
-                test_cmd: ["LongTests"] # "test_quick_coverage", "NoLongTests", "LongTests"]
+                test_cmd: ["LongTests", "NoLongTests", "test_quick_coverage"]
 
         runs-on: ${{ matrix.os }}
 
@@ -225,14 +225,6 @@ jobs:
                     ./gradlew "coverage${{matrix.test_cmd}}" --info
                   fi
 
-            - name: clean up
-              run: |
-                  if [ "${{matrix.test_cmd}}" = "test_quick_coverage" ]; then
-                    ant clean
-                  else
-                    ./gradlew clean
-                  fi
-
             - name: Upload coverage to Codecov
               uses: codecov/codecov-action@v3
               if: matrix.test_cmd == 'test_quick_coverage'
@@ -246,3 +238,11 @@ jobs:
                   name: coverage${{matrix.test_cmd}}-${{matrix.mongo}}.exec
                   path: build/
                   if-no-files-found: warn
+
+            - name: clean up
+              run: |
+                  if [ "${{matrix.test_cmd}}" = "test_quick_coverage" ]; then
+                    ant clean
+                  else
+                    ./gradlew clean
+                  fi
