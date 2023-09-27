@@ -9,6 +9,7 @@ import java.util.Map;
 public class ProvenanceTestCommon {
 	public static final String NS = null;
 	public static final String WHITESPACE = "\n\n    \f     \t\t  \r\n   ";
+	public static final String UNICODE_WHITESPACE = "\u2001     \u205F   \u2001";
 
 	public static final List<String> WHITESPACE_STRINGS = Collections.unmodifiableList(Arrays.asList(
 			"",
@@ -17,6 +18,7 @@ public class ProvenanceTestCommon {
 			"\r",
 			"\n",
 			" \n \n \n \n \n ",
+			UNICODE_WHITESPACE,
 			WHITESPACE));
 
 	public static final List<String> WHITESPACE_STRINGS_WITH_NULL = Collections.unmodifiableList(Arrays.asList(
