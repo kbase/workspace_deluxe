@@ -21,13 +21,6 @@ import java.util.Objects;
  */
 class Common {
 
-	static final Pattern VALID_PID_REGEX = Pattern.compile("^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$");
-	static final String VALID_PID_REPLACEMENT = "$1:$2";
-
-	static final String DATACITE = "DataCite";
-	static final String CROSSREF = "Crossref";
-	static final String CREDIT = "CRediT";
-
 	private Common() {}
 
 	static String processString(final String input) {
@@ -58,96 +51,6 @@ class Common {
 			noNulls(list, "Null item in " + name);
 			return Common.immutable(list);
 		}
-	}
-
-	/**
-	 * Returns a new immutable list with nulls and duplicates removed
-	 *
-	 * @param <T>
-	 * @param list
-	 *                list of items to deduplicate
-	 * @return immutable deduplicated list or null if the list is null or empty
-	 */
-	static <T> List<T> dedupeSimpleList(final List<T> list) {
-		if (list == null || list.isEmpty()) {
-			return null;
-		}
-
-		final List<T> dedupedList = list.stream()
-				.filter(Objects::nonNull)
-				.distinct()
-				.collect(Collectors.toList());
-
-		return Common.immutable(dedupedList);
-	}
-
-	/**
-	 * Trims leading and trailing whitespace, converts empty strings to null, and
-	 * checks that a string is either null or has at least one non-whitespace
-	 * character, and conforms to the specified regular expression.
-	 * If optional is true, null is a valid output value; if false, null will throw
-	 * an error.
-	 * If replace is not null, it is used for a replaceAll operation, and the
-	 * resulting string returned. Otherwise, the trimmed string is returned.
-	 *
-	 * @param stringToCheck
-	 *                the string to check.
-	 * @param pattern
-	 *                the pattern to validate against.
-	 * @param replace
-	 *                if non-null, the pattern to use for the replaceAll operation.
-	 * @param name
-	 *                the name of the string to use in any error messages.
-	 * @param optional
-	 *                whether or not the field is optional. If false, null and
-	 *                empty or whitespace-only input strings will throw an error.
-	 *
-	 * @return the trimmed field, or null if the input string was null or
-	 *         whitespace.
-	 */
-	static String checkAgainstRegex(
-			final String stringToCheck,
-			final Pattern pattern,
-			final String replace,
-			final String name,
-			final boolean optional)
-			throws IllegalArgumentException {
-		final String checkedString = checkString(stringToCheck, name, optional);
-		if (checkedString == null) {
-			return null;
-		}
-		final Matcher m = pattern.matcher(checkedString);
-		if (m.find()) {
-			if (replace != null) {
-				return m.replaceAll(replace);
-			}
-			return checkedString;
-		}
-		throw new IllegalArgumentException(String.format(
-				"Illegal format for %s: \"%s\"\nIt should match the pattern \"%s\"",
-				name, stringToCheck, pattern.toString()));
-	}
-
-	/**
-	 * Trims leading and trailing whitespace, converts empty strings to null, and
-	 * checks that a string is either null or has at least one non-whitespace
-	 * character, and conforms to the regular expression VALID_PID_REGEX.
-	 * If optional is true, null is a valid output value; if false, null will throw
-	 * an error.
-	 *
-	 * @param putativePid
-	 *                the putative PID string.
-	 * @param name
-	 *                the name of the string to use in any error messages.
-	 * @param optional
-	 *                whether or not the field is optional. If false, null and
-	 *                empty or whitespace-only input strings will throw an error.
-	 * @return the trimmed field, or null if the input string was null or
-	 *         whitespace.
-	 */
-	static String checkPid(final String putativePid, final String name, final boolean optional)
-			throws IllegalArgumentException {
-		return checkAgainstRegex(putativePid, VALID_PID_REGEX, VALID_PID_REPLACEMENT, name, optional);
 	}
 
 	private static URL checkURL(final String putativeURL, final String name) {
