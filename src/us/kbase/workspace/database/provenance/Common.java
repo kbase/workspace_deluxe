@@ -3,7 +3,6 @@ package us.kbase.workspace.database.provenance;
 import static us.kbase.workspace.database.Util.checkNoNullsOrEmpties;
 import static us.kbase.workspace.database.Util.isNullOrWhitespace;
 import static us.kbase.workspace.database.Util.noNulls;
-import static us.kbase.workspace.database.Util.checkString;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -11,10 +10,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.Objects;
 
 /* This is an internal only class for shared code between the provenance classes.
  * Tests are all via testing the public provenance class APIs.

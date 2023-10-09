@@ -1,24 +1,48 @@
 package us.kbase.workspace.test.database;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.list;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.ArrayList;
 
 import org.junit.Test;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import us.kbase.common.test.TestCommon;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.NS;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
-
 import us.kbase.workspace.database.Util;
 
 public class UtilTest {
+	
+	public static final String NS = null;
+	public static final String WHITESPACE = "\n\n    \f     \t\t  \r\n   ";
+	public static final String UNICODE_WHITESPACE = "\u2001     \u205F   \u2001";
+
+	public static final List<String> WHITESPACE_STRINGS = Collections.unmodifiableList(list(
+			"",
+			"   ",
+			" \f ",
+			"\r",
+			"\n",
+			" \n \n \n \n \n ",
+			UNICODE_WHITESPACE,
+			WHITESPACE));
+
+	public static final List<String> WHITESPACE_STRINGS_WITH_NULL = Collections.unmodifiableList(
+			list(
+				"",
+				"   ",
+				NS,
+				" \f ",
+				"\r",
+				"\n",
+				" \n \n \n \n \n ",
+				WHITESPACE));
 
 	private static final String EXP_EXC = "expected exception";
 	private static final String INCORRECT_NULL_WHITESPACE = "incorrect null or empty";
@@ -32,9 +56,11 @@ public class UtilTest {
 	private static final long VALID_LONG = 1234567890;
 
 	public static final String STRING = "some string of stingy stringy strings strung together";
-	public static final String STRING_WITH_WHITESPACE = "\n\n    \f  some string of stingy stringy strings strung together \t  \n";
+	public static final String STRING_WITH_WHITESPACE = 
+			"\n\n    \f  some string of stingy stringy strings strung together \t  \n";
 	public static final String STRING2 = "A Series of Unfortunate Elephants";
-	public static final String STRING2_WITH_WHITESPACE = "\n\t   \t  A Series of Unfortunate Elephants\n\n ";
+	public static final String STRING2_WITH_WHITESPACE = 
+			"\n\t   \t  A Series of Unfortunate Elephants\n\n ";
 
 	private static final List<String> NON_WHITESPACE_STRINGS = Arrays.asList(
 			STRING,
@@ -68,7 +94,8 @@ public class UtilTest {
 			fail(EXP_EXC);
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-					"Must provide one and only one of some type name (was: null) or id (was: null)"));
+					"Must provide one and only one of some type name (was: null) or id "
+					+ "(was: null)"));
 		}
 
 		try {
@@ -76,7 +103,8 @@ public class UtilTest {
 			fail(EXP_EXC);
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-					"Must provide one and only one of a different type name (was: some string of stingy stringy strings strung together) or id (was: 1234567890)"));
+					"Must provide one and only one of a different type name (was: some string of "
+					+ "stingy stringy strings strung together) or id (was: 1234567890)"));
 		}
 	}
 

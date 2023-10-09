@@ -725,6 +725,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * happens once at the beginning of the method. That has virtually no
 		 * repercussions whatsoever, so meh.
 		 */
+		// 2023/09/21: this seem overcomplicated and inefficient although it works.
+		// Look for a better way.
 		Instant time = null;
 		final String mkey = Fields.WS_META + Fields.FIELD_SEP + Fields.META_KEY;
 		final String mval = Fields.WS_META + Fields.FIELD_SEP + "$" + Fields.FIELD_SEP +
