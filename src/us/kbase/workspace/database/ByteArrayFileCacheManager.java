@@ -84,7 +84,6 @@ public class ByteArrayFileCacheManager {
 				final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				final int size = IOUtils.copy(input, baos);
 				// TODO CODE this creates a new byte[], doubling the memory usage temporarily
-				@SuppressWarnings("resource")
 				final JsonTokenStream jts = new JsonTokenStream(baos.toByteArray());
 				return new ByteArrayFileCache(
 						null, null, jts.setTrustedWholeJson(trustedJson), sorted, size);
@@ -133,7 +132,6 @@ public class ByteArrayFileCacheManager {
 				final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				parent.getSubdataExtractionAsStream(paths, baos);
 				// TODO CODE this creates a new byte[], doubling the memory usage temporarily
-				@SuppressWarnings("resource")
 				final JsonTokenStream jts = new JsonTokenStream(baos.toByteArray());
 				return new ByteArrayFileCache(
 						parent,
