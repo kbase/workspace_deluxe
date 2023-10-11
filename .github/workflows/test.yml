@@ -138,7 +138,7 @@ jobs:
           echo "MongoDB setup complete"
 
           # set up minio
-          wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
+          wget https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
           echo "Minio d/l complete"
           ls -l
           chmod a+x minio
