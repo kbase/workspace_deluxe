@@ -10,13 +10,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -27,8 +27,10 @@ import org.mockito.ArgumentMatcher;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
@@ -82,10 +84,18 @@ public class WorkspaceListenerTest {
 			.withGlobalRead(true)
 			.build();
 	
-	public static final ObjectInformation OBJ_INFO = new ObjectInformation(
-			42L, "whee", "a type", new Date(40000), 45, new WorkspaceUser("bar"),
-			new ResolvedWorkspaceID(24, "whee", false, false), "chksum",
-			20, new UncheckedUserMetadata(Collections.emptyMap()));
+	public static final ObjectInformation OBJ_INFO = ObjectInformation.getBuilder()
+			.withObjectID(42)
+			.withObjectName("whee")
+			.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+			.withSavedDate(inst(40000))
+			.withVersion(45)
+			.withSavedBy(new WorkspaceUser("bar"))
+			.withWorkspace(new ResolvedWorkspaceID(24, "whee", false, false))
+			.withChecksum("chksum")
+			.withSize(20)
+			.withUserMetadata(new UncheckedUserMetadata(Collections.emptyMap()))
+			.build();
 
 	private static class Mocks {
 		
@@ -1030,13 +1040,28 @@ public class WorkspaceListenerTest {
 		final ResolvedSaveObject rso2 = wso2.resolve(rwsi, vto1, set(), Collections.emptyList(),
 				Collections.emptyMap());
 		
-		final ObjectInformation oi1 = new ObjectInformation(
-				35, "foo1", "foo.bar-2.1", new Date(60000), 6, new WorkspaceUser("foo"),
-				rwsi, "chcksum1", 18, null);
-		
-		final ObjectInformation oi2 = new ObjectInformation(
-				76, "foo2", "foo.baz-1.0", new Date(70000), 1, new WorkspaceUser("foo"),
-				rwsi, "chcksum2", 22, null);
+		final ObjectInformation oi1 = ObjectInformation.getBuilder()
+				.withObjectID(35)
+				.withObjectName("foo1")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("foo.bar"), 2, 1))
+				.withSavedDate(inst(60000))
+				.withVersion(6)
+				.withSavedBy(new WorkspaceUser("foo"))
+				.withWorkspace(rwsi)
+				.withChecksum("chcksum1")
+				.withSize(18)
+				.build();
+		final ObjectInformation oi2 = ObjectInformation.getBuilder()
+				.withObjectID(76)
+				.withObjectName("foo2")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("foo.baz"), 1, 0))
+				.withSavedDate(inst(70000))
+				.withVersion(1)
+				.withSavedBy(new WorkspaceUser("foo"))
+				.withWorkspace(rwsi)
+				.withChecksum("chcksum2")
+				.withSize(22)
+				.build();
 		
 		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
 				.withID(24)
@@ -1099,13 +1124,28 @@ public class WorkspaceListenerTest {
 		final ResolvedSaveObject rso2 = wso2.resolve(rwsi, vto1, set(), Collections.emptyList(),
 				Collections.emptyMap());
 		
-		final ObjectInformation oi1 = new ObjectInformation(
-				35, "foo1", "foo.bar-2.1", new Date(60000), 6, new WorkspaceUser("foo"),
-				rwsi, "chcksum1", 18, null);
-		
-		final ObjectInformation oi2 = new ObjectInformation(
-				76, "foo2", "foo.baz-1.0", new Date(70000), 1, new WorkspaceUser("foo"),
-				rwsi, "chcksum2", 22, null);
+		final ObjectInformation oi1 = ObjectInformation.getBuilder()
+				.withObjectID(35)
+				.withObjectName("foo1")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("foo.bar"), 2, 1))
+				.withSavedDate(inst(60000))
+				.withVersion(6)
+				.withSavedBy(new WorkspaceUser("foo"))
+				.withWorkspace(rwsi)
+				.withChecksum("chcksum1")
+				.withSize(18)
+				.build();
+		final ObjectInformation oi2 = ObjectInformation.getBuilder()
+				.withObjectID(76)
+				.withObjectName("foo2")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("foo.baz"), 1, 0))
+				.withSavedDate(inst(70000))
+				.withVersion(1)
+				.withSavedBy(new WorkspaceUser("foo"))
+				.withWorkspace(rwsi)
+				.withChecksum("chcksum2")
+				.withSize(22)
+				.build();
 		
 		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
 				.withID(24)

@@ -46,9 +46,11 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeProvider.TypeFetchException;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.ValidatedTypedObject;
@@ -378,8 +380,17 @@ public class WorkspaceUnitTest {
 		data.put(
 				new ObjectIDResolvedWS(rwsi, 1),
 				WorkspaceObjectData.getBuilder(
-						new ObjectInformation(
-								1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null),
+						ObjectInformation.getBuilder()
+								.withObjectID(1)
+								.withObjectName("foo")
+								.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+								.withSavedDate(now)
+								.withVersion(1)
+								.withSavedBy(u)
+								.withWorkspace(rwsi)
+								.withChecksum("chcksm")
+								.withSize(12)
+								.build(),
 						p)
 				);
 		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -422,8 +433,17 @@ public class WorkspaceUnitTest {
 		data.put(
 				new ObjectIDResolvedWS(rwsi, 1),
 				WorkspaceObjectData.getBuilder(
-						new ObjectInformation(
-								1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null),
+						ObjectInformation.getBuilder()
+							.withObjectID(1)
+							.withObjectName("foo")
+							.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+							.withSavedDate(now)
+							.withVersion(1)
+							.withSavedBy(u)
+							.withWorkspace(rwsi)
+							.withChecksum("chcksm")
+							.withSize(12)
+							.build(),
 						p)
 				);
 		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -439,8 +459,17 @@ public class WorkspaceUnitTest {
 		assertThat("incorrect count", got.size(), is(1));
 		final WorkspaceObjectData wod = got.get(0);
 		// no overridden equals method for WOD as expected
-		assertThat("incorrect info", wod.getObjectInfo(), is(new ObjectInformation(
-				1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null)));
+		assertThat("incorrect info", wod.getObjectInfo(), is(ObjectInformation.getBuilder()
+				.withObjectID(1)
+				.withObjectName("foo")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+				.withSavedDate(now)
+				.withVersion(1)
+				.withSavedBy(u)
+				.withWorkspace(rwsi)
+				.withChecksum("chcksm")
+				.withSize(12)
+				.build()));
 		assertThat("incorrect prov", wod.getProvenance(), is(p));
 		assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
 		assertThat("incorrect copy ref", wod.getCopyReference(), is(Optional.empty()));
@@ -475,8 +504,18 @@ public class WorkspaceUnitTest {
 				.collect(Collectors.toMap(
 						i -> new ObjectIDResolvedWS(rwsi, i),
 						i -> WorkspaceObjectData.getBuilder(
-								new ObjectInformation(
-										i, "foo" + i, "type", now, 1, u, rwsi, "chcksm", 12, null),
+									ObjectInformation.getBuilder()
+									.withObjectID(i)
+									.withObjectName("foo" + i)
+									.withType(new AbsoluteTypeDefId(
+											new TypeDefName("Foo.Bar"), 2, 1))
+									.withSavedDate(now)
+									.withVersion(1)
+									.withSavedBy(u)
+									.withWorkspace(rwsi)
+									.withChecksum("chcksm")
+									.withSize(12)
+									.build(),
 								p)));
 		
 		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -490,8 +529,18 @@ public class WorkspaceUnitTest {
 		for (int i = 0; i < 1000; i++) {
 			// no overridden equals method for WOD as expected
 			final WorkspaceObjectData wod = got.get(i);
-			assertThat("incorrect info", wod.getObjectInfo(), is(new ObjectInformation(
-					i + 1, "foo" + (i + 1), "type", now, 1, u, rwsi, "chcksm", 12, null)));
+			assertThat("incorrect info", wod.getObjectInfo(), is(
+					ObjectInformation.getBuilder()
+						.withObjectID(i + 1)
+						.withObjectName("foo" + (i + 1))
+						.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+						.withSavedDate(now)
+						.withVersion(1)
+						.withSavedBy(u)
+						.withWorkspace(rwsi)
+						.withChecksum("chcksm")
+						.withSize(12)
+						.build()));
 			assertThat("incorrect prov", wod.getProvenance(), is(p));
 			assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
 			assertThat("incorrect copy ref", wod.getCopyReference(), is(Optional.empty()));

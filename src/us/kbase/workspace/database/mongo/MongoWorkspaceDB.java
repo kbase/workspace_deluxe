@@ -1627,18 +1627,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		version.put(Fields.VER_EXT_IDS, extractedIDsToStrings(pkg.wo.getExtractedIDs()));
 
 		saveObjectVersions(user, wsid, objectid, Arrays.asList(version), pkg.wo.isHidden());
-
-		return new ObjectInformation(
-				objectid,
-				pkg.name,
-				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
-				(Date) version.get(Fields.VER_SAVEDATE),
-				(Integer) version.get(Fields.VER_VER),
-				user,
-				wsid,
-				pkg.wo.getRep().getMD5().getMD5(),
-				pkg.wo.getRep().getRelabeledSize(),
-				new UncheckedUserMetadata(pkg.wo.getUserMeta()));
+		
+		return ObjectInformation.getBuilder()
+				.withObjectID(objectid)
+				.withObjectName(pkg.name)
+				.withType(pkg.wo.getRep().getValidationTypeDefId())
+				.withSavedDate((Date) version.get(Fields.VER_SAVEDATE))
+				.withVersion((int) version.get(Fields.VER_VER))
+				.withSavedBy(user)
+				.withWorkspace(wsid)
+				.withChecksum(pkg.wo.getRep().getMD5())
+				.withSize(pkg.wo.getRep().getRelabeledSize())
+				.withUserMetadata(new UncheckedUserMetadata(pkg.wo.getUserMeta()))
+				.build();
 	}
 
 	private Map<String, Set<String>> extractedIDsToStrings(

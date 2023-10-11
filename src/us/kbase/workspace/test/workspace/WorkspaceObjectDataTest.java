@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.opt;
 import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
@@ -11,7 +12,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +21,9 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.SubsetSelection;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectInformation;
@@ -41,9 +43,17 @@ public class WorkspaceObjectDataTest {
 	// Provenance really needs a rework and has no hashCode(), so we use identity equality for now
 	// TODO CODE now it does have a hashCode, so can rework any tests relying on identity eq
 	private static final Provenance PROV = basicProv(new WorkspaceUser("foo"));
-	private static final ObjectInformation INFO = new ObjectInformation(
-			1, "foo", "type", new Date(), 1, new WorkspaceUser("u"),
-			new ResolvedWorkspaceID(1, "bar", false, false), "chksum", 25, null);
+	private static final ObjectInformation INFO = ObjectInformation.getBuilder()
+			.withObjectID(1)
+			.withObjectName("foo")
+			.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+			.withSavedDate(inst(40000))
+			.withVersion(1)
+			.withSavedBy(new WorkspaceUser("u"))
+			.withWorkspace(new ResolvedWorkspaceID(1, "bar", false, false))
+			.withChecksum("chksum")
+			.withSize(25)
+			.build();
 	
 	// also has no hashCode(), so identity equality
 	// shouldn't have hashCode() anyway, data could be huge

@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1400,6 +1401,7 @@ public class WorkspaceTest extends WorkspaceTester {
 
 	@Test
 	public void saveObjectsAndGetMetaSimple() throws Exception {
+		// "simple"
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceUser bar = new WorkspaceUser("bar");
 
@@ -1577,30 +1579,18 @@ public class WorkspaceTest extends WorkspaceTester {
 				readid, read.getName(), false, false);
 		UncheckedUserMetadata umeta = new UncheckedUserMetadata(meta);
 		UncheckedUserMetadata umeta2 = new UncheckedUserMetadata(meta2);
-		retinfo.add(new ObjectInformation(1L, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
-				foo, fakews, chksum2, 24L, umeta2));
-		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1,
-				foo, fakews, chksum1, 23, umeta));
-		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
-				foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1,
-				foo, fakews, chksum1, 23, umeta));
-		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
-				foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1,
-				foo, fakews, chksum1, 23, umeta));
-		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
-				foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1,
-				foo, fakews, chksum1, 23, umeta));
-		retinfo.add(new ObjectInformation(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1,
-				foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new ObjectInformation(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1,
-				foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new ObjectInformation(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1,
-				foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new ObjectInformation(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1,
-				foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 2, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 1, foo, fakews, chksum1, 23, umeta));
+		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 2, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 1, foo, fakews, chksum1, 23, umeta));
+		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 2, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 1, foo, fakews, chksum1, 23, umeta));
+		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 2, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 1, foo, fakews, chksum1, 23, umeta));
+		retinfo.add(unreadableOI(3, "auto3-2", SAFE_TYPE1, 1, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(unreadableOI(3, "auto3-2", SAFE_TYPE1, 1, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(unreadableOI(3, "auto3-2", SAFE_TYPE1, 1, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(unreadableOI(3, "auto3-2", SAFE_TYPE1, 1, foo, fakews, chksum2, 24, umeta2));
 		List<Map<String, Object>> retdata = Arrays.asList(
 				data2, data, data2, data, data2, data, data2, data, data2, data2, data2, data2);
 		checkObjectAndInfo(foo, loi, retinfo, retdata);
@@ -1645,13 +1635,26 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid,
 				priv.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(privid, 2, 2)));
 
-		checkObjectAndInfo(bar, Arrays.asList(p2),
-				Arrays.asList(new ObjectInformation(2L, "auto3-1", SAFE_TYPE1.getTypeString(),
-						new Date(), 2, foo,
-						new ResolvedWorkspaceID(privid, priv.getName(), false, false),
-						chksum1, 23L, umeta2)), Arrays.asList(data));
+		checkObjectAndInfo(
+				bar,
+				Arrays.asList(p2),
+				Arrays.asList(ObjectInformation.getBuilder()
+						.withObjectID(2)
+						.withObjectName("auto3-1")
+						.withType(AbsoluteTypeDefId.fromTypeId(SAFE_TYPE1))
+						.withSavedDate(inst(10000))
+						.withVersion(2)
+						.withSavedBy(foo)
+						.withWorkspace(new ResolvedWorkspaceID(
+								privid, priv.getName(), false, false))
+						.withChecksum(chksum1)
+						.withSize(23)
+						.withUserMetadata(umeta2)
+						.build()),
+				Arrays.asList(data));
 
-		failSave(bar, priv, objects, new WorkspaceAuthorizationException("User bar may not write to workspace saveobj"));
+		failSave(bar, priv, objects, new WorkspaceAuthorizationException(
+				"User bar may not write to workspace saveobj"));
 
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects, barfac);
@@ -1676,6 +1679,30 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetObjects(null, Arrays.asList(p3),
 				new InaccessibleObjectException("Object 3 cannot be accessed: Anonymous users "+
 						"may not read workspace saveobj", null));
+	}
+
+	private ObjectInformation unreadableOI(
+			final long id,
+			final String name,
+			final TypeDefId type,
+			final int ver,
+			final WorkspaceUser user,
+			final ResolvedWorkspaceID ws,
+			final String chksum,
+			final long size,
+			final UncheckedUserMetadata umeta) {
+		return ObjectInformation.getBuilder()
+				.withObjectID(id)
+				.withObjectName(name)
+				.withType(AbsoluteTypeDefId.fromTypeId(type))
+				.withSavedDate(inst(10000))
+				.withVersion(ver)
+				.withSavedBy(user)
+				.withWorkspace(ws)
+				.withChecksum(chksum)
+				.withSize(size)
+				.withUserMetadata(umeta)
+				.build();
 	}
 
 	@Test
@@ -1848,7 +1875,7 @@ public class WorkspaceTest extends WorkspaceTester {
 
 		// check that automatic metadata fields were populated correctly, and nothing else was added
 		Map<String,String> savedUserMetaData = new HashMap<String, String>(
-				oi.get(0).getUserMetaData().getMetadata());
+				oi.get(0).getUserMetaData().get().getMetadata());
 		for(Entry<String,String> m : savedUserMetaData.entrySet()) {
 			if(m.getKey().equals("val"))
 				assertThat("Extracted metadata must be correct", m.getValue(), is(val));
@@ -1877,7 +1904,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				oi2.get(0), is(notNullValue()));
 
 		savedUserMetaData = new HashMap<String, String>(
-				oi2.get(0).getUserMetaData().getMetadata());
+				oi2.get(0).getUserMetaData().get().getMetadata());
 		for(Entry<String,String> m : savedUserMetaData.entrySet()) {
 			if(m.getKey().equals("val"))
 				assertThat("Extracted metadata must be correct", m.getValue(),
@@ -6635,8 +6662,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectInformation o4 = saveObject(u, wsi, null, data, SAFE_TYPE1, "o4", p);
 		Thread.sleep(100);
 		ObjectInformation o5 = saveObject(u, wsi, null, data, SAFE_TYPE1, "o5", p);
-		Instant beforeall = Instant.ofEpochMilli(o1.getSavedDate().getTime() - 1);
-		Instant afterall = Instant.ofEpochMilli(o5.getSavedDate().getTime() + 1);
+		Instant beforeall = o1.getSavedDate().minus(1, ChronoUnit.MILLIS);
+		Instant afterall = o5.getSavedDate().plus(1, ChronoUnit.MILLIS);
 
 		ListObjectsParameters.Builder lop = ListObjectsParameters.getBuilder(Arrays.asList(wsi))
 				.withUser(u).withIncludeMetaData(true);
@@ -6646,21 +6673,21 @@ public class WorkspaceTest extends WorkspaceTester {
 				Arrays.asList(o1, o2, o3, o4, o5));
 		compareObjectInfo(ws.listObjects(lop.withAfter(afterall).withBefore(beforeall).build()),
 				Collections.emptyList());
-		compareObjectInfo(ws.listObjects(lop.withAfter(o3.getSavedDate().toInstant())
-				.withBefore(o4.getSavedDate().toInstant()).build()),
+		compareObjectInfo(ws.listObjects(lop.withAfter(o3.getSavedDate())
+				.withBefore(o4.getSavedDate()).build()),
 				Collections.emptyList());
 		compareObjectInfo(ws.listObjects(
-				lop.withAfter(o2.getSavedDate().toInstant()).withBefore(null).build()),
+				lop.withAfter(o2.getSavedDate()).withBefore(null).build()),
 				Arrays.asList(o3, o4, o5));
 		compareObjectInfo(ws.listObjects(
-				lop.withAfter(null).withBefore(o4.getSavedDate().toInstant()).build()),
+				lop.withAfter(null).withBefore(o4.getSavedDate()).build()),
 				Arrays.asList(o1, o2, o3));
-		compareObjectInfo(ws.listObjects(lop.withAfter(o2.getSavedDate().toInstant())
-				.withBefore(o4.getSavedDate().toInstant()).build()),
+		compareObjectInfo(ws.listObjects(lop.withAfter(o2.getSavedDate())
+				.withBefore(o4.getSavedDate()).build()),
 				Arrays.asList(o3));
 		compareObjectInfo(ws.listObjects(
-				lop.withAfter(Instant.ofEpochMilli(o2.getSavedDate().getTime() -1))
-				.withBefore(o5.getSavedDate().toInstant()).build()),
+				lop.withAfter(o2.getSavedDate().minus(1, ChronoUnit.MILLIS))
+				.withBefore(o5.getSavedDate()).build()),
 				Arrays.asList(o2, o3, o4));
 	}
 

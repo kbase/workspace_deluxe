@@ -39,6 +39,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -164,23 +165,33 @@ public class WorkspaceIntegrationWithGridFSTest {
 			final int id,
 			final int version,
 			final TypeDefId type) {
-		return new ObjectInformation(
-				id, "o" + id, type.getTypeString(), SOME_DATE, version, USER, wsi,
-				SAFE_DATA_MD5, SAFE_DATA_SIZE, null);
+		return ObjectInformation.getBuilder()
+				.withObjectID(id)
+				.withObjectName("o" + id)
+				.withType(AbsoluteTypeDefId.fromTypeId(type))
+				.withSavedDate(SOME_DATE)
+				.withVersion(version)
+				.withSavedBy(USER)
+				.withWorkspace(wsi)
+				.withChecksum(SAFE_DATA_MD5)
+				.withSize(SAFE_DATA_SIZE)
+				.build();
 	}
 
 	private List<ObjectInformation> cleanDates(final List<ObjectInformation> toBeCleaned) {
-		return toBeCleaned.stream().map(o -> new ObjectInformation(
-				o.getObjectId(),
-				o.getObjectName(),
-				o.getTypeString(),
-				SOME_DATE,
-				o.getVersion(),
-				o.getSavedBy(),
-				new ResolvedWorkspaceID(o.getWorkspaceId(), o.getWorkspaceName(), false, false),
-				o.getCheckSum(),
-				o.getSize(),
-				o.getUserMetaData()))
+		return toBeCleaned.stream().map(o -> ObjectInformation.getBuilder()
+				.withObjectID(o.getObjectId())
+				.withObjectName(o.getObjectName())
+				.withType(AbsoluteTypeDefId.fromAbsoluteTypeString(o.getTypeString()))
+				.withSavedDate(SOME_DATE)
+				.withVersion(o.getVersion())
+				.withSavedBy(o.getSavedBy())
+				.withWorkspace(new ResolvedWorkspaceID(
+						o.getWorkspaceId(), o.getWorkspaceName(), false, false))
+				.withChecksum(o.getCheckSum())
+				.withSize(o.getSize())
+				.withUserMetadata(o.getUserMetaData().orElse(null))
+				.build())
 				.collect(Collectors.toList());
 	}
 
