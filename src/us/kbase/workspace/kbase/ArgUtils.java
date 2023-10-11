@@ -15,7 +15,6 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -213,11 +212,6 @@ public class ArgUtils {
 		return ret;
 	}
 
-	// TODO CODE remove this eventually when everything uses Instants
-	private static String formatDate(final Date date) {
-		return formatDate(date.toInstant());
-	}
-
 	private static String formatDate(final Instant date) {
 		return DATE_FORMATTER.format(date);
 	}
@@ -348,8 +342,7 @@ public class ArgUtils {
 						.withE8(m.getWorkspaceName())
 						.withE9(m.getCheckSum())
 						.withE10(m.getSize())
-						.withE11(m.getUserMetaData() == null ? null :
-							m.getUserMetaData().getMetadata()));
+						.withE11(m.getUserMetaDataMapOrNull()));
 			}
 		}
 		return ret;
@@ -394,8 +387,7 @@ public class ArgUtils {
 					.withE8(m.getWorkspaceName())
 					.withE9("")//ref is deprecated
 					.withE10(m.getCheckSum())
-					.withE11(m.getUserMetaData() == null ? null :
-						m.getUserMetaData().getMetadata())
+					.withE11(m.getUserMetaDataMapOrNull())
 					.withE12(m.getObjectId()));
 		}
 		return ret;

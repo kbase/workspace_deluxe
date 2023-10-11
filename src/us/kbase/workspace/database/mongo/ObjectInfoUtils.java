@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 import org.bson.Document;
 
-import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -129,25 +129,28 @@ public class ObjectInfoUtils {
 			final ResolvedWorkspaceID rwsi,
 			final long objid,
 			final String name,
+			// TODO CODE converting from Document to Map is stupid. Stop that
 			final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) ver.get(Fields.VER_META);
-		final TypeDefId type = new TypeDefId(
+		final AbsoluteTypeDefId type = new AbsoluteTypeDefId(
 				new TypeDefName((String) ver.get(Fields.VER_TYPE_NAME)),
 				(int) ver.get(Fields.VER_TYPE_MAJOR_VERSION),
 				(int) ver.get(Fields.VER_TYPE_MINOR_VERSION));
-		return new ObjectInformation(
-				objid,
-				name,
-				type.getTypeString(),
-				(Date) ver.get(Fields.VER_SAVEDATE),
-				(Integer) ver.get(Fields.VER_VER),
-				new WorkspaceUser((String) ver.get(Fields.VER_SAVEDBY)),
-				rwsi,
-				(String) ver.get(Fields.VER_CHKSUM),
-				(Long) ver.get(Fields.VER_SIZE),
-				meta == null ? null : new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
+		return ObjectInformation.getBuilder()
+				.withObjectID(objid)
+				.withObjectName(name)
+				.withType(type)
+				.withSavedDate((Date) ver.get(Fields.VER_SAVEDATE))
+				.withVersion((int) ver.get(Fields.VER_VER))
+				.withSavedBy(new WorkspaceUser((String) ver.get(Fields.VER_SAVEDBY)))
+				.withWorkspace(rwsi)
+				.withChecksum((String) ver.get(Fields.VER_CHKSUM))
+				.withSize((long) ver.get(Fields.VER_SIZE))
+				.withUserMetadata(meta == null ? null :
+					new UncheckedUserMetadata(metaMongoArrayToHash(meta)))
+				.build();
 	}
 	
 	// TODO CODE not clear if this is still necessary with Document vs DBObject

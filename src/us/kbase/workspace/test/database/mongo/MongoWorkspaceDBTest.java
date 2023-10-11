@@ -47,6 +47,7 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
@@ -416,29 +417,37 @@ public class MongoWorkspaceDBTest {
 
 	private List<WorkspaceObjectData.Builder> addDataToObjectsSetup() {
 		final Provenance p = basicProv(new WorkspaceUser("user1"));
+		final ObjectInformation oi1 = ObjectInformation.getBuilder()
+				.withObjectID(1)
+				.withObjectName("one")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("a.b"), 1, 1))
+				.withSavedDate(Instant.now())
+				.withVersion(1)
+				.withSavedBy(new WorkspaceUser("u"))
+				.withWorkspace(new ResolvedWorkspaceID(1, "ws1", false, false))
+				.withChecksum("c6b87e665ecd549c082db04f0979f551")
+				.withSize(5)
+				.build();
+		final ObjectInformation oi2 = ObjectInformation.getBuilder()
+				.withObjectID(2)
+				.withObjectName("two")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("a.b"), 1, 1))
+				.withSavedDate(Instant.now())
+				.withVersion(1)
+				.withSavedBy(new WorkspaceUser("u"))
+				.withWorkspace(new ResolvedWorkspaceID(1, "ws1", false, false))
+				.withChecksum("a06ab5aadd3e058c7236bd6b681eefc7")
+				.withSize(5)
+				.build();
 		final List<WorkspaceObjectData.Builder> objects = list(
-				WorkspaceObjectData.getBuilder(
-						new ObjectInformation(
-								1, "one", "type", new Date(), 1, new WorkspaceUser("u"),
-								new ResolvedWorkspaceID(1, "ws1", false, false),
-								"c6b87e665ecd549c082db04f0979f551", 5, null),
-						p),
+				WorkspaceObjectData.getBuilder(oi1, p),
 				// same object accessed in a different way, which can happen
 				WorkspaceObjectData.getBuilder(
-						new ObjectInformation(
-								1, "one", "type", new Date(), 1, new WorkspaceUser("u"),
-								new ResolvedWorkspaceID(1, "ws1", false, false),
-								"c6b87e665ecd549c082db04f0979f551", 5, null)
-								.updateReferencePath(list(
-										new Reference(2, 2, 2), new Reference(1, 1, 1))),
+						oi1.updateReferencePath(list(
+								new Reference(2, 2, 2), new Reference(1, 1, 1))),
 						p)
 						.withSubsetSelection(new SubsetSelection(list("/bar"))),
-				WorkspaceObjectData.getBuilder(
-						new ObjectInformation(
-								2, "two", "type", new Date(), 1, new WorkspaceUser("u"),
-								new ResolvedWorkspaceID(1, "ws1", false, false),
-								"a06ab5aadd3e058c7236bd6b681eefc7", 5, null),
-						p)
+				WorkspaceObjectData.getBuilder(oi2, p)
 						.withSubsetSelection(new SubsetSelection(list("/foo")))
 				);
 		return objects;
@@ -689,17 +698,17 @@ public class MongoWorkspaceDBTest {
 		int counter = 1;
 		for (final ResolvedSaveObject o: objs) {
 			wods.add(WorkspaceObjectData.getBuilder(
-					new ObjectInformation(
-							counter,
-							"o" + counter,
-							"Mod.Meth-1.0",
-							new Date(),
-							1,
-							u,
-							ws,
-							o.getRep().getMD5().getMD5(),
-							o.getRep().getRelabeledSize(),
-							null),
+					ObjectInformation.getBuilder()
+							.withObjectID(counter)
+							.withObjectName("o" + counter)
+							.withType(new AbsoluteTypeDefId(new TypeDefName("Mod.Meth"), 1, 0))
+							.withSavedDate(Instant.now())
+							.withVersion(1)
+							.withSavedBy(u)
+							.withWorkspace(ws)
+							.withChecksum(o.getRep().getMD5())
+							.withSize(o.getRep().getRelabeledSize())
+							.build(),
 					basicProv(u))
 					.withSubsetSelection(new SubsetSelection(list("baz"))));
 			counter++;

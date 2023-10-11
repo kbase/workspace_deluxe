@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static us.kbase.common.test.TestCommon.inst;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Constructor;
@@ -13,7 +14,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -32,12 +32,12 @@ import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.test.MapBuilder;
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
-import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.modules.KafkaNotifierFactory;
@@ -291,17 +291,17 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.listener.saveObject(new ObjectInformation(
-				6L,
-				"foo",
-				"Foo.Bar-2.1",
-				new Date(10000),
-				3,
-				new WorkspaceUser("user1"),
-				new ResolvedWorkspaceID(22L, "bar", false, false),
-				"chksum",
-				30L,
-				new UncheckedUserMetadata((WorkspaceUserMetadata) null)),
+		mocks.listener.saveObject(ObjectInformation.getBuilder()
+				.withObjectID(6)
+				.withObjectName("foo")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+				.withSavedDate(inst(10000))
+				.withVersion(3)
+				.withSavedBy(new WorkspaceUser("user1"))
+				.withWorkspace(new ResolvedWorkspaceID(22, "bar", false, false))
+				.withChecksum("chksum")
+				.withSize(30)
+				.build(),
 				true);
 		
 		verify(mocks.client).partitionsFor("mytopic2");
@@ -329,17 +329,17 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.listener.copyObject(new ObjectInformation(
-				6L,
-				"foo",
-				"Foo.Bar-2.1",
-				new Date(10000),
-				3,
-				new WorkspaceUser("user1"),
-				new ResolvedWorkspaceID(22L, "bar", false, false),
-				"chksum",
-				30L,
-				new UncheckedUserMetadata((WorkspaceUserMetadata) null)),
+		mocks.listener.copyObject(ObjectInformation.getBuilder()
+				.withObjectID(6)
+				.withObjectName("foo")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+				.withSavedDate(inst(10000))
+				.withVersion(3)
+				.withSavedBy(new WorkspaceUser("user1"))
+				.withWorkspace(new ResolvedWorkspaceID(22, "bar", false, false))
+				.withChecksum("chksum")
+				.withSize(30)
+				.build(),
 				true);
 		
 		verify(mocks.client).partitionsFor("mytopic");
@@ -464,17 +464,17 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.listener.revertObject(new ObjectInformation(
-				6L,
-				"foo",
-				"Foo.Bar-2.1",
-				new Date(10000),
-				7,
-				new WorkspaceUser("user1"),
-				new ResolvedWorkspaceID(22L, "bar", false, false),
-				"chksum",
-				30L,
-				new UncheckedUserMetadata((WorkspaceUserMetadata) null)),
+		mocks.listener.revertObject(ObjectInformation.getBuilder()
+				.withObjectID(6)
+				.withObjectName("foo")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+				.withSavedDate(inst(10000))
+				.withVersion(7)
+				.withSavedBy(new WorkspaceUser("user1"))
+				.withWorkspace(new ResolvedWorkspaceID(22, "bar", false, false))
+				.withChecksum("chksum")
+				.withSize(30)
+				.build(),
 				true);
 		
 		verify(mocks.client).partitionsFor("mytopic");
@@ -701,17 +701,17 @@ public class KafkaNotifierFactoryTest {
 		when(fut.get(35000, TimeUnit.MILLISECONDS)).thenThrow(new InterruptedException("oopsie"));
 		
 		try {
-			mocks.listener.copyObject(new ObjectInformation(
-					6L,
-					"foo",
-					"Foo.Bar-2.1",
-					new Date(10000),
-					3,
-					new WorkspaceUser("user1"),
-					new ResolvedWorkspaceID(22L, "bar", false, false),
-					"chksum",
-					30L,
-					new UncheckedUserMetadata((WorkspaceUserMetadata) null)),
+			mocks.listener.copyObject(ObjectInformation.getBuilder()
+					.withObjectID(6)
+					.withObjectName("foo")
+					.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+					.withSavedDate(inst(10000))
+					.withVersion(3)
+					.withSavedBy(new WorkspaceUser("user1"))
+					.withWorkspace(new ResolvedWorkspaceID(22, "bar", false, false))
+					.withChecksum("chksum")
+					.withSize(30)
+					.build(),
 					true);
 			fail("expected exception");
 		} catch (Exception got) {
@@ -782,17 +782,17 @@ public class KafkaNotifierFactoryTest {
 				new ExecutionException("not this one", new IllegalStateException("this one")));
 		
 		try {
-			mocks.listener.saveObject(new ObjectInformation(
-					6L,
-					"foo",
-					"Foo.Bar-2.1",
-					new Date(10000),
-					3,
-					new WorkspaceUser("user1"),
-					new ResolvedWorkspaceID(22L, "bar", false, false),
-					"chksum",
-					30L,
-					new UncheckedUserMetadata((WorkspaceUserMetadata) null)),
+			mocks.listener.saveObject(ObjectInformation.getBuilder()
+					.withObjectID(6)
+					.withObjectName("foo")
+					.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+					.withSavedDate(inst(10000))
+					.withVersion(3)
+					.withSavedBy(new WorkspaceUser("user1"))
+					.withWorkspace(new ResolvedWorkspaceID(22, "bar", false, false))
+					.withChecksum("chksum")
+					.withSize(30)
+					.build(),
 					true);
 			fail("expected exception");
 		} catch (Exception got) {

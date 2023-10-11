@@ -33,6 +33,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 
 import us.kbase.common.test.MapBuilder;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.AllUsers;
@@ -88,9 +89,17 @@ public class ObjectListerTest {
 	}
 
 	private static ObjectInformation makeObjInfo(final int id) {
-		return new ObjectInformation(
-				id, "thing", TYPE_3_2, Date.from(inst(10000)), 7,
-				new WorkspaceUser("someguy"), WSID_1, SHTTY_MD5, 3L, null);
+		return ObjectInformation.getBuilder()
+				.withObjectID(id)
+				.withObjectName("thing")
+				.withType(AbsoluteTypeDefId.fromAbsoluteTypeString(TYPE_3_2))
+				.withSavedDate(inst(10000))
+				.withVersion(7)
+				.withSavedBy(new WorkspaceUser("someguy"))
+				.withWorkspace(WSID_1)
+				.withChecksum(SHTTY_MD5)
+				.withSize(3)
+				.build();
 	}
 
 	// start is inclusive, end is exclusive

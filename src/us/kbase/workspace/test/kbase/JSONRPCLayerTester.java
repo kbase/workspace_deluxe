@@ -49,6 +49,7 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.ExternalDataUnit;
@@ -1554,10 +1555,19 @@ public class JSONRPCLayerTester {
 			throws Exception {
 		Set<ObjectInformation> s = new HashSet<>();
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> t: tpl) {
-			s.add(new ObjectInformation(t.getE1(), t.getE2(), t.getE3(), DATE_FORMAT.parse(t.getE4()),
-					t.getE5().intValue(), new WorkspaceUser(t.getE6()),
-					new ResolvedWorkspaceID(t.getE7(), t.getE8(), false, false), t.getE9(),
-					t.getE10(), new UncheckedUserMetadata(t.getE11())));
+			s.add(ObjectInformation.getBuilder()
+					.withObjectID(t.getE1())
+					.withObjectName(t.getE2())
+					.withType(AbsoluteTypeDefId.fromAbsoluteTypeString(t.getE3()))
+					.withSavedDate(DATE_FORMAT.parse(t.getE4()))
+					.withVersion(t.getE5().intValue())
+					.withSavedBy(new WorkspaceUser(t.getE6()))
+					.withWorkspace(new ResolvedWorkspaceID(t.getE7(), t.getE8(), false, false))
+					.withChecksum(t.getE9())
+					.withSize(t.getE10())
+					.withUserMetadata(new UncheckedUserMetadata(t.getE11()))
+					.build()
+			);
 		}
 		return s;
 	}

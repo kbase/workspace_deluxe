@@ -653,8 +653,8 @@ public class WorkspaceTester {
 		assertThat("Object workspace name is incorrect", info.getWorkspaceName(), is(wsname));
 		assertThat("Object chksum is incorrect", info.getCheckSum(), is(chksum));
 		assertThat("Object size is incorrect", info.getSize(), is(size));
-		Map<String, String> meta = info.getUserMetaData() == null ? null :
-			info.getUserMetaData().getMetadata();
+		Map<String, String> meta = info.getUserMetaData().isEmpty() ? null :
+			info.getUserMetaData().get().getMetadata();
 		assertThat("Object user meta is incorrect", meta, is(usermeta));
 		assertThat("Object refpath incorrect", info.getReferencePath(), is(refpath));
 	}
@@ -818,7 +818,7 @@ public class WorkspaceTester {
 						inf.getWorkspaceName(),
 						inf.getCheckSum(),
 						inf.getSize(),
-						inf.getUserMetaData().getMetadata(),
+						inf.getUserMetaData().get().getMetadata(),
 						inf.getReferencePath());
 			}
 			if (info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
@@ -847,7 +847,7 @@ public class WorkspaceTester {
 				info.getWorkspaceName(),
 				info.getCheckSum(),
 				info.getSize(),
-				info.getUserMetaData().getMetadata(),
+				info.getUserMetaData().get().getMetadata(),
 				info.getReferencePath());
 		assertThat("correct data", getData(wod), is((Object) data));
 
@@ -1444,7 +1444,7 @@ public class WorkspaceTester {
 		assertThat("correct object id", copied.getObjectId(), is(objectid));
 		assertThat("correct object name", copied.getObjectName(), is(objname));
 		assertThat("correct user", copied.getSavedBy(), is(user));
-		assertTrue("copy date after orig", copied.getSavedDate().after(original.getSavedDate()));
+		assertTrue("copy date after orig", copied.getSavedDate().isAfter(original.getSavedDate()));
 		assertDateisRecent(original.getSavedDate());
 		assertDateisRecent(copied.getSavedDate());
 		assertThat("size correct", copied.getSize(), is(original.getSize()));
