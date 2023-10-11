@@ -80,6 +80,7 @@ jobs:
           pip install pipenv
           pipenv sync --system
           cd ..
+          echo "Python dependencies setup complete"
 
           # move to parent dir of homedir to install binaries etc
           cd ..
@@ -87,6 +88,7 @@ jobs:
           # set up jars
           git clone https://github.com/kbase/jars
           export JARSDIR=$(pwd)/jars/lib/jars/
+          echo "Jars setup complete"
 
           # set up arango
           export ARANGODB_VER=3.9.1
@@ -95,6 +97,7 @@ jobs:
           tar -xf arangodb3-linux-$ARANGODB_VER.tar.gz
           export ARANGO_EXE=$(pwd)/arangodb3-linux-$ARANGODB_VER/bin/arangod
           export ARANGO_JS=$(pwd)/arangodb3-linux-$ARANGODB_VER/usr/share/arangodb3/js/
+          echo "ArangoDB setup complete"
 
            # set up handle service
           export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
@@ -110,6 +113,7 @@ jobs:
           cd ..
           export HSDIR=`pwd`
           cd ../..
+          echo "Handle Service setup complete"
 
           # set up sample service
           export SAMPLE_COMMIT=6813fb148e95db2b11db6eea04f4d1d45cbb7119
@@ -119,21 +123,25 @@ jobs:
           cd lib
           export SAMPLE_DIR=`pwd`
           cd ../..
+          echo "Sample Service setup complete"
 
           # set up blobstore
           wget -q -O blobstore https://github.com/kbase/blobstore/releases/download/v0.1.2/blobstore_linux_amd64
           chmod a+x blobstore
           export BLOBEXE=$(pwd)/blobstore
+          echo "Blobstore setup complete"
 
           # set up mongo
           wget -q http://fastdl.mongodb.org/linux/${{matrix.mongo}}.tgz
           tar xfz ${{matrix.mongo}}.tgz
           export MONGOD=`pwd`/${{matrix.mongo}}/bin/mongod
+          echo "MongoDB setup complete"
 
           # set up minio
           wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
           chmod a+x minio
           export MINIOD=`pwd`/minio
+          echo "Minio setup complete"
 
           # set up test config
           cd $HOMEDIR
