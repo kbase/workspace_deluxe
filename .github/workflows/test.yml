@@ -139,7 +139,11 @@ jobs:
 
           # set up minio
           wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
+          echo "Minio d/l complete"
+          ls -l
           chmod a+x minio
+          echo "chmod minio complete"
+          ls -l 
           export MINIOD=`pwd`/minio
           echo "Minio setup complete"
 
