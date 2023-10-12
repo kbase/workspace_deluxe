@@ -34,7 +34,8 @@ public class ObjectInformation {
 	final private String workspaceName;
 	final private String chksum;
 	final private long size;
-	final private UncheckedUserMetadata meta;
+	final private UncheckedUserMetadata usermeta;
+	final private UncheckedUserMetadata adminmeta;
 	final private List<Reference> refpath;
 	
 	private ObjectInformation(
@@ -48,7 +49,8 @@ public class ObjectInformation {
 			final String workspaceName,
 			final String chksum,
 			final long size,
-			final UncheckedUserMetadata meta,
+			final UncheckedUserMetadata usermeta,
+			final UncheckedUserMetadata adminmeta,
 			final List<Reference> refpath) {
 		this.id = id;
 		this.name = name;
@@ -60,7 +62,8 @@ public class ObjectInformation {
 		this.workspaceName = workspaceName;
 		this.chksum = chksum;
 		this.size = size;
-		this.meta = meta;
+		this.usermeta = usermeta;
+		this.adminmeta = adminmeta;
 		if (refpath == null) {
 			//could leave this as null and construct as needed to save mem, but meh for now
 			this.refpath = Arrays.asList(new Reference(workspaceId, id, version));
@@ -143,7 +146,7 @@ public class ObjectInformation {
 	 * @return the object metadata.
 	 */
 	public Optional<UncheckedUserMetadata> getUserMetaData() {
-		return Optional.ofNullable(meta);
+		return Optional.ofNullable(usermeta);
 	}
 	
 	/** Returns the user supplied and automatically generated metadata for the object as a map
@@ -151,7 +154,22 @@ public class ObjectInformation {
 	 * @return the metadata or null.
 	 */
 	public Map<String, String> getUserMetaDataMapOrNull() {
-		return meta == null ? null : meta.getMetadata();
+		return usermeta == null ? null : usermeta.getMetadata();
+	}
+	
+	/** Returns the administrative user supplied metadata for the object.
+	 * @return the object metadata.
+	 */
+	public Optional<UncheckedUserMetadata> getAdminUserMetaData() {
+		return Optional.ofNullable(adminmeta);
+	}
+	
+	/** Returns the administrative user supplied metadata for the object as a map
+	 * or null if no metadata was provided.
+	 * @return the metadata or null.
+	 */
+	public Map<String, String> getAdminUserMetaDataMapOrNull() {
+		return adminmeta == null ? null : adminmeta.getMetadata();
 	}
 
 	/** Returns the resolved reference path to this object from a user-accessible object. There may
@@ -181,7 +199,7 @@ public class ObjectInformation {
 					"refpath must end with the same reference as the current refpath");
 		}
 		return new ObjectInformation(id, name, type, savedDate, version, savedBy, workspaceID,
-				workspaceName, chksum, size, meta, refpath);
+				workspaceName, chksum, size, usermeta, adminmeta, refpath);
 	}
 	
 	private Reference getLast(final List<Reference> refpath) {
@@ -190,8 +208,8 @@ public class ObjectInformation {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(chksum, id, meta, name, refpath, savedBy, savedDate, size, type,
-				version, workspaceID, workspaceName);
+		return Objects.hash(adminmeta, chksum, id, name, refpath, savedBy, savedDate, size, type,
+				usermeta, version, workspaceID, workspaceName);
 	}
 
 	@Override
@@ -206,15 +224,16 @@ public class ObjectInformation {
 			return false;
 		}
 		ObjectInformation other = (ObjectInformation) obj;
-		return Objects.equals(chksum, other.chksum)
+		return Objects.equals(adminmeta, other.adminmeta)
+				&& Objects.equals(chksum, other.chksum)
 				&& id == other.id
-				&& Objects.equals(meta, other.meta)
 				&& Objects.equals(name, other.name)
 				&& Objects.equals(refpath, other.refpath)
 				&& Objects.equals(savedBy, other.savedBy)
 				&& Objects.equals(savedDate, other.savedDate)
 				&& size == other.size
 				&& Objects.equals(type, other.type)
+				&& Objects.equals(usermeta, other.usermeta)
 				&& version == other.version
 				&& workspaceID == other.workspaceID
 				&& Objects.equals(workspaceName, other.workspaceName);
@@ -251,6 +270,7 @@ public class ObjectInformation {
 		
 		// optional fields
 		private UncheckedUserMetadata usermeta = null;
+		private UncheckedUserMetadata adminmeta = null;
 		
 		
 		private Builder() {}
@@ -387,6 +407,17 @@ public class ObjectInformation {
 			return this;
 		}
 		
+		/** Add the optional administrative user provided metadata to the builder.
+		 * 
+		 * A null argument will remove any previously set metadata.
+		 * @param metadata the metadata
+		 * @return this builder for chaining.
+		 */
+		public Builder withAdminUserMetadata(final UncheckedUserMetadata metadata) {
+			this.adminmeta = metadata;
+			return this;
+		}
+		
 		/** Create the {@link ObjectInformation}. All fields are required other than the metadata.
 		 * @return the new {@link ObjectInformation}.
 		 */
@@ -404,7 +435,8 @@ public class ObjectInformation {
 						+ "not set. Please check the documentation for the builder.");
 			}
 			return new ObjectInformation(objectId, objectName, type.getTypeString(), savedDate,
-					version, savedBy, ws.getID(), ws.getName(), chksum, size, usermeta, null);
+					version, savedBy, ws.getID(), ws.getName(), chksum, size, usermeta, adminmeta,
+					null);
 		}
 	}
 	

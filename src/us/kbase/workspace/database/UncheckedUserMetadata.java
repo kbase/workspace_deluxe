@@ -4,9 +4,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/** User provided metadata container. This class performs no checks on the
- * metadata and is intended for returning metadata to the user from the
- * database, as it is presumed that metadata stored in the database has
+/** User (including, potentially administrative users) provided metadata container.
+ * This class performs no checks on the metadata and is intended for returning metadata to the
+ * user from the database, as it is presumed that metadata stored in the database has
  * been checked already.
  * 
  * Use WorkspaceUserMetadata for incoming metadata that needs checking.
