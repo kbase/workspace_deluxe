@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.IntStream;
 
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -841,5 +843,128 @@ public class MongoWorkspaceDBTest {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("config"));
 		}
 	}
-
+	
+	@Test
+	public void setWorkspaceMetadata() throws Exception {
+		// Tests the immediately successful case only. See the mongo internal tests class
+		// for tests for cases where there's at least one failure trying to update the data.
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final WorkspaceUser user = new WorkspaceUser("a");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "wsn", false, false);
+		
+		mocks.mdb.createWorkspace(user, "wsn", false, null, new WorkspaceUserMetadata());
+		
+		when(mocks.clockmock.instant()).thenReturn(inst(10000), inst(15000), null);
+	
+		// test against empty metadata
+		final Instant result = mocks.mdb.setWorkspaceMeta(
+				rwsi,
+				new WorkspaceUserMetadata(ImmutableMap.of("foo", "bar", "baz", "bat")));
+		
+		assertThat("incorrect time", result, is(inst(10000)));
+		
+		final Map<String, String> m = mocks.mdb.getWorkspaceInformation(user, rwsi)
+				.getUserMeta().getMetadata();
+		assertThat("incorrect meta", m, is(ImmutableMap.of("foo", "bar", "baz", "bat")));
+		
+		// test against non-empty metadata
+		final Instant result2 = mocks.mdb.setWorkspaceMeta(
+				rwsi,
+				new WorkspaceUserMetadata(ImmutableMap.of("baz", "bing", "thingy", "thinger")));
+		
+		assertThat("incorrect time", result2, is(inst(15000)));
+		
+		final Map<String, String> m2 = mocks.mdb.getWorkspaceInformation(
+				user, rwsi).getUserMeta().getMetadata();
+		assertThat("incorrect meta", m2, is(ImmutableMap.of(
+				"foo", "bar", "baz", "bing", "thingy", "thinger")));
+	}
+	
+	@Test
+	public void setWorkspaceMetaFailNoMeta() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "wsn", false, false);
+		failSetWorkspaceMeta(mocks.mdb, rwsi, null, new IllegalArgumentException(
+				"Metadata cannot be null or empty"));
+		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
+		failSetWorkspaceMeta(mocks.mdb, rwsi, meta, new IllegalArgumentException(
+				"Metadata cannot be null or empty"));
+	}
+	
+	private List<Object> setWorkspaceMetaBigMetaSetup() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final WorkspaceUser user = new WorkspaceUser("a");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "wsn", false, false);
+		final String l890 = TestCommon.LONG1001.substring(0, 890);
+		
+		final Map<String, String> meta = new HashMap<>();
+		IntStream.range(0, 10).forEach(i -> meta.put("a" + i, l890));
+		
+		mocks.mdb.createWorkspace(user, "wsn", false, null, new WorkspaceUserMetadata(meta));
+		
+		final Map<String, String> meta2 = new HashMap<>();
+		IntStream.range(0, 7).forEach(i -> meta2.put("b" + i, l890));
+		
+		return Arrays.asList(mocks, rwsi, l890, meta2);
+	}
+	
+	@Test
+	public void setWorkspaceMetaPassBigMeta() throws Exception {
+		final List<Object> setup = setWorkspaceMetaBigMetaSetup();
+		final PartialMock mocks = (PartialMock) setup.get(0);
+		final ResolvedWorkspaceID rwsi = (ResolvedWorkspaceID) setup.get(1);
+		final String l890 = (String) setup.get(2);
+		
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, String> meta2 = (Map<String, String>) setup.get(3);
+		meta2.put("b10", TestCommon.LONG1001.substring(0, 724));
+		
+		when(mocks.clockmock.instant()).thenReturn(inst(10000), (Instant) null);
+		
+		// test against empty metadata
+		final Instant result = mocks.mdb.setWorkspaceMeta(rwsi, new WorkspaceUserMetadata(meta2));
+		
+		assertThat("incorrect time", result, is(inst(10000)));
+		
+		final Map<String, String> m2 = mocks.mdb.getWorkspaceInformation(
+				new WorkspaceUser("a"), rwsi).getUserMeta().getMetadata();
+		
+		final Map<String, String> expected = new HashMap<>();
+		for (final String key: list(
+				"a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9",
+				"b0", "b1", "b2", "b3", "b4", "b5", "b6")) {
+			expected.put(key, l890);
+		}
+		expected.put("b10", l890.substring(0, 724));
+		assertThat("incorrect meta", m2, is(expected));
+	}
+	
+	@Test
+	public void setWorkspaceMetaFailBigMeta() throws Exception {
+		final List<Object> setup = setWorkspaceMetaBigMetaSetup();
+		final PartialMock mocks = (PartialMock) setup.get(0);
+		final ResolvedWorkspaceID rwsi = (ResolvedWorkspaceID) setup.get(1);
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, String> meta2 = (Map<String, String>) setup.get(3);
+		meta2.put("b10", TestCommon.LONG1001.substring(0, 725));
+		
+		failSetWorkspaceMeta(mocks.mdb, rwsi, new WorkspaceUserMetadata(meta2),
+				new IllegalArgumentException("Updated metadata exceeds allowed size of 16000B"));
+	}
+	
+	private void failSetWorkspaceMeta(
+			final MongoWorkspaceDB mdb,
+			final ResolvedWorkspaceID rwsi,
+			final WorkspaceUserMetadata meta,
+			final Exception expected)
+			throws Exception {
+		try {
+			mdb.setWorkspaceMeta(rwsi, meta);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
 }

@@ -699,85 +699,66 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
 
 	@Override
-	public Instant setWorkspaceMeta(final ResolvedWorkspaceID rwsi,
+	public Instant setWorkspaceMeta(
+			final ResolvedWorkspaceID rwsi,
 			final WorkspaceUserMetadata newMeta)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		// TODO NOW CODE integrate keys to remove (below) into this method and do it all in
+		// 					one shot
 		if (newMeta == null || newMeta.isEmpty()) {
 			throw new IllegalArgumentException("Metadata cannot be null or empty");
 		}
-		final Map<String, Object> ws = query.queryWorkspace(rwsi, FLDS_WS_META);
-		@SuppressWarnings("unchecked")
-		final Map<String, String> currMeta = metaMongoArrayToHash(
-				(List<Object>) ws.get(Fields.WS_META));
-		currMeta.putAll(newMeta.getMetadata());
-		try {
-			WorkspaceUserMetadata.checkMetadataSize(currMeta);
-		} catch (MetadataException me) {
-			throw new IllegalArgumentException(String.format(
-					"Updated metadata exceeds allowed size of %sB",
-					WorkspaceUserMetadata.MAX_METADATA_SIZE));
-		}
-
-		/* it's possible if this is running at the same time on the same object
-		 * that the metadata size could exceed 16k since the size check
-		 * happens once at the beginning of the method. That has virtually no
-		 * repercussions whatsoever, so meh.
-		 */
-		// 2023/09/21: this seem overcomplicated and inefficient although it works.
-		// Look for a better way.
+		int attempts = 1;
 		Instant time = null;
-		final String mkey = Fields.WS_META + Fields.FIELD_SEP + Fields.META_KEY;
-		final String mval = Fields.WS_META + Fields.FIELD_SEP + "$" + Fields.FIELD_SEP +
-				Fields.META_VALUE;
-		for (final Entry<String, String> e: newMeta.getMetadata().entrySet()) {
-			final String key = e.getKey();
-			final String value = e.getValue();
-			boolean success = false;
-			while (!success) { //Danger, Will Robinson! Danger!
-				//replace the value if it exists already
-				UpdateResult ur;
-				try {
-					time = Instant.now();
-					ur = wsmongo.getCollection(COL_WORKSPACES).updateOne(
-							new Document(Fields.WS_ID, rwsi.getID()).append(mkey, key),
-							new Document("$set", new Document(mval, value)
-									.append(Fields.WS_MODDATE, Date.from(time))));
-				} catch (MongoException me) {
-					throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
-				}
-				if (ur.getModifiedCount() == 1) { //ok, it worked
-					success = true;
-					continue;
-				}
-				//add the key/value pair to the array
-				time = Instant.now();
-				try {
-					ur = wsmongo.getCollection(COL_WORKSPACES).updateOne(
-							new Document(Fields.WS_ID, rwsi.getID())
-									.append(mkey, new Document("$nin", Arrays.asList(key))),
-							new Document(
-									"$push", new Document(Fields.WS_META,
-											new Document(Fields.META_KEY, key)
-													.append(Fields.META_VALUE, value)))
-									.append("$set", new Document(
-											Fields.WS_MODDATE, Date.from(time))));
-
-				} catch (MongoException me) {
-					throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
-				}
-				if (ur.getModifiedCount() == 1) { //ok, it worked
-					success = true;
-				}
-				/* amazingly, someone added that key to the metadata between the
-				   two calls above, so here we go again on our own
-				   Should be impossible to get stuck in a loop, but if so add
-				   counter and throw error if > 3 or something
-				 */
+		while (time == null) {
+			final Map<String, Object> ws = query.queryWorkspace(rwsi, FLDS_WS_META);
+			@SuppressWarnings("unchecked")
+			final List<Map<String, String>> mlist = (List<Map<String, String>>)
+					ws.get(Fields.WS_META);
+			final Map<String, String> updatedMeta = metaMongoArrayToHash(mlist);
+			updatedMeta.putAll(newMeta.getMetadata());
+			try {
+				WorkspaceUserMetadata.checkMetadataSize(updatedMeta);
+			} catch (MetadataException me) {
+				throw new IllegalArgumentException(String.format(
+						"Updated metadata exceeds allowed size of %sB",
+						WorkspaceUserMetadata.MAX_METADATA_SIZE));
 			}
+			final Document query = new Document(Fields.WS_ID, rwsi.getID())
+					.append(Fields.WS_META, mlist);
+			final Document metaUpdate = new Document(
+					Fields.WS_META, metaHashToMongoArray(updatedMeta));
+			time = _internal_setWorkspaceMeta(attempts, 5, query, metaUpdate);
+			attempts++;
 		}
 		return time;
+	}
+	
+	// split the method for testing purposes
+	private Instant _internal_setWorkspaceMeta(
+			final int attempts,
+			final int maxattempts,
+			final Document query,
+			final Document metaUpdate)
+			throws WorkspaceCommunicationException {
+		try {
+			final Instant time = clock.instant();
+			// only match if the metadata we pulled from the db is stil the same, so we don't
+			// clobber any interleaving changes
+			final UpdateResult ur = wsmongo.getCollection(COL_WORKSPACES).updateOne(
+					query,
+					new Document("$set", metaUpdate.append(Fields.WS_MODDATE, Date.from(time))));
+			if (ur.getModifiedCount() == 1) { //ok, it worked
+				return time;
+			} else if (attempts >= maxattempts) {
+				throw new WorkspaceCommunicationException(
+						String.format("Failed to update metadata %s times", attempts));
+			} else {
+				return null;
+			}
+		} catch (MongoException me) { /// very difficult to test
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
+		}
 	}
 
 	@Override
