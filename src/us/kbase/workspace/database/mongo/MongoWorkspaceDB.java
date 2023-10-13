@@ -699,14 +699,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
 
 	@Override
-	public Instant setWorkspaceMeta(
+	public Optional<Instant> setWorkspaceMeta(
 			final ResolvedWorkspaceID rwsi,
-			final WorkspaceUserMetadata newMeta)
+			final WorkspaceUserMetadata newMeta,
+			final List<String> remove)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		// TODO NOW CODE integrate keys to remove (below) into this method and do it all in
-		// 					one shot
-		if (newMeta == null || newMeta.isEmpty()) {
-			throw new IllegalArgumentException("Metadata cannot be null or empty");
+		if (remove == null && (newMeta == null || newMeta.isEmpty())) {
+			throw new IllegalArgumentException("No metadata changes provided");
+		}
+		if (remove != null) {
+			noNulls(remove, "Null metadata keys found in remove parameter");
 		}
 		int attempts = 1;
 		Instant time = null;
@@ -715,8 +717,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<Map<String, String>> mlist = (List<Map<String, String>>)
 					ws.get(Fields.WS_META);
-			final Map<String, String> updatedMeta = metaMongoArrayToHash(mlist);
-			updatedMeta.putAll(newMeta.getMetadata());
+			final Map<String, String> oldMeta = metaMongoArrayToHash(mlist);
+			final Map<String, String> updatedMeta = new HashMap<>(oldMeta);
+			if (newMeta != null) {
+				updatedMeta.putAll(newMeta.getMetadata());
+			}
+			if (remove != null) {
+				for (final String k: remove) {
+					updatedMeta.remove(k);
+				}
+			}
+			if (oldMeta.equals(updatedMeta)) {
+				return Optional.empty();
+			}
 			try {
 				WorkspaceUserMetadata.checkMetadataSize(updatedMeta);
 			} catch (MetadataException me) {
@@ -731,7 +744,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			time = _internal_setWorkspaceMeta(attempts, 5, query, metaUpdate);
 			attempts++;
 		}
-		return time;
+		return Optional.of(time);
 	}
 	
 	// split the method for testing purposes
@@ -759,27 +772,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} catch (MongoException me) { /// very difficult to test
 			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
-	}
-
-	@Override
-	public Instant removeWorkspaceMetaKey(
-			final ResolvedWorkspaceID rwsi,
-			final String key)
-			throws WorkspaceCommunicationException {
-		final Instant time = Instant.now();
-		final String mkey = Fields.WS_META + Fields.FIELD_SEP + Fields.META_KEY;
-		try {
-			wsmongo.getCollection(COL_WORKSPACES).updateOne(
-					new Document(Fields.WS_ID, rwsi.getID()).append(mkey, key),
-					new Document(
-							"$pull", new Document(Fields.WS_META,
-									new Document(Fields.META_KEY, key)))
-							.append("$set", new Document(
-									Fields.WS_MODDATE, Date.from(time))));
-		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
-		}
-		return time;
 	}
 
 	private static final Set<String> FLDS_CLONE_WS =

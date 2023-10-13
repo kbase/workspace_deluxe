@@ -223,26 +223,16 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("alter metadata for").check();
-		boolean set = false;
-		Instant time = null;
-		// should merge this into one db call
-		try {
-			if (meta != null && !meta.isEmpty()) {
-				time = db.setWorkspaceMeta(wsid, meta);
-				set = true;
-			}
-			if (keysToRemove != null) {
-				noNulls(keysToRemove, "null metadata keys are not allowed");
-				for (final String key: keysToRemove) {
-					time = db.removeWorkspaceMetaKey(wsid, key);
-					set = true;
-				}
-			}
-		} finally {
-			if (set) {
-				for (final WorkspaceEventListener l: listeners) {
-					l.setWorkspaceMetadata(user, wsid.getID(), time);
-				}
+		if (keysToRemove == null && (meta == null || meta.isEmpty())) {
+			return;
+		}
+		if (keysToRemove != null) {
+			noNulls(keysToRemove, "null metadata keys are not allowed");
+		}
+		final Optional<Instant> time = db.setWorkspaceMeta(wsid, meta, keysToRemove);
+		if (time.isPresent()) {
+			for (final WorkspaceEventListener l: listeners) {
+				l.setWorkspaceMetadata(user, wsid.getID(), time.get());
 			}
 		}
 	}
