@@ -1,11 +1,14 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.now;
+import static us.kbase.common.test.TestCommon.assertCloseToNow;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.io.File;
@@ -14,6 +17,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -78,9 +82,21 @@ import us.kbase.workspace.database.mongo.ObjectSavePackage;
 import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
+import com.google.common.collect.ImmutableMap;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+
+/*
+ * These tests are naughty because they bypass the public API and test the internals directly.
+ * In general, you shouldn't do that. For some of these tests, there's no good way to
+ * test some of the code without sticking our filthy paws into the class guts (like
+ * code that pulls DB data, modifies it, and saves it back while atomically checking it
+ * hasn't changed since the pull and looping if it has), but some code was written too
+ * protectively and probably could be refactored so the testing accessing internals aren't
+ * necessary.
+ */
+
 
 public class MongoInternalsTest {
 
@@ -1202,5 +1218,92 @@ public class MongoInternalsTest {
 
 		checkTypeFields(2, 1, 2);
 	}
+	
+	private Method getSetWorkspaceMetadataInternalMethod() throws Exception {
+		final Method m = MongoWorkspaceDB.class.getDeclaredMethod(
+				"_internal_setWorkspaceMeta",
+				int.class,
+				int.class,
+				Document.class,
+				Document.class);
+		m.setAccessible(true);
+		return m;
+	}
+	
+	private ResolvedWorkspaceID setWorkspaceMetadataCreateWorkspace(
+			Map<String, String> meta) throws Exception {
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
+		ws.createWorkspace(user, rwsi.getName(), false, null, new WorkspaceUserMetadata(meta));
+		return rwsi;
+	}
+	
+	@Test
+	public void setWorkspaceMetadataInternalsPassAfterPreviousAttempts() throws Exception {
+		final Method m = getSetWorkspaceMetadataInternalMethod();
+		final ResolvedWorkspaceID rwsi = setWorkspaceMetadataCreateWorkspace(
+				ImmutableMap.of("a", "b"));
+		
+		final Instant result = (Instant) m.invoke(
+				mwdb,
+				3,
+				5,
+				new Document("ws", 1).append("meta", Arrays.asList(
+						ImmutableMap.of("k", "a", "v", "b"))),
+				new Document("meta", Arrays.asList(
+						ImmutableMap.of("k", "a", "v", "x"), ImmutableMap.of("k", "y", "v", "z")))
+		);
+		assertCloseToNow(result);
+		final Map<String, String> meta = mwdb.getWorkspaceInformation(
+				new WorkspaceUser("foo"), rwsi).getUserMeta().getMetadata();
+		assertThat("incorrect meta", meta, is(ImmutableMap.of("a", "x", "y", "z")));
+	}
+	
+	@Test
+	public void setWorkspaceMetadataInternalsNoUpdateAfterPreviousAttempts() throws Exception {
+		final Method m = getSetWorkspaceMetadataInternalMethod();
+		final ResolvedWorkspaceID rwsi = setWorkspaceMetadataCreateWorkspace(
+				ImmutableMap.of("a", "b"));
+		
+		final Instant result = (Instant) m.invoke(
+				mwdb,
+				3,
+				5,
+				new Document("ws", 1).append("meta", Arrays.asList(
+						ImmutableMap.of("k", "a", "v", "c"))),
+				new Document("meta", Arrays.asList(
+						ImmutableMap.of("k", "a", "v", "x"), ImmutableMap.of("k", "y", "v", "z")))
+		);
+		assertThat("incorrect time", result, is(nullValue()));
+		final Map<String, String> meta = mwdb.getWorkspaceInformation(
+				new WorkspaceUser("foo"), rwsi).getUserMeta().getMetadata();
+		assertThat("incorrect meta", meta, is(ImmutableMap.of("a", "b")));
+	}
+	
+	@Test
+	public void setWorkspaceMetadataInternalsFailAfterPreviousAttempts() throws Exception {
+		final Method m = getSetWorkspaceMetadataInternalMethod();
+		final ResolvedWorkspaceID rwsi = setWorkspaceMetadataCreateWorkspace(
+				ImmutableMap.of("a", "b"));
+		try {
+			m.invoke(
+					mwdb,
+					5,
+					5,
+					new Document("ws", 1).append("meta", Arrays.asList(
+							ImmutableMap.of("k", "a", "v", "c"))),
+					new Document("meta", Arrays.asList(
+							ImmutableMap.of("k", "a", "v", "x"),
+							ImmutableMap.of("k", "y", "v", "z")))
+			);
+		} catch (InvocationTargetException e) {
+			assertExceptionCorrect(e.getCause(), new WorkspaceCommunicationException(
+					"Failed to update metadata 5 times"));
+		}
+		final Map<String, String> meta = mwdb.getWorkspaceInformation(
+				new WorkspaceUser("foo"), rwsi).getUserMeta().getMetadata();
+		assertThat("incorrect meta", meta, is(ImmutableMap.of("a", "b")));
+	}
+
 
 }
