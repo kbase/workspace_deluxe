@@ -226,7 +226,7 @@ public class WorkspaceListenerTest {
 		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.setWorkspaceMeta(rwsi, meta, null)).thenReturn(Optional.of(inst(20000)));
 
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
@@ -250,7 +250,7 @@ public class WorkspaceListenerTest {
 		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.setWorkspaceMeta(rwsi, meta, null)).thenReturn(Optional.of(inst(20000)));
 
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
@@ -277,7 +277,7 @@ public class WorkspaceListenerTest {
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
 		
 		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(m.db).setWorkspaceMeta(rwsi, meta);
+				.when(m.db).setWorkspaceMeta(rwsi, meta, Arrays.asList("foo"));
 		try {
 			ws.setWorkspaceMetadata(user, wsi, meta, Arrays.asList("foo"));
 		} catch(WorkspaceCommunicationException e) {
@@ -286,63 +286,6 @@ public class WorkspaceListenerTest {
 		
 		verify(m.l1, never()).setWorkspaceMetadata(
 				any(WorkspaceUser.class), anyLong(), any(Instant.class));
-	}
-	
-	@Test
-	public void setWorkspaceMetadataExceptionOnFirstRemove() throws Exception {
-		final Mocks m = new Mocks();
-		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata(
-				ImmutableMap.of("foo", "bar"));
-		
-		final WorkspaceUser user = new WorkspaceUser("foo");
-		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
-		
-		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
-		
-		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
-				PermissionSet.getBuilder(user, new AllUsers('*'))
-						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
-		
-		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(m.db).removeWorkspaceMetaKey(rwsi, "foo");
-		try {
-			ws.setWorkspaceMetadata(user, wsi, meta, Arrays.asList("foo"));
-		} catch(WorkspaceCommunicationException e) {
-			//fine
-		}
-		
-		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
-	}
-	
-	@Test
-	public void setWorkspaceMetadataExceptionOnSecondRemove() throws Exception {
-		final Mocks m = new Mocks();
-		
-		final WorkspaceUser user = new WorkspaceUser("foo");
-		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
-		
-		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
-		
-		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
-				PermissionSet.getBuilder(user, new AllUsers('*'))
-						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, META)).thenReturn(Instant.ofEpochMilli(20000));
-		when(m.db.removeWorkspaceMetaKey(rwsi, "bar")).thenReturn(Instant.ofEpochMilli(30000));
-		
-		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(m.db).removeWorkspaceMetaKey(rwsi, "foo");
-		try {
-			ws.setWorkspaceMetadata(user, wsi, META, Arrays.asList("bar", "foo"));
-		} catch(WorkspaceCommunicationException e) {
-			//fine
-		}
-		
-		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test

@@ -91,24 +91,21 @@ public interface WorkspaceDatabase {
 	 * 
 	 * @param wsid the workspace for which metadata will be altered.
 	 * @param meta the metadata to add to the workspace.
-	 * @return the workspace modification time.
+	 * @param remove the metadata keys to remove from the workspace. If any provided keys do
+	 * not exist they will be ignored.
+	 * @return the workspace modification time if the metadata was altered, or an empty optional
+	 * if the changes had no practical effect.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 * @throws IllegalArgumentException if no metadata is supplied or the 
 	 * updated metadata exceeds the allowed size.
 	 */
-	Instant setWorkspaceMeta(ResolvedWorkspaceID wsid, WorkspaceUserMetadata meta)
+	Optional<Instant> setWorkspaceMeta(
+			ResolvedWorkspaceID wsid,
+			WorkspaceUserMetadata meta,
+			List<String> remove)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	/** Remove a metadata key from a workspace.
-	 * @param wsid the workspace for which metadata will be altered.
-	 * @param key the key to remove from the metadata.
-	 * @return the workspace modification time.
-	 * @throws WorkspaceCommunicationException if a communication error occurs.
-	 */
-	Instant removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
-			throws WorkspaceCommunicationException;
-	
 	/** Clone a workspace.
 	 * @param user the user cloning the workspace
 	 * @param wsid the ID of the workspace to be cloned.
