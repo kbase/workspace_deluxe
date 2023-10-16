@@ -60,6 +60,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -528,7 +529,7 @@ public class WorkspaceTester {
 			final String key,
 			final Exception e) {
 		try {
-			ws.setWorkspaceMetadata(user, wsi, null, Arrays.asList(key));
+			ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(null, Arrays.asList(key)));
 			fail("expected remove ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -551,7 +552,8 @@ public class WorkspaceTester {
 			final List<String> remove,
 			final Exception e) {
 		try {
-			ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta), remove);
+			ws.setWorkspaceMetadata(
+					user, wsi, new MetadataUpdate(new WorkspaceUserMetadata(meta), remove));
 			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);

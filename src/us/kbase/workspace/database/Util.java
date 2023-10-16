@@ -42,13 +42,15 @@ public class Util {
 	 * @param col the collection to check.
 	 * @param message the exception message.
 	 * @param <T> the type of the elements in the collection.
+	 * @return the collection.
 	 */
-	public static <T> void noNulls(final Collection<T> col, final String message) {
+	public static <T> Collection<T> noNulls(final Collection<T> col, final String message) {
 		for (final T item: col) {
 			if (item == null) {
 				throw new NullPointerException(message);
 			}
 		}
+		return col;
 	}
 
 	/** Check that the provided collection is not null and contains no null or whitespace-only

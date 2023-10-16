@@ -145,8 +145,10 @@ public class UtilTest {
 
 	@Test
 	public void noNullsPass() throws Exception {
-		Util.noNulls(NON_WHITESPACE_STRINGS, TYPE_NAME);
-		Util.noNulls(WHITESPACE_STRINGS, TYPE_NAME);
+		assertThat("incorrect return", Util.noNulls(NON_WHITESPACE_STRINGS, TYPE_NAME),
+				is(NON_WHITESPACE_STRINGS));
+		assertThat("incorrect return", Util.noNulls(WHITESPACE_STRINGS, TYPE_NAME),
+				is(WHITESPACE_STRINGS));
 	}
 
 	@Test

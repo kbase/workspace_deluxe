@@ -204,9 +204,6 @@ public class Workspace {
 	 * @param user the user altering the metadata.
 	 * @param wsi the workspace to alter.
 	 * @param meta updated metadata. Keys will overwrite any keys already set on the workspace.
-	 * Send null to make no changes.
-	 * @param keysToRemove metadata keys to remove from the workspace. Send null to make no
-	 * changes.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
 	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
@@ -216,20 +213,17 @@ public class Workspace {
 	public void setWorkspaceMetadata(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
-			final WorkspaceUserMetadata meta,
-			final List<String> keysToRemove)
+			final MetadataUpdate meta)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		requireNonNull(meta, "meta");
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("alter metadata for").check();
-		if (keysToRemove == null && (meta == null || meta.isEmpty())) {
+		if (!meta.hasUpdate()) {
 			return;
 		}
-		if (keysToRemove != null) {
-			noNulls(keysToRemove, "null metadata keys are not allowed");
-		}
-		final Optional<Instant> time = db.setWorkspaceMeta(wsid, meta, keysToRemove);
+		final Optional<Instant> time = db.setWorkspaceMeta(wsid, meta);
 		if (time.isPresent()) {
 			for (final WorkspaceEventListener l: listeners) {
 				l.setWorkspaceMetadata(user, wsid.getID(), time.get());

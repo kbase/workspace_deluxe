@@ -38,6 +38,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.CopyResult;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -204,7 +205,7 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
 		
-		ws.setWorkspaceMetadata(user, wsi, META, null);
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(META, null));
 		
 		verify(m.l1, never()).setWorkspaceMetadata(
 				any(WorkspaceUser.class), anyLong(), any(Instant.class));
@@ -226,10 +227,11 @@ public class WorkspaceListenerTest {
 		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, meta, null)).thenReturn(Optional.of(inst(20000)));
+		when(m.db.setWorkspaceMeta(rwsi, new MetadataUpdate(meta, null)))
+				.thenReturn(Optional.of(inst(20000)));
 
 		
-		ws.setWorkspaceMetadata(user, wsi, meta, null);
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(meta, null));
 		
 		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
@@ -250,10 +252,11 @@ public class WorkspaceListenerTest {
 		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, meta, null)).thenReturn(Optional.of(inst(20000)));
+		when(m.db.setWorkspaceMeta(rwsi, new MetadataUpdate(meta, null)))
+				.thenReturn(Optional.of(inst(20000)));
 
 		
-		ws.setWorkspaceMetadata(user, wsi, meta, null);
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(meta, null));
 		
 		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 		verify(m.l2).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
@@ -277,9 +280,9 @@ public class WorkspaceListenerTest {
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
 		
 		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(m.db).setWorkspaceMeta(rwsi, meta, Arrays.asList("foo"));
+				.when(m.db).setWorkspaceMeta(rwsi, new MetadataUpdate(meta, Arrays.asList("foo")));
 		try {
-			ws.setWorkspaceMetadata(user, wsi, meta, Arrays.asList("foo"));
+			ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(meta, Arrays.asList("foo")));
 		} catch(WorkspaceCommunicationException e) {
 			//fine
 		}
