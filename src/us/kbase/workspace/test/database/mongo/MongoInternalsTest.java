@@ -18,6 +18,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -64,6 +65,7 @@ import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -1221,18 +1223,20 @@ public class MongoInternalsTest {
 	
 	private Method getSetWorkspaceMetadataInternalMethod() throws Exception {
 		final Method m = MongoWorkspaceDB.class.getDeclaredMethod(
-				"_internal_setWorkspaceMeta",
+				"_internal_setMeta",
 				int.class,
 				int.class,
+				String.class,
 				Document.class,
-				Document.class);
+				Document.class,
+				String.class);
 		m.setAccessible(true);
 		return m;
 	}
 	
 	private ResolvedWorkspaceID setWorkspaceMetadataCreateWorkspace(
 			Map<String, String> meta) throws Exception {
-		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceUser user = new WorkspaceUser("u");
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
 		ws.createWorkspace(user, rwsi.getName(), false, null, new WorkspaceUserMetadata(meta));
 		return rwsi;
@@ -1243,20 +1247,67 @@ public class MongoInternalsTest {
 		final Method m = getSetWorkspaceMetadataInternalMethod();
 		final ResolvedWorkspaceID rwsi = setWorkspaceMetadataCreateWorkspace(
 				ImmutableMap.of("a", "b"));
+		final Instant wscreate = mwdb.getWorkspaceInformation(null, rwsi).getModDate();
+		final Instant result = (Instant) m.invoke(
+				mwdb,
+				3,
+				5,
+				"workspaces",
+				new Document("ws", 1).append("meta", Arrays.asList(
+						ImmutableMap.of("k", "a", "v", "b"))),
+				new Document("meta", Arrays.asList(
+						ImmutableMap.of("k", "a", "v", "x"), ImmutableMap.of("k", "y", "v", "z"))),
+				"moddate"
+		);
+		assertCloseToNow(result);
+		assertThat("moddate changed", result.isAfter(wscreate), is(true));
+		final WorkspaceInformation wi = mwdb.getWorkspaceInformation(null, rwsi);
+		assertThat("incorrect workspace info", wi, is(WorkspaceInformation.getBuilder()
+				.withID(1)
+				.withMaximumObjectID(0)
+				.withUserPermission(Permission.NONE)
+				.withModificationDate(result.truncatedTo(ChronoUnit.MILLIS)) // mongo truncates
+				.withName("foo")
+				.withOwner(new WorkspaceUser("u"))
+				.withUserMetadata(new UncheckedUserMetadata(ImmutableMap.of(
+						"a", "x", "y", "z")))
+				.build()
+		));
+	}
+	
+	@Test
+	public void setWorkspaceMetadataInternalsPassAfterPreviousAttemptsNoModDate()
+			throws Exception {
+		final Method m = getSetWorkspaceMetadataInternalMethod();
+		final ResolvedWorkspaceID rwsi = setWorkspaceMetadataCreateWorkspace(
+				ImmutableMap.of("a", "b"));
+		final Instant wscreate = mwdb.getWorkspaceInformation(null, rwsi).getModDate();
 		
 		final Instant result = (Instant) m.invoke(
 				mwdb,
 				3,
 				5,
+				"workspaces",
 				new Document("ws", 1).append("meta", Arrays.asList(
 						ImmutableMap.of("k", "a", "v", "b"))),
 				new Document("meta", Arrays.asList(
-						ImmutableMap.of("k", "a", "v", "x"), ImmutableMap.of("k", "y", "v", "z")))
+						ImmutableMap.of("k", "a", "v", "x"), ImmutableMap.of("k", "y", "v", "z"))),
+				null
 		);
 		assertCloseToNow(result);
-		final Map<String, String> meta = mwdb.getWorkspaceInformation(
-				new WorkspaceUser("foo"), rwsi).getUserMeta().getMetadata();
-		assertThat("incorrect meta", meta, is(ImmutableMap.of("a", "x", "y", "z")));
+		assertThat("moddate changed", result.isAfter(wscreate), is(true));
+		final WorkspaceInformation wi = mwdb.getWorkspaceInformation(null, rwsi);
+		assertThat("incorrect workspace info", wi, is(WorkspaceInformation.getBuilder()
+				.withID(1)
+				.withMaximumObjectID(0)
+				.withUserPermission(Permission.NONE)
+				.withModificationDate(wscreate)
+				.withName("foo")
+				.withOwner(new WorkspaceUser("u"))
+				.withUserMetadata(new UncheckedUserMetadata(ImmutableMap.of(
+						"a", "x", "y", "z")))
+				.build()
+		));
 	}
 	
 	@Test
@@ -1269,10 +1320,12 @@ public class MongoInternalsTest {
 				mwdb,
 				3,
 				5,
+				"workspaces",
 				new Document("ws", 1).append("meta", Arrays.asList(
 						ImmutableMap.of("k", "a", "v", "c"))),
 				new Document("meta", Arrays.asList(
-						ImmutableMap.of("k", "a", "v", "x"), ImmutableMap.of("k", "y", "v", "z")))
+						ImmutableMap.of("k", "a", "v", "x"), ImmutableMap.of("k", "y", "v", "z"))),
+				"moddate"
 		);
 		assertThat("incorrect time", result, is(nullValue()));
 		final Map<String, String> meta = mwdb.getWorkspaceInformation(
@@ -1290,11 +1343,13 @@ public class MongoInternalsTest {
 					mwdb,
 					5,
 					5,
+					"workspaces",
 					new Document("ws", 1).append("meta", Arrays.asList(
 							ImmutableMap.of("k", "a", "v", "c"))),
 					new Document("meta", Arrays.asList(
 							ImmutableMap.of("k", "a", "v", "x"),
-							ImmutableMap.of("k", "y", "v", "z")))
+							ImmutableMap.of("k", "y", "v", "z"))),
+					"moddate"
 			);
 		} catch (InvocationTargetException e) {
 			assertExceptionCorrect(e.getCause(), new WorkspaceCommunicationException(

@@ -698,11 +698,36 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
 
+	@FunctionalInterface
+	interface DocumentProvider {
+		Map<String, Object> getDocument()
+				throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	}
+	
 	@Override
 	public Optional<Instant> setWorkspaceMeta(
 			final ResolvedWorkspaceID rwsi,
 			final WorkspaceUserMetadata newMeta,
 			final List<String> remove)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return setMetadataOnDocument(
+				newMeta,
+				remove,
+				COL_WORKSPACES,
+				() -> query.queryWorkspace(rwsi, FLDS_WS_META),
+				new Document(Fields.WS_ID, rwsi.getID()),
+				Fields.WS_META,
+				Fields.WS_MODDATE);
+	}
+
+	private Optional<Instant> setMetadataOnDocument(
+			final WorkspaceUserMetadata newMeta,
+			final List<String> remove,
+			final String collection,
+			final DocumentProvider dp,
+			final Document identifier,
+			final String metaField,
+			final String moddateField)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (remove == null && (newMeta == null || newMeta.isEmpty())) {
 			throw new IllegalArgumentException("No metadata changes provided");
@@ -713,10 +738,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		int attempts = 1;
 		Instant time = null;
 		while (time == null) {
-			final Map<String, Object> ws = query.queryWorkspace(rwsi, FLDS_WS_META);
+			final Map<String, Object> doc = dp.getDocument();
 			@SuppressWarnings("unchecked")
-			final List<Map<String, String>> mlist = (List<Map<String, String>>)
-					ws.get(Fields.WS_META);
+			final List<Map<String, String>> mlist = (List<Map<String, String>>) doc.get(metaField);
 			final Map<String, String> oldMeta = metaMongoArrayToHash(mlist);
 			final Map<String, String> updatedMeta = new HashMap<>(oldMeta);
 			if (newMeta != null) {
@@ -737,30 +761,32 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Updated metadata exceeds allowed size of %sB",
 						WorkspaceUserMetadata.MAX_METADATA_SIZE));
 			}
-			final Document query = new Document(Fields.WS_ID, rwsi.getID())
-					.append(Fields.WS_META, mlist);
-			final Document metaUpdate = new Document(
-					Fields.WS_META, metaHashToMongoArray(updatedMeta));
-			time = _internal_setWorkspaceMeta(attempts, 5, query, metaUpdate);
+			final Document query = identifier.append(metaField, mlist);
+			final Document metaUpdate = new Document(metaField, metaHashToMongoArray(updatedMeta));
+			time = _internal_setMeta(attempts, 5, collection, query, metaUpdate, moddateField);
 			attempts++;
 		}
 		return Optional.of(time);
 	}
 	
 	// split the method for testing purposes
-	private Instant _internal_setWorkspaceMeta(
+	private Instant _internal_setMeta(
 			final int attempts,
 			final int maxattempts,
+			final String collection,
 			final Document query,
-			final Document metaUpdate)
+			final Document metaUpdate,
+			final String modDateField)
 			throws WorkspaceCommunicationException {
 		try {
 			final Instant time = clock.instant();
-			// only match if the metadata we pulled from the db is stil the same, so we don't
+			if (modDateField != null) {
+				metaUpdate.append(modDateField, Date.from(time));
+			}
+			// only match if the metadata we pulled from the db is still the same, so we don't
 			// clobber any interleaving changes
-			final UpdateResult ur = wsmongo.getCollection(COL_WORKSPACES).updateOne(
-					query,
-					new Document("$set", metaUpdate.append(Fields.WS_MODDATE, Date.from(time))));
+			final UpdateResult ur = wsmongo.getCollection(collection).updateOne(
+					query, new Document("$set", metaUpdate));
 			if (ur.getModifiedCount() == 1) { //ok, it worked
 				return time;
 			} else if (attempts >= maxattempts) {

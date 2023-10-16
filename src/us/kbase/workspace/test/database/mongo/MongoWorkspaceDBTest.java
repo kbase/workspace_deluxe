@@ -55,6 +55,7 @@ import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
@@ -62,6 +63,8 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
+import us.kbase.workspace.database.UncheckedUserMetadata;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -880,10 +883,19 @@ public class MongoWorkspaceDBTest {
 		
 		assertThat("incorrect time", result2, is(Optional.of(inst(15000))));
 		
-		final Map<String, String> m2 = mocks.mdb.getWorkspaceInformation(
-				user, rwsi).getUserMeta().getMetadata();
-		assertThat("incorrect meta", m2, is(ImmutableMap.of(
-				"foo", "bar", "baz", "bing", "thingy", "thinger")));
+		// check that the whole info is ok at least once
+		final WorkspaceInformation m2 = mocks.mdb.getWorkspaceInformation(user, rwsi);
+		assertThat("incorrect workspace info", m2, is(WorkspaceInformation.getBuilder()
+				.withID(1)
+				.withMaximumObjectID(0)
+				.withUserPermission(Permission.OWNER)
+				.withModificationDate(inst(15000))
+				.withName("wsn")
+				.withOwner(new WorkspaceUser("a"))
+				.withUserMetadata(new UncheckedUserMetadata(ImmutableMap.of(
+						"foo", "bar", "baz", "bing", "thingy", "thinger")))
+				.build()
+		));
 	}
 	
 	@Test
