@@ -164,6 +164,17 @@ public class WorkspaceUnitTest {
 	}
 	
 	@Test
+	public void setWorkspaceMetadataFailNullMeta() throws Exception {
+		try {
+			initMocks().ws.setWorkspaceMetadata(
+					new WorkspaceUser("u"), new WorkspaceIdentifier(1), null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("meta"));
+		}
+	}
+	
+	@Test
 	public void setWorkspaceDescriptionNull() throws Exception {
 		setWorkspaceDescription(null, null);
 	}

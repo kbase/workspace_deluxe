@@ -76,6 +76,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ModuleInfo;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -698,13 +699,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		meta.put("foo2", "bar3"); //replace
 		Map<String, String> putmeta = new HashMap<String, String>();
 		putmeta.put("foo2", "bar3");
-		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta), null);
+		ws.setWorkspaceMetadata(
+				user, wsi, new MetadataUpdate(new WorkspaceUserMetadata(putmeta), null));
 		final Instant d1 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
 				info.getId(), "unlocked", meta);
 		meta.put("foo3", "bar4"); //new
 		putmeta.clear();
 		putmeta.put("foo3", "bar4");
-		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta), null);
+		ws.setWorkspaceMetadata(
+				user, wsi, new MetadataUpdate(new WorkspaceUserMetadata(putmeta), null));
 		final Instant d2 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
 				info.getId(), "unlocked", meta);
 
@@ -717,35 +720,40 @@ public class WorkspaceTest extends WorkspaceTester {
 		meta.put("some.garbage", "with.dots");
 		meta.put("foo", "whoa this is new");
 		meta.put("no, this part is new", "prunker");
-		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta), null);
+		ws.setWorkspaceMetadata(
+				user, wsi, new MetadataUpdate(new WorkspaceUserMetadata(putmeta), null));
 		final Instant d3 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
 				info.getId(), "unlocked", meta);
 
 		Map<String, String> newmeta = new HashMap<String, String>();
 		newmeta.put("new", "meta");
-		ws.setWorkspaceMetadata(user, wsiNo, new WorkspaceUserMetadata(newmeta),
-				Collections.emptyList());
+		ws.setWorkspaceMetadata(user, wsiNo, new MetadataUpdate(new WorkspaceUserMetadata(newmeta),
+				Collections.emptyList()));
 		final Instant nod1 = checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false,
 				infoNo.getId(), "unlocked", newmeta);
 
 		assertDatesAscending(infoNo.getModDate(), nod1);
 
 		meta.remove("foo2");
-		ws.setWorkspaceMetadata(user, wsi, null, Arrays.asList("foo2"));
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(null, Arrays.asList("foo2")));
 		final Instant d4 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
 				info.getId(), "unlocked", meta);
 		meta.remove("some");
-		ws.setWorkspaceMetadata(user2, wsi, null, Arrays.asList("some"));
+		ws.setWorkspaceMetadata(user2, wsi, new MetadataUpdate(null, Arrays.asList("some")));
 		final Instant d5 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
 				info.getId(), "unlocked", meta);
-		ws.setWorkspaceMetadata(user, wsi, null, Arrays.asList("fake")); //no effect
+		//no effect
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(null, Arrays.asList("fake")));
 		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), d5, "unlocked", meta);
 
 		assertDatesAscending(info.getModDate(), d1, d2, d3, d4, d5);
 
-		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_MAP);
-		ws.setWorkspaceMetadata(user, wsiNo2, null, Arrays.asList("somekey")); //should do nothing
-		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_MAP);
+		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false,
+				infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_MAP);
+		//should do nothing
+		ws.setWorkspaceMetadata(user, wsiNo2, new MetadataUpdate(null, Arrays.asList("somekey")));
+		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false,
+				infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_MAP);
 
 
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
@@ -769,7 +777,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		failWSSetMeta(user, wsi, putmeta, new IllegalArgumentException(
 				"Updated metadata exceeds allowed size of 16000B"));
 
-		ws.setWorkspaceMetadata(user, wsiNo, new WorkspaceUserMetadata(putmeta), null); //should work
+		//should work
+		ws.setWorkspaceMetadata(
+				user, wsiNo, new MetadataUpdate(new WorkspaceUserMetadata(putmeta), null));
 		putmeta.put("148", TEXT100);
 		failWSSetMeta(user, wsiNo2, putmeta, new MetadataSizeException(
 				"Metadata exceeds maximum of 16000B"));
@@ -786,14 +796,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		meta.put("some", "meta");
 		ws.createWorkspace(user, wsi.getName(), false, null, new WorkspaceUserMetadata(meta));
 
-		ws.setWorkspaceMetadata(user, wsi, null, Arrays.asList("foo", "some"));
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(null, Arrays.asList("foo", "some")));
 		final Map<String, String> gotmeta = ws.getWorkspaceInformation(user, wsi)
 				.getUserMeta().getMetadata();
 		assertThat("incorrect metadata", gotmeta, is(ImmutableMap.of("foo2", "bar2")));
 
-		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta), null);
-		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(),
-				Arrays.asList("foo2"));
+		ws.setWorkspaceMetadata(
+				user, wsi, new MetadataUpdate(new WorkspaceUserMetadata(meta), null));
+		ws.setWorkspaceMetadata(user, wsi,
+				new MetadataUpdate(new WorkspaceUserMetadata(), Arrays.asList("foo2")));
 
 		final Map<String, String> gotmeta2 = ws.getWorkspaceInformation(user, wsi)
 				.getUserMeta().getMetadata();
@@ -806,7 +817,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		final WorkspaceUser user = new WorkspaceUser("user");
 		ws.createWorkspace(user, "foo", false, null, null);
 		failWSSetMeta(ws, user, new WorkspaceIdentifier(1), null,
-				Arrays.asList("foo", null), new NullPointerException("null metadata keys are not allowed"));
+				Arrays.asList("foo", null), new NullPointerException(
+						"null metadata keys are not allowed in the remove parameter"));
 	}
 
 	@Test

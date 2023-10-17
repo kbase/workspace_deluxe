@@ -57,6 +57,7 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.Workspace;
@@ -427,7 +428,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceUser user = wsmeth.getUser(authPart);
-		ws.setWorkspaceMetadata(user, wsi, meta, remove);
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(meta, remove));
         //END alter_workspace_metadata
     }
 

@@ -65,6 +65,7 @@ import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInfoWithModDate;
@@ -696,8 +697,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
-	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
-
 	@FunctionalInterface
 	interface DocumentProvider {
 		Map<String, Object> getDocument()
@@ -707,33 +706,28 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public Optional<Instant> setWorkspaceMeta(
 			final ResolvedWorkspaceID rwsi,
-			final WorkspaceUserMetadata newMeta,
-			final List<String> remove)
+			final MetadataUpdate meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		requireNonNull(rwsi, "rwsi");
 		return setMetadataOnDocument(
-				newMeta,
-				remove,
+				meta,
 				COL_WORKSPACES,
-				() -> query.queryWorkspace(rwsi, FLDS_WS_META),
+				() -> query.queryWorkspace(rwsi, newHashSet(Fields.WS_META)),
 				new Document(Fields.WS_ID, rwsi.getID()),
 				Fields.WS_META,
 				Fields.WS_MODDATE);
 	}
 
 	private Optional<Instant> setMetadataOnDocument(
-			final WorkspaceUserMetadata newMeta,
-			final List<String> remove,
+			final MetadataUpdate newMeta,
 			final String collection,
 			final DocumentProvider dp,
 			final Document identifier,
 			final String metaField,
 			final String moddateField)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		if (remove == null && (newMeta == null || newMeta.isEmpty())) {
+		if (newMeta == null || !newMeta.hasUpdate()) {
 			throw new IllegalArgumentException("No metadata changes provided");
-		}
-		if (remove != null) {
-			noNulls(remove, "Null metadata keys found in remove parameter");
 		}
 		int attempts = 1;
 		Instant time = null;
@@ -743,11 +737,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<Map<String, String>> mlist = (List<Map<String, String>>) doc.get(metaField);
 			final Map<String, String> oldMeta = metaMongoArrayToHash(mlist);
 			final Map<String, String> updatedMeta = new HashMap<>(oldMeta);
-			if (newMeta != null) {
-				updatedMeta.putAll(newMeta.getMetadata());
+			if (newMeta.getMeta().isPresent()) {
+				updatedMeta.putAll(newMeta.getMeta().get().getMetadata());
 			}
-			if (remove != null) {
-				for (final String k: remove) {
+			if (newMeta.getToRemove().isPresent()) {
+				for (final String k: newMeta.getToRemove().get()) {
 					updatedMeta.remove(k);
 				}
 			}
@@ -3014,8 +3008,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, Map<String, Object>> ids =
 				queryObjects(objectIDs, FLDS_RESOLVE_OBJS, exceptIfDeleted,
 						includeDeleted, exceptIfMissing);
-		final Map<ObjectIDResolvedWS, ResolvedObjectID> ret =
-				new HashMap<ObjectIDResolvedWS, ResolvedObjectID>();
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> ret = new HashMap<>();
 		for (final ObjectIDResolvedWS o: ids.keySet()) {
 			final String name = (String) ids.get(o).get(Fields.OBJ_NAME);
 			final long id = (Long) ids.get(o).get(Fields.OBJ_ID);
