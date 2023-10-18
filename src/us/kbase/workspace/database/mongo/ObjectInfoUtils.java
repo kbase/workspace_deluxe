@@ -174,8 +174,7 @@ public class ObjectInfoUtils {
 		return ret;
 	}
 	
-	static List<Map<String, String>> metaHashToMongoArray(
-			final Map<String, String> usermeta) {
+	static List<Map<String, String>> metaHashToMongoArray(final Map<String, String> usermeta) {
 		final List<Map<String, String>> meta = new ArrayList<>();
 		if (usermeta != null) {
 			for (String key: usermeta.keySet()) {

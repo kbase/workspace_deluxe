@@ -962,6 +962,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return Instant.now();
 	}
 
+	// hmm, is there a reason we list the fields rather than just pulling everything?
+	// seems bug prone
+	// TODO CODE maybe a field generator that deals with standard field sets? Then only have
+	//           set and test in one place. A few places adding meta fields for instance
 	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(
 			// include full type name for rollback purposes, remove later
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER, Fields.VER_TYPE_FULL,

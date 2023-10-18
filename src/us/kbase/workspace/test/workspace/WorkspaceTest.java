@@ -9,9 +9,10 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.inst;
-import static us.kbase.common.test.TestCommon.now;
-import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.common.test.TestCommon.list;
+import static us.kbase.common.test.TestCommon.now;
+import static us.kbase.common.test.TestCommon.opt;
+import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.LongTextForTestUsage.LONG_TEXT_PART;
 import static us.kbase.workspace.test.LongTextForTestUsage.LONG_TEXT;
 import static us.kbase.workspace.test.LongTextForTestUsage.TEXT100;
@@ -1432,18 +1433,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		long privid = privinfo.getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> data2 = new HashMap<String, Object>();
-		Map<String, String> premeta = new HashMap<String, String>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
 		JsonNode savedata = MAPPER.valueToTree(data);
 		data2.put("fubar2", moredata);
 		JsonNode savedata2 = MAPPER.valueToTree(data2);
-		premeta.put("metastuff", "meta");
-		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(premeta);
-		Map<String, String> premeta2 = new HashMap<String, String>();
-		premeta2.put("meta2", "my hovercraft is full of eels");
-		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(premeta2);
+		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata(
+				ImmutableMap.of("metastuff", "meta"));
+		final UncheckedUserMetadata umeta = new UncheckedUserMetadata(meta);
+		final WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(
+				ImmutableMap.of("meta2", "my hovercraft is full of eels"));
+		final UncheckedUserMetadata umeta2 = new UncheckedUserMetadata(meta2);
 		final Provenance p = Provenance.getBuilder(new WorkspaceUser("kbasetest2"), now())
 				.withAction(ProvenanceAction.getBuilder().withServiceName("some service").build())
 				.build();
@@ -1483,15 +1484,20 @@ public class WorkspaceTest extends WorkspaceTester {
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
 		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid,
-				read.getName(), chksum1, 23, premeta, Arrays.asList(new Reference(readid, 1, 1)));
+				read.getName(), chksum1, 23, opt(umeta),
+				Arrays.asList(new Reference(readid, 1, 1)));
 		checkObjInfo(objinfo.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid,
-				read.getName(), chksum2, 24, premeta2, Arrays.asList(new Reference(readid, 1, 2)));
+				read.getName(), chksum2, 24, opt(umeta2),
+				Arrays.asList(new Reference(readid, 1, 2)));
 		checkObjInfo(objinfo.get(2), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 1, foo, readid,
-				read.getName(), chksum1, 23, premeta, Arrays.asList(new Reference(readid, 2, 1)));
+				read.getName(), chksum1, 23, opt(umeta),
+				Arrays.asList(new Reference(readid, 2, 1)));
 		checkObjInfo(objinfo.get(3), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid,
-				read.getName(), chksum2, 24, premeta2, Arrays.asList(new Reference(readid, 3, 1)));
+				read.getName(), chksum2, 24, opt(umeta2),
+				Arrays.asList(new Reference(readid, 3, 1)));
 		checkObjInfo(objinfo.get(4), 4, "auto4", SAFE_TYPE1.getTypeString(), 1, foo, readid,
-				read.getName(), chksum1, 23, premeta, Arrays.asList(new Reference(readid, 4, 1)));
+				read.getName(), chksum1, 23, opt(umeta),
+				Arrays.asList(new Reference(readid, 4, 1)));
 
 		List<ObjectIdentifier> loi = Arrays.asList(
 				ObjectIdentifier.getBuilder(read).withID(1L).build(),
@@ -1514,40 +1520,40 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<ObjectInformation> objinfo2 = ws.getObjectInformation(foo, loi, true, false);
 		List<ObjectInformation> objinfo2NoMeta = ws.getObjectInformation(foo, loi, false, false);
 		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
-				readid, read.getName(), chksum2, 24, premeta2,
+				readid, read.getName(), chksum2, 24, opt(umeta2),
 				Arrays.asList(new Reference(readid, 1, 2)));
 		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
-				readid, read.getName(), chksum1, 23, premeta,
+				readid, read.getName(), chksum1, 23, opt(umeta),
 				Arrays.asList(new Reference(readid, 1, 1)));
 		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
-				readid, read.getName(), chksum2, 24, premeta2,
+				readid, read.getName(), chksum2, 24, opt(umeta2),
 				Arrays.asList(new Reference(readid, 1, 2)));
 		checkObjInfo(objinfo2.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
-				readid, read.getName(), chksum1, 23, premeta,
+				readid, read.getName(), chksum1, 23, opt(umeta),
 				Arrays.asList(new Reference(readid, 1, 1)));
 		checkObjInfo(objinfo2.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
-				readid, read.getName(), chksum2, 24, premeta2,
+				readid, read.getName(), chksum2, 24, opt(umeta2),
 				Arrays.asList(new Reference(readid, 1, 2)));
 		checkObjInfo(objinfo2.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
-				readid, read.getName(), chksum1, 23, premeta,
+				readid, read.getName(), chksum1, 23, opt(umeta),
 				Arrays.asList(new Reference(readid, 1, 1)));
 		checkObjInfo(objinfo2.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
-				readid, read.getName(), chksum2, 24, premeta2,
+				readid, read.getName(), chksum2, 24, opt(umeta2),
 				Arrays.asList(new Reference(readid, 1, 2)));
 		checkObjInfo(objinfo2.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
-				readid, read.getName(), chksum1, 23, premeta,
+				readid, read.getName(), chksum1, 23, opt(umeta),
 				Arrays.asList(new Reference(readid, 1, 1)));
 		checkObjInfo(objinfo2.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
-				readid, read.getName(), chksum2, 24, premeta2,
+				readid, read.getName(), chksum2, 24, opt(umeta2),
 				Arrays.asList(new Reference(readid, 3, 1)));
 		checkObjInfo(objinfo2.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
-				readid, read.getName(), chksum2, 24, premeta2,
+				readid, read.getName(), chksum2, 24, opt(umeta2),
 				Arrays.asList(new Reference(readid, 3, 1)));
 		checkObjInfo(objinfo2.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
-				readid, read.getName(), chksum2, 24, premeta2,
+				readid, read.getName(), chksum2, 24, opt(umeta2),
 				Arrays.asList(new Reference(readid, 3, 1)));
 		checkObjInfo(objinfo2.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
-				readid, read.getName(), chksum2, 24, premeta2,
+				readid, read.getName(), chksum2, 24, opt(umeta2),
 				Arrays.asList(new Reference(readid, 3, 1)));
 		checkObjInfo(objinfo2NoMeta.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
 				readid, read.getName(), chksum2, 24, null,
@@ -1589,8 +1595,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<ObjectInformation> retinfo = new ArrayList<ObjectInformation>();
 		final ResolvedWorkspaceID fakews = new ResolvedWorkspaceID(
 				readid, read.getName(), false, false);
-		UncheckedUserMetadata umeta = new UncheckedUserMetadata(meta);
-		UncheckedUserMetadata umeta2 = new UncheckedUserMetadata(meta2);
 		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 2, foo, fakews, chksum2, 24, umeta2));
 		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 1, foo, fakews, chksum1, 23, umeta));
 		retinfo.add(unreadableOI(1, "auto3", SAFE_TYPE1, 2, foo, fakews, chksum2, 24, umeta2));
@@ -1616,12 +1620,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		objinfo = ws.saveObjects(foo, read, objects, foofac);
 		ws.saveObjects(foo, priv, objects, foofac);
 		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid,
-				read.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(readid, 2, 2)));
+				read.getName(), chksum1, 23, opt(umeta2),
+				Arrays.asList(new Reference(readid, 2, 2)));
 		final ObjectIdentifier r2 = ObjectIdentifier.getBuilder(read).withID(2L).build();
 		final ObjectIdentifier p2 = ObjectIdentifier.getBuilder(priv).withID(2L).build();
 		objinfo2 = ws.getObjectInformation(foo, Arrays.asList(r2), true, false);
 		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid,
-				read.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(readid, 2, 2)));
+				read.getName(), chksum1, 23, opt(umeta2),
+				Arrays.asList(new Reference(readid, 2, 2)));
 
 		ws.getObjectInformation(bar, Arrays.asList(r2), true, false); //should work
 		try {
@@ -1645,7 +1651,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(p2), true, false);
 		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid,
-				priv.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(privid, 2, 2)));
+				priv.getName(), chksum1, 23, opt(umeta2),
+				Arrays.asList(new Reference(privid, 2, 2)));
 
 		checkObjectAndInfo(
 				bar,
@@ -1671,7 +1678,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects, barfac);
 		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid,
-				priv.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(privid, 2, 3)));
+				priv.getName(), chksum1, 23, opt(umeta2),
+				Arrays.asList(new Reference(privid, 2, 3)));
 
 		failGetObjects(
 				foo, Arrays.asList(ObjectIdentifier.getBuilder(read).withName("booger").build()),
@@ -5123,14 +5131,14 @@ public class WorkspaceTest extends WorkspaceTester {
 						SAFE_TYPE1, null, p, false)),
 				getIdFactory()).get(0);
 		checkObjInfo(oi, 2L, "bar", SAFE_TYPE1.getTypeString(), 1, user, 2, "target",
-				"99914b932bd37a50b983c5e7c90ae93b", 2, mt,
+				"99914b932bd37a50b983c5e7c90ae93b", 2, null,
 				Arrays.asList(new Reference(2, 2, 1)));
 		ObjectInformation oi2 = ws.copyObject(
 				user,
 				ObjectIdentifier.getBuilder(source).withName("o1").build(),
 				ObjectIdentifier.getBuilder(target).withName("foo").build());
 		checkObjInfo(oi2, 3L, "foo", SAFE_TYPE1.getTypeString(), 1, user, 2, "target",
-				"99914b932bd37a50b983c5e7c90ae93b", 2, mt,
+				"99914b932bd37a50b983c5e7c90ae93b", 2, null,
 				Arrays.asList(new Reference(2, 3, 1)));
 
 		WorkspaceInformation i = ws.getWorkspaceInformation(user, target);

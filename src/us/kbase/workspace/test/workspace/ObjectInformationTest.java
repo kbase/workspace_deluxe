@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -37,6 +38,7 @@ public class ObjectInformationTest {
 			new TypeDefName("type.t"), 3, 7);
 	private static final Instant INST = inst(10000);
 	private static final MD5 MDFIVE = new MD5("9a5b862b3f6969ec491ddeea83590e04");
+	private static final Map<String, String> MT = Collections.emptyMap();
 	
 	@Test
 	public void equals() throws Exception {
@@ -68,9 +70,11 @@ public class ObjectInformationTest {
 				is("9a5b862b3f6969ec491ddeea83590e04"));
 		assertThat("incorrect obj size", oi.getSize(), is(5L));
 		assertThat("incorrect user meta", oi.getUserMetaData(), is(Optional.empty()));
-		assertThat("incorrect user meta", oi.getUserMetaDataMapOrNull(), is(nullValue()));
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(false), is(MT));
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(true), is(nullValue()));
 		assertThat("incorrect admin meta", oi.getAdminUserMetaData(), is(Optional.empty()));
-		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMapOrNull(), is(nullValue()));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(false), is(MT));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(true), is(nullValue()));
 		assertThat("incorrect ref path", oi.getReferencePath(),
 				is(Arrays.asList(new Reference(4, 1, 3))));
 	}
@@ -87,6 +91,21 @@ public class ObjectInformationTest {
 				.withChecksum("uhOhNoCheckingHere")
 				.withSize(890);
 	}
+	
+	@Test
+	public void buildFullWithAlternativeInputsAndNullMetadata() {
+		final ObjectInformation oi = buildFullWithAlternativeInputsSetup()
+				.withUserMetadata(null)
+				.withAdminUserMetadata(null)
+				.build();
+		buildFullWithAlternativeInputsSharedChecks(oi);
+		assertThat("incorrect user meta", oi.getUserMetaData(), is(Optional.empty()));
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(false), is(MT));
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(true), is(nullValue()));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaData(), is(Optional.empty()));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(false), is(MT));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(true), is(nullValue()));
+	}
 
 	@Test
 	public void buildFullWithAlternativeInputsAndEmptyMetadata() {
@@ -95,13 +114,12 @@ public class ObjectInformationTest {
 				.withAdminUserMetadata(new UncheckedUserMetadata(new HashMap<>()))
 				.build();
 		buildFullWithAlternativeInputsSharedChecks(oi);
-		assertThat("incorrect user meta", oi.getUserMetaData(),
-				is(Optional.of(new UncheckedUserMetadata(new HashMap<>()))));
-		assertThat("incorrect user meta", oi.getUserMetaDataMapOrNull(), is(new HashMap<>()));
-		assertThat("incorrect admin meta", oi.getAdminUserMetaData(),
-				is(Optional.of(new UncheckedUserMetadata(new HashMap<>()))));
-		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMapOrNull(),
-				is(new HashMap<>()));
+		assertThat("incorrect user meta", oi.getUserMetaData(), is(Optional.empty()));
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(false), is(MT));
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(true), is(nullValue()));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaData(), is(Optional.empty()));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(false), is(MT));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(true), is(nullValue()));
 	}
 	
 	@Test
@@ -116,12 +134,16 @@ public class ObjectInformationTest {
 		assertThat("incorrect user meta", oi.getUserMetaData(),
 				is(Optional.of(new UncheckedUserMetadata(ImmutableMap.of(
 						"foo", "bar", "baz", "bat")))));
-		assertThat("incorrect user meta", oi.getUserMetaDataMapOrNull(), is(ImmutableMap.of(
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(false), is(ImmutableMap.of(
+				"foo", "bar", "baz", "bat")));
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(true), is(ImmutableMap.of(
 				"foo", "bar", "baz", "bat")));
 		assertThat("incorrect admin meta", oi.getAdminUserMetaData(),
 				is(Optional.of(new UncheckedUserMetadata(ImmutableMap.of(
 						"role", "admin", "why", "ImBetterThanYou")))));
-		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMapOrNull(), is(ImmutableMap.of(
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(false), is(ImmutableMap.of(
+				"role", "admin", "why", "ImBetterThanYou")));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(true), is(ImmutableMap.of(
 				"role", "admin", "why", "ImBetterThanYou")));
 	}
 	
@@ -136,11 +158,15 @@ public class ObjectInformationTest {
 		buildFullWithAlternativeInputsSharedChecks(oi);
 		assertThat("incorrect user meta", oi.getUserMetaData(),
 				is(Optional.of(new UncheckedUserMetadata(ImmutableMap.of("c", "d")))));
-		assertThat("incorrect user meta", oi.getUserMetaDataMapOrNull(),
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(false),
+				is(ImmutableMap.of("c", "d")));
+		assertThat("incorrect user meta", oi.getUserMetaDataMap(true),
 				is(ImmutableMap.of("c", "d")));
 		assertThat("incorrect admin meta", oi.getAdminUserMetaData(),
 				is(Optional.of(new UncheckedUserMetadata(ImmutableMap.of("g", "h")))));
-		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMapOrNull(),
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(false),
+				is(ImmutableMap.of("g", "h")));
+		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(true),
 				is(ImmutableMap.of("g", "h")));
 	}
 
@@ -439,11 +465,15 @@ public class ObjectInformationTest {
 		assertThat("incorrect obj size", oi2.getSize(), is(5L));
 		assertThat("incorrect user meta", oi2.getUserMetaData(),
 				is(Optional.of(new UncheckedUserMetadata(ImmutableMap.of("x", "y")))));
-		assertThat("incorrect user meta", oi2.getUserMetaDataMapOrNull(),
+		assertThat("incorrect user meta", oi2.getUserMetaDataMap(false),
+				is(ImmutableMap.of("x", "y")));
+		assertThat("incorrect user meta", oi2.getUserMetaDataMap(true),
 				is(ImmutableMap.of("x", "y")));
 		assertThat("incorrect admin meta", oi2.getAdminUserMetaData(),
 				is(Optional.of(new UncheckedUserMetadata(ImmutableMap.of("w", "z")))));
-		assertThat("incorrect admin meta", oi2.getAdminUserMetaDataMapOrNull(),
+		assertThat("incorrect admin meta", oi2.getAdminUserMetaDataMap(false),
+				is(ImmutableMap.of("w", "z")));
+		assertThat("incorrect admin meta", oi2.getAdminUserMetaDataMap(true),
 				is(ImmutableMap.of("w", "z")));
 	}
 	

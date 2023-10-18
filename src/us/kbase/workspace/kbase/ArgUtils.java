@@ -290,22 +290,24 @@ public class ArgUtils {
 			Long, String, String, Long, Map<String, String>>
 			objInfoToTuple(
 					final ObjectInformation info,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 		final List<ObjectInformation> m = new ArrayList<ObjectInformation>();
 		m.add(info);
-		return objInfoToTuple(m, logObjects).get(0);
+		return objInfoToTuple(m, logObjects, nullForEmptyMeta).get(0);
 	}
 
 	public static List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>
 			translateObjectInfoList(
 					final List<Set<ObjectInformation>> lsoi,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 		final List<List<Tuple11<Long, String, String, String, Long, String,
 				Long, String, String, Long, Map<String, String>>>> ret =
 				new LinkedList<List<Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>();
 		for (Set<ObjectInformation> soi: lsoi) {
 			ret.add(objInfoToTuple(new LinkedList<ObjectInformation>(soi),
-					logObjects));
+					logObjects, nullForEmptyMeta));
 		}
 		return ret;
 	}
@@ -314,7 +316,8 @@ public class ArgUtils {
 			Long, String, String, Long, Map<String, String>>>
 			objInfoToTuple(
 					final List<ObjectInformation> info,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 
 		//oh the humanity
 		final List<Tuple11<Long, String, String, String, Long, String,
@@ -342,7 +345,7 @@ public class ArgUtils {
 						.withE8(m.getWorkspaceName())
 						.withE9(m.getCheckSum())
 						.withE10(m.getSize())
-						.withE11(m.getUserMetaDataMapOrNull()));
+						.withE11(m.getUserMetaDataMap(nullForEmptyMeta)));
 			}
 		}
 		return ret;
@@ -353,17 +356,19 @@ public class ArgUtils {
 			String, String, String, Map<String, String>, Long>
 			objInfoToMetaTuple(
 					final ObjectInformation info,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 		final List<ObjectInformation> m = new ArrayList<ObjectInformation>();
 		m.add(info);
-		return objInfoToMetaTuple(m, logObjects).get(0);
+		return objInfoToMetaTuple(m, logObjects, nullForEmptyMeta).get(0);
 	}
 
 	public static List<Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>>
 			objInfoToMetaTuple(
 					final List<ObjectInformation> info,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 		//oh the humanity
 		final List<Tuple12<String, String, String, Long, String, String, String,
 		String, String, String, Map<String, String>, Long>> ret =
@@ -387,7 +392,7 @@ public class ArgUtils {
 					.withE8(m.getWorkspaceName())
 					.withE9("")//ref is deprecated
 					.withE10(m.getCheckSum())
-					.withE11(m.getUserMetaDataMapOrNull())
+					.withE11(m.getUserMetaDataMap(nullForEmptyMeta))
 					.withE12(m.getObjectId()));
 		}
 		return ret;
@@ -433,7 +438,7 @@ public class ArgUtils {
 			}
 			ret.add(new ObjectData()
 					.withData(data)
-					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
+					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects, false))
 					.withPath(toObjectPath(o.getObjectInfo().getReferencePath()))
 					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
@@ -489,7 +494,7 @@ public class ArgUtils {
 			final PermError error = makeExternalIDsReadable(
 					Arrays.asList(o), Optional.of(permHandler)).get(o);
 			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
-					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
+					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects, false))
 					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withOrigWsid(o.getProvenance().getWorkspaceID().orElse(null))

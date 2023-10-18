@@ -849,7 +849,7 @@ public class MongoWorkspaceDBTest {
 	}
 	
 	@Test
-	public void setWorkspaceMetadata() throws Exception {
+	public void setWorkspaceMeta() throws Exception {
 		// Tests the immediately successful case only. See the mongo internal tests class
 		// for tests for cases where there's at least one failure trying to update the data.
 		final PartialMock mocks = new PartialMock(MONGO_DB);
@@ -904,7 +904,7 @@ public class MongoWorkspaceDBTest {
 	}
 	
 	@Test
-	public void setWorkspaceMetadataRemoveOnly() throws Exception {
+	public void setWorkspaceMetaRemoveOnly() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		final WorkspaceUser user = new WorkspaceUser("a");
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "wsn", false, false);
@@ -925,7 +925,7 @@ public class MongoWorkspaceDBTest {
 	}
 	
 	@Test
-	public void setWorkspaceMetadataNoop() throws Exception {
+	public void setWorkspaceMetaNoop() throws Exception {
 		// Tests the case where if the DB was updated with the provided changes the actual
 		// metadata wouldn't change
 		final PartialMock mocks = new PartialMock(MONGO_DB);

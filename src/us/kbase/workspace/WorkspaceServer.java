@@ -734,7 +734,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		resourcesToDelete.set(Arrays.asList(ret));
 		returnVal = new GetObjectOutput()
 			.withData(ret.getSerializedData().get().getUObject())
-			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));
+			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true, false));
         //END get_object
         return returnVal;
     }
@@ -868,8 +868,10 @@ public class WorkspaceServer extends JsonServerServlet {
         List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> returnVal = null;
         //BEGIN list_referencing_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = translateObjectInfoList(ws.getReferencingObjects(
-				wsmeth.getUser(authPart), loi), false);
+		returnVal = translateObjectInfoList(
+				ws.getReferencingObjects(wsmeth.getUser(authPart), loi),
+				false,
+				false);
         //END list_referencing_objects
         return returnVal;
     }
@@ -1045,7 +1047,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				.withShowDeleted(longToBoolean(params.getShowDeletedObject()))
 				.withIncludeMetaData(true)
 				.build();
-		returnVal = objInfoToMetaTuple(ws.listObjects(lop), false);
+		returnVal = objInfoToMetaTuple(ws.listObjects(lop), false, false);
         //END list_workspace_objects
         return returnVal;
     }
@@ -1085,9 +1087,15 @@ public class WorkspaceServer extends JsonServerServlet {
 		final ObjectIdentifier oi = processObjectIdentifier(
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
-		returnVal = objInfoToMetaTuple(ws.getObjectInformation(
-				wsmeth.getUser(params.getAuth(), authPart),
-				Arrays.asList(oi), true, false).get(0), true);
+		returnVal = objInfoToMetaTuple(
+				ws.getObjectInformation(
+						wsmeth.getUser(params.getAuth(), authPart),
+						Arrays.asList(oi),
+						true,
+						false)
+				.get(0),
+				true,
+				false);
         //END get_objectmeta
         return returnVal;
     }
@@ -1111,9 +1119,11 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_info
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
+		final boolean includeMeta = longToBoolean(includeMetadata);
 		returnVal = objInfoToTuple(
-				ws.getObjectInformation(wsmeth.getUser(authPart), loi,
-						longToBoolean(includeMetadata), false), true);
+				ws.getObjectInformation(wsmeth.getUser(authPart), loi, includeMeta, false),
+				true,
+				!includeMeta);
         //END get_object_info
         return returnVal;
     }
@@ -1134,10 +1144,15 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final List<ObjectIdentifier> loi = processObjectSpecifications(
 				params.getObjects());
+		final boolean includeMeta = longToBoolean(params.getIncludeMetadata());
 		returnVal = objInfoToTuple(
-				ws.getObjectInformation(wsmeth.getUser(authPart), loi,
-						longToBoolean(params.getIncludeMetadata()),
-						longToBoolean(params.getIgnoreErrors())), true);
+				ws.getObjectInformation(
+						wsmeth.getUser(authPart),
+						loi,
+						includeMeta,
+						longToBoolean(params.getIgnoreErrors())),
+				true,
+				!includeMeta);
         //END get_object_info_new
         return returnVal;
     }
@@ -1193,8 +1208,10 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN rename_object
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier oi = processObjectIdentifier(params.getObj());
-		returnVal = objInfoToTuple(ws.renameObject(wsmeth.getUser(authPart),
-				oi, params.getNewName()), true);
+		returnVal = objInfoToTuple(
+				ws.renameObject(wsmeth.getUser(authPart), oi, params.getNewName()),
+				true,
+				true);
         //END rename_object
         return returnVal;
     }
@@ -1214,8 +1231,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier from = processObjectIdentifier(params.getFrom());
 		final ObjectIdentifier to = processObjectIdentifier(params.getTo());
-		returnVal = objInfoToTuple(ws.copyObject(
-				wsmeth.getUser(authPart), from, to), true);
+		returnVal = objInfoToTuple(ws.copyObject(wsmeth.getUser(authPart), from, to), true, false);
         //END copy_object
         return returnVal;
     }
@@ -1235,8 +1251,7 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> returnVal = null;
         //BEGIN revert_object
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = objInfoToTuple(ws.revertObject(
-				wsmeth.getUser(authPart), oi), true);
+		returnVal = objInfoToTuple(ws.revertObject(wsmeth.getUser(authPart), oi), true, false);
         //END revert_object
         return returnVal;
     }
