@@ -152,7 +152,7 @@ public class ObjectInformation {
 	/** Returns the user supplied and automatically generated metadata for the object as a map.
 	 * 
 	 * @param nullIfEmpty return null rather than an empty map if there is no metadata available.
-	 * @return the metadata or null.
+	 * @return the metadata (which may be empty) or null.
 	 */
 	public Map<String, String> getUserMetaDataMap(final boolean nullIfEmpty) {
 		return getMetadataMap(usermeta, nullIfEmpty);
@@ -177,7 +177,7 @@ public class ObjectInformation {
 	/** Returns the administrative user supplied metadata for the object as a map.
 
 	 * @param nullIfEmpty return null rather than an empty map if there is no metadata available.
-	 * @return the metadata or null.
+	 * @return the metadata (which may be empty) or null.
 	 */
 	public Map<String, String> getAdminUserMetaDataMap(final boolean nullIfEmpty) {
 		return getMetadataMap(adminmeta, nullIfEmpty);
