@@ -69,6 +69,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.Types;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
@@ -642,9 +643,10 @@ public class WorkspaceTester {
 			final String wsname,
 			final String chksum,
 			final long size,
-			final Map<String, String> usermeta,
+			Optional<UncheckedUserMetadata> usermeta,
 			final List<Reference> refpath) {
 
+		usermeta = usermeta == null ? Optional.empty() : usermeta;
 		assertDateisRecent(info.getSavedDate());
 		assertThat("Object id incorrect", info.getObjectId(), is(id));
 		assertThat("Object name is incorrect", info.getObjectName(), is(name));
@@ -655,9 +657,7 @@ public class WorkspaceTester {
 		assertThat("Object workspace name is incorrect", info.getWorkspaceName(), is(wsname));
 		assertThat("Object chksum is incorrect", info.getCheckSum(), is(chksum));
 		assertThat("Object size is incorrect", info.getSize(), is(size));
-		Map<String, String> meta = info.getUserMetaData().isEmpty() ? null :
-			info.getUserMetaData().get().getMetadata();
-		assertThat("Object user meta is incorrect", meta, is(usermeta));
+		assertThat("Object user meta is incorrect", info.getUserMetaData(), is(usermeta));
 		assertThat("Object refpath incorrect", info.getReferencePath(), is(refpath));
 	}
 
@@ -820,7 +820,7 @@ public class WorkspaceTester {
 						inf.getWorkspaceName(),
 						inf.getCheckSum(),
 						inf.getSize(),
-						inf.getUserMetaData().get().getMetadata(),
+						inf.getUserMetaData(),
 						inf.getReferencePath());
 			}
 			if (info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
@@ -849,7 +849,7 @@ public class WorkspaceTester {
 				info.getWorkspaceName(),
 				info.getCheckSum(),
 				info.getSize(),
-				info.getUserMetaData().get().getMetadata(),
+				info.getUserMetaData(),
 				info.getReferencePath());
 		assertThat("correct data", getData(wod), is((Object) data));
 

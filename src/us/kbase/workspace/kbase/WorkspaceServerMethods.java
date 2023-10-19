@@ -387,7 +387,7 @@ public class WorkspaceServerMethods {
 		params.setObjects(null); 
 		final IdReferenceHandlerSetFactory fac = idFacBuilder.getFactory(token);
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
-		return objInfoToTuple(meta, true);
+		return objInfoToTuple(meta, true, false);
 	}
 	
 	/** Get object information.
@@ -413,11 +413,14 @@ public class WorkspaceServerMethods {
 				ReferenceSearchMaximumSizeExceededException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final List<ObjectIdentifier> loi = processObjectSpecifications(params.getObjects());
-		final List<ObjectInformation> infos = ws.getObjectInformation(user, loi,
-				longToBoolean(params.getIncludeMetadata()),
+		final boolean includeMeta = longToBoolean(params.getIncludeMetadata());
+		final List<ObjectInformation> infos = ws.getObjectInformation(
+				user, 
+				loi,
+				includeMeta,
 				longToBoolean(params.getIgnoreErrors()),
 				asAdmin);
-		return new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true))
+		return new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true, !includeMeta))
 				.withPaths(toObjectPaths(infos));
 	}
 	
@@ -592,6 +595,7 @@ public class WorkspaceServerMethods {
 				"Cannot specify both timestamp and epoch for after parameter");
 		final Instant before = chooseInstant(params.getBefore(), params.getBeforeEpoch(),
 				"Cannot specify both timestamp and epoch for before parameter");
+		final boolean includeMeta = longToBoolean(params.getIncludeMetadata());
 		final ListObjectsParameters lop = ListObjectsParameters.getBuilder(wsis)
 				.withUser(user)
 				.withAsAdmin(asAdmin)
@@ -608,11 +612,11 @@ public class WorkspaceServerMethods {
 				.withShowDeleted(longToBoolean(params.getShowDeleted()))
 				.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
 				.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
-				.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
+				.withIncludeMetaData(includeMeta)
 				.withLimit(longToInt(params.getLimit(), "Limit", -1))
 				.build();
 		
-		return objInfoToTuple(ws.listObjects(lop), false);
+		return objInfoToTuple(ws.listObjects(lop), false, !includeMeta);
 	}
 
 	/** Get all versions of an object.
@@ -634,6 +638,6 @@ public class WorkspaceServerMethods {
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException, NoSuchObjectException {
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		return objInfoToTuple(ws.getObjectHistory(user, oi, asAdmin), true);
+		return objInfoToTuple(ws.getObjectHistory(user, oi, asAdmin), true, false);
 	}
 }
