@@ -1,4 +1,4 @@
-FROM eclipse-temurin:11-jdk as build
+FROM eclipse-temurin:19-jdk as build
 
 COPY . /tmp/workspace_deluxe
 WORKDIR /tmp
