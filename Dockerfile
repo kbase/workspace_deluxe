@@ -9,7 +9,7 @@ RUN apt-get update -y && \
     make docker_deps
 
 # updated/slimmed down version of what's in kbase/kb_jre
-FROM ubuntu:18.04
+FROM ubuntu:23.04
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
