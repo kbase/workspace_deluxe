@@ -47,17 +47,7 @@ public class ObjectInformationTest {
 
 	@Test
 	public void buildMinimalWithStandardInputs() {
-		final ObjectInformation oi = ObjectInformation.getBuilder()
-				.withObjectID(1)
-				.withObjectName("foo")
-				.withType(TYPE)
-				.withSavedDate(inst(10000))
-				.withVersion(3)
-				.withSavedBy(new WorkspaceUser("bar"))
-				.withWorkspace(new ResolvedWorkspaceID(4, "whee", false, false))
-				.withChecksum(MDFIVE)
-				.withSize(5)
-				.build();
+		final ObjectInformation oi = minimalOI();
 		assertThat("incorrect obj id", oi.getObjectId(), is(1L));
 		assertThat("incorrect obj name", oi.getObjectName(), is("foo"));
 		assertThat("incorrect obj type", oi.getTypeString(), is("type.t-3.7"));
@@ -77,6 +67,20 @@ public class ObjectInformationTest {
 		assertThat("incorrect admin meta", oi.getAdminUserMetaDataMap(true), is(nullValue()));
 		assertThat("incorrect ref path", oi.getReferencePath(),
 				is(Arrays.asList(new Reference(4, 1, 3))));
+	}
+
+	private ObjectInformation minimalOI() {
+		return ObjectInformation.getBuilder()
+				.withObjectID(1)
+				.withObjectName("foo")
+				.withType(TYPE)
+				.withSavedDate(inst(10000))
+				.withVersion(3)
+				.withSavedBy(new WorkspaceUser("bar"))
+				.withWorkspace(new ResolvedWorkspaceID(4, "whee", false, false))
+				.withChecksum(MDFIVE)
+				.withSize(5)
+				.build();
 	}
 	
 	private ObjectInformation.Builder buildFullWithAlternativeInputsSetup() {
@@ -183,6 +187,40 @@ public class ObjectInformationTest {
 		assertThat("incorrect obj size", oi.getSize(), is(890L));
 		assertThat("incorrect ref path", oi.getReferencePath(),
 				is(Arrays.asList(new Reference(1, 67, 24))));
+	}
+	
+	@Test
+	public void buildFromObjectInfoMinimal() throws Exception {
+		final ObjectInformation source = minimalOI();
+		final ObjectInformation target = ObjectInformation.getBuilder(source).build();
+
+		assertThat("incorrect build", target, is(source));
+	}
+	
+	@Test
+	public void buildFromObjectInfoMaximal() throws Exception {
+		final ObjectInformation source = buildFullWithAlternativeInputsSetup()
+				.withUserMetadata(new UncheckedUserMetadata(ImmutableMap.of("a", "b")))
+				.withAdminUserMetadata(new UncheckedUserMetadata(ImmutableMap.of("e", "f")))
+				.build();
+		final ObjectInformation target = ObjectInformation.getBuilder(source).build();
+
+		assertThat("incorrect build", target, is(source));
+	}
+	
+	@Test
+	public void buildFromObjectInfoWithRefPath() throws Exception {
+		final ObjectInformation source = buildFullWithAlternativeInputsSetup()
+				.withUserMetadata(new UncheckedUserMetadata(ImmutableMap.of("a", "b")))
+				.withAdminUserMetadata(new UncheckedUserMetadata(ImmutableMap.of("e", "f")))
+				.build()
+				.updateReferencePath(Arrays.asList(
+						new Reference(3, 4, 5), new Reference(1, 67, 24)));
+		final ObjectInformation target = ObjectInformation.getBuilder(source).build();
+
+		assertThat("incorrect build", target, is(source));
+		assertThat("incorrect ref path", target.getReferencePath(), is(Arrays.asList(
+				new Reference(3, 4, 5), new Reference(1, 67, 24))));
 	}
 	
 	@Test
@@ -426,6 +464,16 @@ public class ObjectInformationTest {
 			assertExceptionCorrect(e, new IllegalArgumentException(
 					"One or more of the required arguments are not set. "
 					+ "Please check the documentation for the builder."));
+		}
+	}
+	
+	@Test
+	public void buildFailFromObjectInformation() throws Exception {
+		try {
+			ObjectInformation.getBuilder(null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("info"));
 		}
 	}
 

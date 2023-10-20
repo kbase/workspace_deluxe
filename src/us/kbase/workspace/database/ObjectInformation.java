@@ -260,6 +260,17 @@ public class ObjectInformation {
 		return new Builder();
 	}
 	
+	/** Get a builder for an {@link ObjectInformation}.
+	 * 
+	 * Note that all fields other than the metadata are required, but all the fields are settable
+	 * by builder methods for readability purposes.
+	 * @param info an object info instance from which to populate the builder.
+	 * @return the builder.
+	 */
+	public static Builder getBuilder(final ObjectInformation info) {
+		return new Builder(info);
+	}
+	
 	/**
 	 * A builder for an {@link ObjectInformation}.
 	 * 
@@ -271,20 +282,37 @@ public class ObjectInformation {
 		// required fields
 		private long objectId = -1;
 		private String objectName = null;
-		private AbsoluteTypeDefId type = null;
+		private String type = null;
 		private Instant savedDate = null;
 		private int version = -1;
 		private WorkspaceUser savedBy = null;
-		private ResolvedWorkspaceID ws = null;
+		private long wsid = -1;
+		private String wsname = null;
 		private String chksum = null;
 		private long size = -1;
+		private List<Reference> refpath = null;
 		
 		// optional fields
 		private UncheckedUserMetadata usermeta = null;
 		private UncheckedUserMetadata adminmeta = null;
 		
-		
 		private Builder() {}
+		
+		private Builder(final ObjectInformation info) {
+			objectId = requireNonNull(info, "info").id;
+			objectName = info.name;
+			type = info.type;
+			savedDate = info.savedDate;
+			version = info.version;
+			savedBy = info.savedBy;
+			wsid = info.workspaceID;
+			wsname = info.workspaceName;
+			chksum = info.chksum;
+			size = info.size;
+			refpath = info.refpath;
+			usermeta = info.usermeta;
+			adminmeta = info.adminmeta;
+		}
 		
 		/** Add the required object ID to the builder.
 		 * @param id the object ID.
@@ -327,7 +355,7 @@ public class ObjectInformation {
 		 * @return this builder for chaining.
 		 */
 		public Builder withType(final AbsoluteTypeDefId type) {
-			this.type = requireNonNull(type, "type");
+			this.type = requireNonNull(type, "type").getTypeString();
 			return this;
 		}
 		
@@ -373,7 +401,8 @@ public class ObjectInformation {
 		 * @return this builder for chaining.
 		 */
 		public Builder withWorkspace(final ResolvedWorkspaceID workspace) {
-			this.ws = requireNonNull(workspace, "workspace");
+			this.wsid = requireNonNull(workspace, "workspace").getID();
+			this.wsname = workspace.getName();
 			return this;
 		}
 		
@@ -443,15 +472,14 @@ public class ObjectInformation {
 					savedDate == null ||
 					version < 1 ||
 					savedBy == null ||
-					ws == null ||
+					wsid < 1 || // means wsname is set
 					chksum == null ||
 					size < 1) {
 				throw new IllegalArgumentException("One or more of the required arguments are "
 						+ "not set. Please check the documentation for the builder.");
 			}
-			return new ObjectInformation(objectId, objectName, type.getTypeString(), savedDate,
-					version, savedBy, ws.getID(), ws.getName(), chksum, size, usermeta, adminmeta,
-					null);
+			return new ObjectInformation(objectId, objectName, type, savedDate,
+					version, savedBy, wsid, wsname, chksum, size, usermeta, adminmeta, refpath);
 		}
 	}
 	
