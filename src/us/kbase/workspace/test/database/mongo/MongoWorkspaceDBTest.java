@@ -59,6 +59,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
+import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedSaveObject;
@@ -870,7 +871,7 @@ public class MongoWorkspaceDBTest {
 				)
 		);
 		
-		assertThat("incorrect time", result, is(Optional.of(inst(10000))));
+		assertThat("incorrect time", result, is(opt(inst(10000))));
 		
 		final Map<String, String> m = mocks.mdb.getWorkspaceInformation(user, rwsi)
 				.getUserMeta().getMetadata();
@@ -886,7 +887,7 @@ public class MongoWorkspaceDBTest {
 				)
 		);
 		
-		assertThat("incorrect time", result2, is(Optional.of(inst(15000))));
+		assertThat("incorrect time", result2, is(opt(inst(15000))));
 		
 		// check that the whole info is ok at least once
 		final WorkspaceInformation m2 = mocks.mdb.getWorkspaceInformation(user, rwsi);
@@ -917,7 +918,7 @@ public class MongoWorkspaceDBTest {
 		final Optional<Instant> result = mocks.mdb.setWorkspaceMeta(
 				rwsi, new MetadataUpdate(null, Arrays.asList("x", "a")));
 		
-		assertThat("incorrect time", result, is(Optional.of(inst(10000))));
+		assertThat("incorrect time", result, is(opt(inst(10000))));
 		
 		final Map<String, String> m = mocks.mdb.getWorkspaceInformation(user, rwsi)
 				.getUserMeta().getMetadata();
@@ -1000,7 +1001,7 @@ public class MongoWorkspaceDBTest {
 		final Optional<Instant> result = mocks.mdb.setWorkspaceMeta(
 				rwsi, new MetadataUpdate(new WorkspaceUserMetadata(meta2), null));
 		
-		assertThat("incorrect time", result, is(Optional.of(inst(10000))));
+		assertThat("incorrect time", result, is(opt(inst(10000))));
 		
 		final Map<String, String> m2 = mocks.mdb.getWorkspaceInformation(
 				new WorkspaceUser("a"), rwsi).getUserMeta().getMetadata();
@@ -1043,4 +1044,207 @@ public class MongoWorkspaceDBTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
+	
+	@Test
+	public void setAdminObjectMetaAndGetObjectInfo() throws Exception {
+		// Tests the immediately successful case only. See the mongo internal tests class
+		// for tests for cases where there's at least one failure trying to update the data.
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final WorkspaceUser user = new WorkspaceUser("a");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "wsn", false, false);
+		when(mocks.clockmock.instant()).thenReturn(inst(10000));
+		
+		mocks.mdb.createWorkspace(user, "wsn", false, null, new WorkspaceUserMetadata());
+		
+		final Provenance p = Provenance.getBuilder(user, inst(10000)).withWorkspaceID(1L).build();
+
+		mocks.saveTestObject(rwsi, user, p, "newobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L,
+				new WorkspaceUserMetadata(ImmutableMap.of("thing", "stuff")));
+		final ObjectIDResolvedWS oi1_1 = new ObjectIDResolvedWS(rwsi, 1, 1);
+		mocks.saveTestObject(rwsi, user, p, "newobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		final ObjectIDResolvedWS oi1_2 = new ObjectIDResolvedWS(rwsi, "newobj");
+		mocks.saveTestObject(rwsi, user, p, "newobj2", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		final ObjectIDResolvedWS oi2_1 = new ObjectIDResolvedWS(rwsi, 2);
+		mocks.saveTestObject(rwsi, user, p, "newobj3", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L,
+				new WorkspaceUserMetadata(ImmutableMap.of("whee", "whoo")));
+		final ObjectIDResolvedWS oi3_1 = new ObjectIDResolvedWS(rwsi, "newobj3", 1);
+		
+		// 1st round - add metadata
+		mocks.mdb.setAdminObjectMeta(ImmutableMap.of(
+				oi1_1, new MetadataUpdate(
+						new WorkspaceUserMetadata(ImmutableMap.of("foo", "bar")), null),
+				oi1_2, new MetadataUpdate(
+						new WorkspaceUserMetadata(ImmutableMap.of("a", "b", "c", "d")), null),
+				oi2_1, new MetadataUpdate(
+						new WorkspaceUserMetadata(ImmutableMap.of("x", "y")), null)
+		));
+		
+		final Map<ObjectIDResolvedWS, ObjectInformation> infos = mocks.mdb.getObjectInformation(
+				set(oi1_1, oi1_2, oi2_1, oi3_1), true, true, false, true);
+		
+		// test at least one object info
+		assertThat("incorrect objectInfo", infos.get(oi1_1), is(ObjectInformation.getBuilder()
+				.withUserMetadata(new UncheckedUserMetadata(ImmutableMap.of("thing", "stuff")))
+				.withAdminUserMetadata(new UncheckedUserMetadata(ImmutableMap.of("foo", "bar")))
+				.withChecksum("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+				.withObjectID(1)
+				.withObjectName("newobj")
+				.withSavedBy(new WorkspaceUser("a"))
+				  // no check for this field, clock for save objects isn't mocked yet
+				.withSavedDate(infos.get(oi1_1).getSavedDate())
+				.withSize(22)
+				.withType(new AbsoluteTypeDefId(new TypeDefName("Mod.Type"), 5, 1))
+				.withVersion(1)
+				.withWorkspace(rwsi)
+				.build()
+		));
+		assertThat("incorrect admin meta", infos.get(oi1_2).getAdminUserMetaData(),
+				is(opt(new UncheckedUserMetadata(ImmutableMap.of("a", "b", "c", "d")))));
+		assertThat("incorrect meta", infos.get(oi1_2).getUserMetaData(),
+				is(Optional.empty()));
+		assertThat("incorrect admin meta", infos.get(oi2_1).getAdminUserMetaData(),
+				is(opt(new UncheckedUserMetadata(ImmutableMap.of("x", "y")))));
+		assertThat("incorrect meta", infos.get(oi2_1).getUserMetaData(),
+				is(Optional.empty()));
+		assertThat("incorrect admin meta", infos.get(oi3_1).getAdminUserMetaData(),
+				is(Optional.empty()));
+		assertThat("incorrect meta", infos.get(oi3_1).getUserMetaData(),
+				is(opt(new UncheckedUserMetadata(ImmutableMap.of("whee", "whoo")))));
+		
+		// 2nd round - remove keys and test noops
+		mocks.mdb.setAdminObjectMeta(ImmutableMap.of(
+				oi1_1, new MetadataUpdate(  // noop
+						new WorkspaceUserMetadata(ImmutableMap.of("foo", "bar")),
+						Arrays.asList("no_key_here")),
+				oi1_2, new MetadataUpdate(  // remove
+						null,
+						Arrays.asList("c", "fakekey")),
+				oi2_1, new MetadataUpdate(  // add
+						new WorkspaceUserMetadata(ImmutableMap.of("z", "a")), null)
+		));
+		
+		final Map<ObjectIDResolvedWS, ObjectInformation> infos2 = mocks.mdb.getObjectInformation(
+				set(oi1_1, oi1_2, oi2_1, oi3_1), true, true, false, true);
+		
+		assertThat("incorrect admin meta", infos2.get(oi1_1).getAdminUserMetaData(),
+				is(opt(new UncheckedUserMetadata(ImmutableMap.of("foo", "bar")))));
+		assertThat("incorrect meta", infos2.get(oi1_1).getUserMetaData(),
+				is(opt(new UncheckedUserMetadata(ImmutableMap.of("thing", "stuff")))));
+		assertThat("incorrect admin meta", infos2.get(oi1_2).getAdminUserMetaData(),
+				is(opt(new UncheckedUserMetadata(ImmutableMap.of("a", "b")))));
+		assertThat("incorrect meta", infos2.get(oi1_2).getUserMetaData(),
+				is(Optional.empty()));
+		assertThat("incorrect admin meta", infos2.get(oi2_1).getAdminUserMetaData(),
+				is(opt(new UncheckedUserMetadata(ImmutableMap.of("x", "y", "z", "a")))));
+		assertThat("incorrect meta", infos2.get(oi2_1).getUserMetaData(),
+				is(Optional.empty()));
+		assertThat("incorrect admin meta", infos2.get(oi3_1).getAdminUserMetaData(),
+				is(Optional.empty()));
+		assertThat("incorrect meta", infos2.get(oi3_1).getUserMetaData(),
+				is(opt(new UncheckedUserMetadata(ImmutableMap.of("whee", "whoo")))));
+	}
+	
+	@Test
+	public void setAdminObjectMetaFailBadInput() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final WorkspaceUser user = new WorkspaceUser("a");
+		when(mocks.clockmock.instant()).thenReturn(inst(10000));
+		
+		mocks.mdb.createWorkspace(user, "wsn", false, null, new WorkspaceUserMetadata());
+		mocks.mdb.createWorkspace(user, "wsn2", false, null, new WorkspaceUserMetadata());
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(2, "wsn2", false, false);
+		
+		final Provenance p = Provenance.getBuilder(user, inst(10000)).withWorkspaceID(1L).build();
+		final MetadataUpdate m = new MetadataUpdate(null, Arrays.asList("a"));
+		
+		mocks.saveTestObject(rwsi, user, p, "newobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		mocks.saveTestObject(rwsi, user, p, "newobj2", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		mocks.saveTestObject(rwsi, user, p, "newobj2", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		mocks.saveTestObject(rwsi, user, p, "delobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		mocks.mdb.setObjectsDeleted(set(new ObjectIDResolvedWS(rwsi, 3)), true);
+		
+		setAdminObjectMetaFail(mocks, null, new NullPointerException("update"));
+		final HashMap<ObjectIDResolvedWS, MetadataUpdate> nullMap = new HashMap<>();
+		nullMap.put(null, m);
+		setAdminObjectMetaFail(mocks, nullMap, new NullPointerException(
+				"null object ID in update"));
+		nullMap.clear();
+		nullMap.put(new ObjectIDResolvedWS(rwsi, 2), null);
+		setAdminObjectMetaFail(mocks, nullMap, new IllegalArgumentException(
+				"Error setting metadata on workspace wsn2 id 2, object 2, latest version: "
+				+ "No metadata changes provided"));
+		nullMap.clear();
+		nullMap.put(new ObjectIDResolvedWS(rwsi, 2, 1), null);
+		setAdminObjectMetaFail(mocks, nullMap, new IllegalArgumentException(
+				"Error setting metadata on workspace wsn2 id 2, object 2, version 1: "
+				+ "No metadata changes provided"));
+		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, 4);
+		setAdminObjectMetaFail(mocks, ImmutableMap.of(roi1, m), new NoSuchObjectException(
+				"No object with id 4 exists in workspace 2 (name wsn2)", roi1));
+		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, 2, 3);
+		setAdminObjectMetaFail(mocks, ImmutableMap.of(roi2, m), new NoSuchObjectException(
+				"No object with id 2 (name newobj2) and version 3 exists in workspace 2 "
+				+ "(name wsn2)",
+				roi2));
+		final ObjectIDResolvedWS roi3 = new ObjectIDResolvedWS(rwsi, 3);
+		setAdminObjectMetaFail(mocks, ImmutableMap.of(roi3, m), new NoSuchObjectException(
+				"Object 3 (name delobj) in workspace 2 (name wsn2) has been deleted", roi3));
+	}
+	
+	@Test
+	public void setAdminObjectMetaFailBigMeta() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		when(mocks.clockmock.instant()).thenReturn(inst(10000));
+		final WorkspaceUser user = new WorkspaceUser("a");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "wsn", false, false);
+		final String l890 = TestCommon.LONG1001.substring(0, 890);
+		
+		final Map<String, String> meta = new HashMap<>();
+		IntStream.range(0, 10).forEach(i -> meta.put("a" + i, l890));
+		IntStream.range(0, 7).forEach(i -> meta.put("b" + i, l890));
+		meta.put("b10", TestCommon.LONG1001.substring(0, 724));
+		
+		mocks.mdb.createWorkspace(user, "wsn", false, null, new WorkspaceUserMetadata(null));
+		
+		final Provenance p = Provenance.getBuilder(user, inst(10000)).withWorkspaceID(1L).build();
+		
+		mocks.saveTestObject(rwsi, user, p, "newobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		final ObjectIDResolvedWS oid = new ObjectIDResolvedWS(rwsi, 1);
+		
+		mocks.mdb.setAdminObjectMeta(ImmutableMap.of(
+				oid, new MetadataUpdate(new WorkspaceUserMetadata(meta), null)));
+		
+		setAdminObjectMetaFail(
+				mocks,
+				ImmutableMap.of(oid, new MetadataUpdate(new WorkspaceUserMetadata(
+						ImmutableMap.of("b10", TestCommon.LONG1001.substring(0, 725))),
+						null)),
+				new IllegalArgumentException(
+						"Error setting metadata on workspace wsn id 1, object 1, latest version: "
+						+ "Updated metadata exceeds allowed size of 16000B")
+		);
+	}
+	
+	private void setAdminObjectMetaFail(
+			final PartialMock mocks,
+			final Map<ObjectIDResolvedWS, MetadataUpdate> input,
+			final Exception expected)
+			throws Exception {
+		try {
+			mocks.mdb.setAdminObjectMeta(input);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
 }

@@ -121,8 +121,13 @@ public class ObjectInfoUtils {
 	}
 	
 	static ObjectInformation generateObjectInfo(
-			final ResolvedObjectID roi, final Map<String, Object> ver) {
-		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(), roi.getName(), ver);
+			final ResolvedObjectID roi,
+			final Map<String, Object> ver) {
+		return generateObjectInfo(
+				roi.getWorkspaceIdentifier(),
+				roi.getId(),
+				roi.getName(),
+				ver);
 	}
 	
 	static ObjectInformation generateObjectInfo(
@@ -134,6 +139,9 @@ public class ObjectInfoUtils {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) ver.get(Fields.VER_META);
+		@SuppressWarnings("unchecked")
+		final List<Map<String, String>> adminmeta =
+				(List<Map<String, String>>) ver.get(Fields.VER_ADMINMETA);
 		final AbsoluteTypeDefId type = new AbsoluteTypeDefId(
 				new TypeDefName((String) ver.get(Fields.VER_TYPE_NAME)),
 				(int) ver.get(Fields.VER_TYPE_MAJOR_VERSION),
@@ -148,8 +156,10 @@ public class ObjectInfoUtils {
 				.withWorkspace(rwsi)
 				.withChecksum((String) ver.get(Fields.VER_CHKSUM))
 				.withSize((long) ver.get(Fields.VER_SIZE))
-				.withUserMetadata(meta == null ? null :
+				.withUserMetadata(
 					new UncheckedUserMetadata(metaMongoArrayToHash(meta)))
+				.withAdminUserMetadata(
+					new UncheckedUserMetadata(metaMongoArrayToHash(adminmeta)))
 				.build();
 	}
 	

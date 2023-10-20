@@ -700,7 +700,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@FunctionalInterface
 	interface DocumentProvider {
 		Map<String, Object> getDocument()
-				throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
+				throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
+					NoSuchObjectException;
 	}
 	
 	@Override
@@ -709,15 +710,68 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final MetadataUpdate meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		requireNonNull(rwsi, "rwsi");
-		return setMetadataOnDocument(
-				meta,
-				COL_WORKSPACES,
-				() -> query.queryWorkspace(rwsi, newHashSet(Fields.WS_META)),
-				new Document(Fields.WS_ID, rwsi.getID()),
-				Fields.WS_META,
-				Fields.WS_MODDATE);
+		try {
+			return setMetadataOnDocument(
+					meta,
+					COL_WORKSPACES,
+					() -> query.queryWorkspace(rwsi, newHashSet(Fields.WS_META)),
+					new Document(Fields.WS_ID, rwsi.getID()),
+					Fields.WS_META,
+					Fields.WS_MODDATE);
+		} catch (NoSuchObjectException e) {
+			throw new RuntimeException("You divided by zero, didn't you, you absolute muppet", e);
+		}
 	}
 
+	
+	
+	@Override
+	public void setAdminObjectMeta(final Map<ObjectIDResolvedWS, MetadataUpdate> update)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		noNulls(requireNonNull(update, "update").keySet(), "null object ID in update");
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> oids = resolveObjectIDs(update.keySet());
+		final Set<String> fields = new HashSet<>(Arrays.asList(Fields.VER_ADMINMETA));
+		for (final ObjectIDResolvedWS oirw: update.keySet()) {
+			final ResolvedObjectID roi = oids.get(oirw);
+			try {
+				setMetadataOnDocument(
+						update.get(oirw),
+						COL_WORKSPACE_VERS,
+						() -> queryVersions(new HashSet<>(Arrays.asList(roi)), fields, false)
+								.get(roi),
+						new Document(Fields.VER_WS_ID, roi.getWorkspaceIdentifier().getID())
+								.append(Fields.VER_ID, roi.getId())
+								.append(Fields.VER_VER, roi.getVersion()),
+						Fields.VER_ADMINMETA,
+						null);
+			} catch (IllegalArgumentException e) {
+				final String err;
+				if (oirw.getVersion() == null) {
+					err = String.format(
+							"Error setting metadata on workspace %s id %s, object %s, "
+							+ "latest version: %s",
+							oirw.getWorkspaceIdentifier().getName(),
+							oirw.getWorkspaceIdentifier().getID(),
+							oirw.getIdentifierString(),
+							e.getMessage()
+					);
+				} else {
+					err = String.format(
+							"Error setting metadata on workspace %s id %s, object %s, "
+							+ "version %s: %s",
+							oirw.getWorkspaceIdentifier().getName(),
+							oirw.getWorkspaceIdentifier().getID(),
+							oirw.getIdentifierString(),
+							oirw.getVersion(),
+							e.getMessage()
+					);
+				}
+				throw new IllegalArgumentException(err, e);
+			}
+		}
+	}
+	
 	private Optional<Instant> setMetadataOnDocument(
 			final MetadataUpdate newMeta,
 			final String collection,
@@ -725,7 +779,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Document identifier,
 			final String metaField,
 			final String moddateField)
-			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
+				NoSuchObjectException {
 		if (newMeta == null || !newMeta.hasUpdate()) {
 			throw new IllegalArgumentException("No metadata changes provided");
 		}
@@ -972,7 +1027,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
 			Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROV, Fields.VER_REF, Fields.VER_PROVREF,
-			Fields.VER_COPIED, Fields.VER_META, Fields.VER_EXT_IDS);
+			Fields.VER_COPIED, Fields.VER_META, Fields.VER_ADMINMETA, Fields.VER_EXT_IDS);
 
 	@Override
 	public CopyResult copyObject(
@@ -2278,7 +2333,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_VER_GET_OBJECT = newHashSet(
-			Fields.VER_VER, Fields.VER_META,
+			Fields.VER_VER, Fields.VER_META, Fields.VER_ADMINMETA,
 			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
@@ -2619,14 +2674,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_GETREFOBJ = newHashSet(
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
 			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
-			Fields.VER_META, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
+			Fields.VER_META, Fields.VER_ADMINMETA, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROVREF, Fields.VER_REF);
 
 	@Override
-	public Map<ObjectIDResolvedWS, Set<ObjectInformation>>
-			getReferencingObjects(final PermissionSet perms,
-					final Set<ObjectIDResolvedWS> objs)
+	public Map<ObjectIDResolvedWS, Set<ObjectInformation>> getReferencingObjects(
+			final PermissionSet perms,
+			final Set<ObjectIDResolvedWS> objs)
 		throws NoSuchObjectException, WorkspaceCommunicationException {
 		final List<Long> wsids = new LinkedList<Long>();
 		for (final ResolvedWorkspaceID ws: perms.getWorkspaces()) {
@@ -2927,19 +2982,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
 			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
 			Fields.VER_CHKSUM, Fields.VER_SIZE,
-			Fields.VER_META, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY);
+			Fields.VER_META, Fields.VER_ADMINMETA, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY);
 
 	@Override
 	public List<ObjectInformation> getObjectHistory(
 			final ObjectIDResolvedWS oi)
 		throws NoSuchObjectException, WorkspaceCommunicationException {
-		final ResolvedObjectID roi = resolveObjectIDs(
-				new HashSet<ObjectIDResolvedWS>(Arrays.asList(oi))).get(oi);
-		final ResolvedObjectIDNoVer o =
-				new ResolvedObjectIDNoVer(roi);
+		final ResolvedObjectID roi = resolveObjectIDs(new HashSet<>(Arrays.asList(oi))).get(oi);
+		final ResolvedObjectIDNoVer o = new ResolvedObjectIDNoVer(roi);
 		final List<Map<String, Object>> versions = queryAllVersions(
-				new HashSet<ResolvedObjectIDNoVer>(Arrays.asList(o)),
-				FLDS_VER_OBJ_HIST).get(o);
+				new HashSet<>(Arrays.asList(o)), FLDS_VER_OBJ_HIST).get(o);
 		final LinkedList<ObjectInformation> ret =
 				new LinkedList<ObjectInformation>();
 		for (final Map<String, Object> v: versions) {
@@ -2968,6 +3020,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (includeMetadata) {
 			fields = new HashSet<>(FLDS_VER_META);
 			fields.add(Fields.VER_META);
+			fields.add(Fields.VER_ADMINMETA);
 		} else {
 			fields = FLDS_VER_META;
 		}

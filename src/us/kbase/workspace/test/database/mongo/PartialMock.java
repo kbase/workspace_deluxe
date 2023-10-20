@@ -26,6 +26,7 @@ import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.provenance.Provenance;
@@ -66,6 +67,19 @@ public class PartialMock {
 			final String md5,
 			final long size)
 			throws Exception {
+		return saveTestObject(wsid, u, prov, name, absoluteTypeDef, md5, size, null);
+	}
+	
+	public Reference saveTestObject(
+			final ResolvedWorkspaceID wsid,
+			final WorkspaceUser u,
+			final Provenance prov,
+			final String name,
+			final String absoluteTypeDef,
+			final String md5,
+			final long size,
+			final WorkspaceUserMetadata meta)
+			throws Exception {
 		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
 		when(vto.getValidationTypeDefId()).thenReturn(
 				AbsoluteTypeDefId.fromAbsoluteTypeString(absoluteTypeDef));
@@ -78,7 +92,7 @@ public class PartialMock {
 						new ObjectIDNoWSNoVer(name),
 						new UObject(ImmutableMap.of("foo", "bar")),
 						new TypeDefId("DroppedAfter.Resolve", "1.0"),
-						null,
+						meta,
 						prov,
 						false)
 						.resolve(

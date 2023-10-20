@@ -103,9 +103,14 @@ public class ObjectLister {
 				}
 				// this method accesses the DB, so we batch calls to it to reduce transport time
 				final Map<Map<String, Object>, ObjectInformation> objs =
-						infoUtils.generateObjectInfo(pset, verobjs, params.isShowHidden(),
-								params.isShowDeleted(), params.isShowOnlyDeleted(),
-								params.isShowAllVersions(), params.asAdmin()
+						infoUtils.generateObjectInfo(
+								pset,
+								verobjs,
+								params.isShowHidden(),
+								params.isShowDeleted(),
+								params.isShowOnlyDeleted(),
+								params.isShowAllVersions(),
+								params.asAdmin()
 								);
 				//maintain the ordering from Mongo
 				final Iterator<Map<String, Object>> veriter = verobjs.iterator();
@@ -128,6 +133,7 @@ public class ObjectLister {
 		FLDS_LIST_OBJ_VER.forEach(field -> projection.put(field, 1));
 		if (params.isIncludeMetaData()) {
 			projection.put(Fields.VER_META, 1);
+			projection.put(Fields.VER_ADMINMETA, 1);
 		}
 		return projection;
 	}

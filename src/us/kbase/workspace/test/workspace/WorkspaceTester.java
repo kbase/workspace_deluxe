@@ -98,6 +98,7 @@ import software.amazon.awssdk.regions.Region;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
@@ -186,6 +187,7 @@ public class WorkspaceTester {
 	private static final Map<String, WSandTypes> CONFIGS = new HashMap<String, WSandTypes>();
 	protected final Workspace ws;
 	protected final Types types;
+	protected final MongoWorkspaceDB mwsdb;
 
 	public WorkspaceTester(
 			final String config,
@@ -221,15 +223,17 @@ public class WorkspaceTester {
 		}
 		ws = CONFIGS.get(config).ws;
 		types = CONFIGS.get(config).types;
+		mwsdb = CONFIGS.get(config).mongo;
 	}
 
 	private static class WSandTypes {
 		public Workspace ws;
 		public Types types;
-		public WSandTypes(Workspace ws, Types types) {
-			super();
+		public MongoWorkspaceDB mongo;
+		public WSandTypes(final Workspace ws, final Types types, final MongoWorkspaceDB mongo) {
 			this.ws = ws;
 			this.types = types;
+			this.mongo = mongo;
 		}
 	}
 
@@ -289,7 +293,7 @@ public class WorkspaceTester {
 					.withMaxReturnedDataMemoryUsage(maxMemoryUsePerCall).build());
 		}
 		installSpecs(t);
-		return new WSandTypes(work, t);
+		return new WSandTypes(work, t, mwdb);
 	}
 
 	private void installSpecs(final Types t) throws Exception {
@@ -643,10 +647,10 @@ public class WorkspaceTester {
 			final String wsname,
 			final String chksum,
 			final long size,
-			Optional<UncheckedUserMetadata> usermeta,
+			final Optional<UncheckedUserMetadata> usermeta,
+			final Optional<UncheckedUserMetadata> adminmeta,
 			final List<Reference> refpath) {
 
-		usermeta = usermeta == null ? Optional.empty() : usermeta;
 		assertDateisRecent(info.getSavedDate());
 		assertThat("Object id incorrect", info.getObjectId(), is(id));
 		assertThat("Object name is incorrect", info.getObjectName(), is(name));
@@ -658,6 +662,7 @@ public class WorkspaceTester {
 		assertThat("Object chksum is incorrect", info.getCheckSum(), is(chksum));
 		assertThat("Object size is incorrect", info.getSize(), is(size));
 		assertThat("Object user meta is incorrect", info.getUserMetaData(), is(usermeta));
+		assertThat("Object admin meta is incorrect", info.getAdminUserMetaData(), is(adminmeta));
 		assertThat("Object refpath incorrect", info.getReferencePath(), is(refpath));
 	}
 
@@ -821,6 +826,7 @@ public class WorkspaceTester {
 						inf.getCheckSum(),
 						inf.getSize(),
 						inf.getUserMetaData(),
+						inf.getAdminUserMetaData(),
 						inf.getReferencePath());
 			}
 			if (info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
@@ -850,6 +856,7 @@ public class WorkspaceTester {
 				info.getCheckSum(),
 				info.getSize(),
 				info.getUserMetaData(),
+				info.getAdminUserMetaData(),
 				info.getReferencePath());
 		assertThat("correct data", getData(wod), is((Object) data));
 
@@ -1340,12 +1347,6 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected Map<String, String> makeSimpleMeta(String key, String value) {
-		Map<String, String> map = new HashMap<String, String>();
-		map.put(key, value);
-		return map;
-	}
-
 	protected Map<String, Object> makeRefData(String... refs) {
 		Map<String, Object> data = new HashMap<>();
 		data.put("refs", Arrays.asList(refs));
@@ -1353,7 +1354,7 @@ public class WorkspaceTester {
 	}
 
 	protected Map<String, String> makeMeta(final int id) {
-		return makeSimpleMeta("m", "" + id);
+		return ImmutableMap.of("m", "" + id);
 	}
 
 	protected void compareObjectAndInfo(
@@ -1452,21 +1453,34 @@ public class WorkspaceTester {
 		assertThat("size correct", copied.getSize(), is(original.getSize()));
 		assertThat("type correct", copied.getTypeString(), is(original.getTypeString()));
 		assertThat("meta correct", copied.getUserMetaData(), is(original.getUserMetaData()));
+		assertThat("admin meta correct",
+				copied.getAdminUserMetaData(), is(original.getAdminUserMetaData()));
 		assertThat("version correct", copied.getVersion(), is(version));
 		assertThat("wsid correct", copied.getWorkspaceId(), is(wsid));
 		assertThat("ws name correct", copied.getWorkspaceName(), is(wsname));
 	}
 
-	protected ObjectInformation saveObject(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Map<String, String> meta, Map<String, ? extends Object> data, TypeDefId type,
-			String name, Provenance prov)
+	protected ObjectInformation saveObject(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Map<String, String> meta,
+			final Map<String, ? extends Object> data,
+			final TypeDefId type,
+			final String name,
+			final Provenance prov)
 			throws Exception {
 		return saveObject(user, wsi, meta, data, type, name, prov, false);
 	}
 
-	protected ObjectInformation saveObject(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Map<String, String> meta, Map<String, ? extends Object> data,
-			TypeDefId type, String name, Provenance prov, boolean hide)
+	protected ObjectInformation saveObject(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Map<String, String> meta,
+			final Map<String, ? extends Object> data,
+			final TypeDefId type,
+			final String name,
+			final Provenance prov,
+			final boolean hide)
 			throws Exception {
 		return ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
@@ -1841,16 +1855,26 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void compareObjectInfo(List<ObjectInformation> got,
-			List<ObjectInformation> expected) {
-		HashSet<ObjectInformation> g = new HashSet<ObjectInformation>();
+	protected void compareObjectInfo(
+			final List<ObjectInformation> got,
+			final List<ObjectInformation> expected) {
+		assertThat("unequal list lenths", got.size(), is(expected.size()));
+		for (int i = 0; i < got.size(); i++) {
+			assertThat("incorrect object info at index " + i, got.get(i), is(expected.get(i)));
+		}
+	}
+	
+	protected void compareObjectInfo(
+			final List<ObjectInformation> got,
+			final Set<ObjectInformation> expected) {
+		final HashSet<ObjectInformation> g = new HashSet<>();
 		for (ObjectInformation oi: got) {
 			if (g.contains(oi)) {
 				fail("Got same object info twice: " + oi);
 			}
 			g.add(oi);
 		}
-		assertThat("listed correct objects", g, is(new HashSet<ObjectInformation>(expected)));
+		assertThat("listed correct objects", g, is(new HashSet<>(expected)));
 	}
 
 	protected void checkReferencedObject(

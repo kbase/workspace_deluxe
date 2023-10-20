@@ -4,6 +4,10 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
 public class ObjectIDResolvedWS {
 	
+	// TODO JAVADOC
+	// TODO TEST
+	// TODO CODE use optionals vs nulls in returns
+	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
 	private final Long id;
