@@ -512,7 +512,7 @@ public class AdministrationCommandSetInstallerTest {
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
 		when(mocks.ws.setWorkspaceOwner(
 				// really ws will throw an exception if a null user is passed
-				null, new WorkspaceIdentifier(3), null, Optional.empty(), true))
+				new WorkspaceIdentifier(3), null, Optional.empty()))
 				.thenReturn(WorkspaceInformation.getBuilder()
 						.withID(3)
 						.withName("na")
@@ -557,8 +557,8 @@ public class AdministrationCommandSetInstallerTest {
 				.thenReturn(new WorkspaceUser("usern"));
 		when(mocks.ws.setWorkspaceOwner(
 				// really ws will throw an exception if a null user is passed
-				null, new WorkspaceIdentifier("myws"), new WorkspaceUser("usern"),
-						Optional.of("usern:foo"), true))
+				new WorkspaceIdentifier("myws"), new WorkspaceUser("usern"),
+						Optional.of("usern:foo")))
 				.thenReturn(WorkspaceInformation.getBuilder()
 						.withID(10)
 						.withName("usern:foo")

@@ -363,11 +363,10 @@ public class AdministrationCommandSetInstaller {
 						cmd, SetWorkspaceOwnerParams.class);
 				final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.wsi);
 				final WorkspaceInformation info = wsmeth.getWorkspace().setWorkspaceOwner(
-						null,
 						wsi,
 						params.new_user == null ?
 								null : wsmeth.validateUser(params.new_user, token),
-						Optional.ofNullable(params.new_name), true);
+						Optional.ofNullable(params.new_name));
 				getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
 						info.getOwner().getUser());
 				return wsInfoToTuple(info);

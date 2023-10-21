@@ -71,7 +71,8 @@ public class ObjectResolver {
 				ReferenceSearchMaximumSizeExceededException {
 		this.db = db;
 		this.user = user;
-		this.permissionsFactory = new PermissionsCheckerFactory(db, user);
+		this.permissionsFactory = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).withAsAdmin(asAdmin).build();
 		this.objects = Collections.unmodifiableList(objects);
 		this.nullIfInaccessible = nullIfInaccessible;
 		this.asAdmin = asAdmin;
@@ -197,9 +198,9 @@ public class ObjectResolver {
 		//handle the faster cases first, fail before the searches
 		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = new HashMap<>();
 		if (!nolookup.isEmpty()) {
-			ws = permissionsFactory.getObjectChecker(
-					nolookup, asAdmin ? Permission.NONE : Permission.READ)
-					.withSuppressErrors(nullIfInaccessible).check();
+			ws = permissionsFactory.getObjectChecker(nolookup, Permission.READ)
+					.withSuppressErrors(nullIfInaccessible)
+					.check();
 		}
 		nolookup = null; //gc
 		
@@ -634,7 +635,7 @@ public class ObjectResolver {
 		
 		/** Run the resolution as an admin - e.g. all workspaces are accessible.
 		 * @param asAdmin
-		 * @return
+		 * @return this builder.
 		 */
 		public Builder withAsAdmin(final boolean asAdmin) {
 			this.asAdmin = asAdmin;

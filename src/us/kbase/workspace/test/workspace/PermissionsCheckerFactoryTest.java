@@ -1,17 +1,18 @@
 package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static us.kbase.common.test.TestCommon.opt;
 import static us.kbase.common.test.TestCommon.set;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -124,20 +125,40 @@ public class PermissionsCheckerFactoryTest {
 	}
 	
 	@Test
-	public void buildFactory() {
+	public void buildFactoryMinimal() {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		
-		PermissionsCheckerFactory fac = new PermissionsCheckerFactory(db, null);
-		assertThat("incorrect user", fac.getUser(), is(nullValue()));
+		PermissionsCheckerFactory fac = PermissionsCheckerFactory.getBuilder(db).build();
+		assertThat("incorrect user", fac.getUser(), is(Optional.empty()));
+		assertThat("incorrect asAdmin", fac.isAsAdmin(), is(false));
+	}
+	
+	@Test
+	public void buildFactoryMaximal() {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		
-		fac = new PermissionsCheckerFactory(db, new WorkspaceUser("foo"));
-		assertThat("incorrect user", fac.getUser(), is(new WorkspaceUser("foo")));
+		PermissionsCheckerFactory fac = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(new WorkspaceUser("foo")).withAsAdmin(true).build();
+		assertThat("incorrect user", fac.getUser(), is(opt(new WorkspaceUser("foo"))));
+		assertThat("incorrect asAdmin", fac.isAsAdmin(), is(true));
+	}
+	
+	@Test
+	public void buildFactoryFlipflopValues() {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		
+		PermissionsCheckerFactory fac = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(new WorkspaceUser("foo")).withAsAdmin(true)
+				.withUser(null).withAsAdmin(false)
+				.build();
+		assertThat("incorrect user", fac.getUser(), is(Optional.empty()));
+		assertThat("incorrect asAdmin", fac.isAsAdmin(), is(false));
 	}
 	
 	@Test
 	public void buildFactoryFail() {
 		try {
-			new PermissionsCheckerFactory(null, null);
+			PermissionsCheckerFactory.getBuilder(null);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("db"));
@@ -157,7 +178,8 @@ public class PermissionsCheckerFactoryTest {
 		try {
 			// just test on the workspace checker since they all inherit from the same abstract
 			// class
-			new PermissionsCheckerFactory(mock(WorkspaceDatabase.class), new WorkspaceUser("f"))
+			PermissionsCheckerFactory.getBuilder(mock(WorkspaceDatabase.class))
+					.withUser(new WorkspaceUser("f")).build()
 					.getWorkspaceChecker(
 							Arrays.asList(new WorkspaceIdentifier(1)), Permission.ADMIN)
 					.withOperation(op);
@@ -184,7 +206,8 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
 		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
 		
@@ -213,7 +236,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42))).thenReturn(ImmutableMap.of(
 				wsi3, res3, wsi42, res42));
@@ -234,6 +258,30 @@ public class PermissionsCheckerFactoryTest {
 	}
 	
 	@Test
+	public void checkWorkspacesSuccessUnlockedAsAdmin() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
+		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
+		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
+		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
+		
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).withAsAdmin(true).build();
+		
+		when(db.resolveWorkspaces(set(wsi3, wsi42))).thenReturn(ImmutableMap.of(
+				wsi3, res3, wsi42, res42));
+		
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> res =
+				permfac.getWorkspaceChecker(Arrays.asList(wsi3, wsi42), Permission.WRITE)
+				.withOperation("whee")
+				.check();
+		
+		assertThat("incorrect resolved workspaces", res,
+				is(ImmutableMap.of(wsi3, res3, wsi42, res42)));
+	}
+	
+	@Test
 	public void checkWorkspacesSuccessLocked() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final WorkspaceUser u = new WorkspaceUser("foo");
@@ -242,7 +290,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42))).thenReturn(ImmutableMap.of(
 				wsi3, res3, wsi42, res42));
@@ -252,6 +301,30 @@ public class PermissionsCheckerFactoryTest {
 						.withWorkspace(res3, Permission.WRITE, Permission.NONE)
 						.withWorkspace(res42, Permission.ADMIN, Permission.READ)
 						.build());
+		
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> res =
+				permfac.getWorkspaceChecker(Arrays.asList(wsi3, wsi42), Permission.READ)
+				.withOperation("whee")
+				.check();
+		
+		assertThat("incorrect resolved workspaces", res,
+				is(ImmutableMap.of(wsi3, res3, wsi42, res42)));
+	}
+	
+	@Test
+	public void checkWorkspacesSuccessLockedAsAdmin() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
+		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
+		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
+		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
+		
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).withAsAdmin(true).build();
+		
+		when(db.resolveWorkspaces(set(wsi3, wsi42))).thenReturn(ImmutableMap.of(
+				wsi3, res3, wsi42, res42));
 		
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> res =
 				permfac.getWorkspaceChecker(Arrays.asList(wsi3, wsi42), Permission.READ)
@@ -281,8 +354,9 @@ public class PermissionsCheckerFactoryTest {
 			final Permission perm,
 			final Exception e) {
 		try {
-			new PermissionsCheckerFactory(mock(WorkspaceDatabase.class), new WorkspaceUser("f"))
-				.getWorkspaceChecker(wsis, perm);
+			PermissionsCheckerFactory.getBuilder(mock(WorkspaceDatabase.class))
+					.withUser(new WorkspaceUser("f")).build()
+					.getWorkspaceChecker(wsis, perm);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, e);
@@ -296,7 +370,8 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
 		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", true, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
 		
@@ -311,13 +386,31 @@ public class PermissionsCheckerFactoryTest {
 	}
 	
 	@Test
+	public void checkWorkspacesFailLockedAsAdmin() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
+		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", true, false);
+		
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).withAsAdmin(true).build();
+		
+		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
+		
+		failCheckWorkspaces(permfac.getWorkspaceChecker(Arrays.asList(wsi), Permission.WRITE)
+				.withOperation("whee"), new WorkspaceAuthorizationException(
+						"The workspace with id 3, name yay, is locked and may not be modified"));
+	}
+	
+	@Test
 	public void checkWorkspacesFailPermission() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
 		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
 		
@@ -341,7 +434,8 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
 		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
 		
@@ -387,7 +481,8 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
 		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
 		
@@ -417,8 +512,9 @@ public class PermissionsCheckerFactoryTest {
 			final Permission perm,
 			final Exception e) {
 		try {
-			new PermissionsCheckerFactory(mock(WorkspaceDatabase.class), new WorkspaceUser("f"))
-				.getWorkspaceChecker(wsi, perm);
+			PermissionsCheckerFactory.getBuilder(mock(WorkspaceDatabase.class))
+					.withUser(new WorkspaceUser("f")).build()
+					.getWorkspaceChecker(wsi, perm);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, e);
@@ -432,7 +528,8 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
 		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
 		
@@ -477,7 +574,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(ImmutableMap.of(
 				wsi3, res3, wsi42, res42));
@@ -487,6 +585,34 @@ public class PermissionsCheckerFactoryTest {
 						.withWorkspace(res3, Permission.WRITE, Permission.NONE)
 						.withWorkspace(res42, Permission.ADMIN, Permission.READ)
 						.build());
+		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> res =
+				permfac.getObjectChecker(Arrays.asList(obj3, obj42), Permission.WRITE)
+				.withOperation("whee")
+				.check();
+		
+		assertThat("incorrect resolved objects", res, is(ImmutableMap.of(
+				obj3, new ObjectIDResolvedWS(res3, 2),
+				obj42, new ObjectIDResolvedWS(res42, "entity"))));
+	}
+	
+	@Test
+	public void checkObjectsSuccessUnlockedAsAdmin() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
+		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
+		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
+		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
+		
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).withAsAdmin(true).build();
+		
+		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(ImmutableMap.of(
+				wsi3, res3, wsi42, res42));
 		
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> res =
 				permfac.getObjectChecker(Arrays.asList(obj3, obj42), Permission.WRITE)
@@ -510,7 +636,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(ImmutableMap.of(
 				wsi3, res3, wsi42, res42));
@@ -520,6 +647,34 @@ public class PermissionsCheckerFactoryTest {
 						.withWorkspace(res3, Permission.WRITE, Permission.NONE)
 						.withWorkspace(res42, Permission.ADMIN, Permission.READ)
 						.build());
+		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> res =
+				permfac.getObjectChecker(Arrays.asList(obj3, obj42), Permission.READ)
+				.withOperation("whee")
+				.check();
+		
+		assertThat("incorrect resolved objects", res, is(ImmutableMap.of(
+				obj3, new ObjectIDResolvedWS(res3, 2),
+				obj42, new ObjectIDResolvedWS(res42, "entity"))));
+	}
+	
+	@Test
+	public void checkObjectsSuccessLockedAsAdmin() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
+		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
+		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
+		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
+		
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).withAsAdmin(true).build();
+		
+		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(ImmutableMap.of(
+				wsi3, res3, wsi42, res42));
 		
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> res =
 				permfac.getObjectChecker(Arrays.asList(obj3, obj42), Permission.READ)
@@ -543,7 +698,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), true)).thenReturn(ImmutableMap.of(
 				wsi3, res3, wsi42, res42));
@@ -575,7 +731,8 @@ public class PermissionsCheckerFactoryTest {
 				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), true)).thenReturn(ImmutableMap.of(wsi3, res3));
 		
@@ -606,7 +763,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, true);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), true)).thenReturn(
 				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
@@ -639,7 +797,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, true);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), true)).thenReturn(
 				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
@@ -674,7 +833,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, true);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), true)).thenReturn(
 				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
@@ -716,8 +876,9 @@ public class PermissionsCheckerFactoryTest {
 			final Permission perm,
 			final Exception e) {
 		try {
-			new PermissionsCheckerFactory(mock(WorkspaceDatabase.class), new WorkspaceUser("f"))
-				.getObjectChecker(objs, perm);
+			PermissionsCheckerFactory.getBuilder(mock(WorkspaceDatabase.class))
+					.withUser(new WorkspaceUser("f")).build()
+					.getObjectChecker(objs, perm);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, e);
@@ -734,7 +895,8 @@ public class PermissionsCheckerFactoryTest {
 		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
 				.build();
 
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), false))
 				.thenThrow(new NoSuchWorkspaceException("foo", wsi3));
@@ -758,7 +920,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(
 				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
@@ -769,6 +932,34 @@ public class PermissionsCheckerFactoryTest {
 						.withWorkspace(res3, Permission.WRITE, Permission.NONE)
 						.withWorkspace(res42, Permission.WRITE, Permission.NONE)
 						.build());
+		
+		final InaccessibleObjectException e = (InaccessibleObjectException) failCheckObjects(
+				permfac.getObjectChecker(Arrays.asList(obj3, obj42), Permission.WRITE),
+				new InaccessibleObjectException("Object 2 cannot be accessed: " +
+						"The workspace with id 3, name yay, is locked and may not be modified",
+						obj3));
+		
+		assertThat("incorrect denied object", e.getInaccessibleObject(), is(obj3));
+	}
+	
+	@Test
+	public void checkObjectsFailLockedAsAdmin() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
+		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
+		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
+		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
+		
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).withAsAdmin(true).build();
+		
+		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(
+				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
+				.with(wsi3, res3).with(wsi42, res42).build());
 		
 		final InaccessibleObjectException e = (InaccessibleObjectException) failCheckObjects(
 				permfac.getObjectChecker(Arrays.asList(obj3, obj42), Permission.WRITE),
@@ -792,7 +983,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(
 				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
@@ -826,7 +1018,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(
 				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
@@ -863,7 +1056,8 @@ public class PermissionsCheckerFactoryTest {
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), false)).thenReturn(
 				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
@@ -914,7 +1108,8 @@ public class PermissionsCheckerFactoryTest {
 		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3), false)).thenReturn(ImmutableMap.of(wsi3, res3));
 		
@@ -936,7 +1131,8 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
 		
-		final SingleObjectPermissionsChecker checker = new PermissionsCheckerFactory(db, u)
+		final SingleObjectPermissionsChecker checker = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(u).build()
 				.getObjectChecker(obj3, Permission.READ);
 		final UnsupportedOperationException expected = new UnsupportedOperationException(
 				"Unsupported for single objects");
@@ -971,8 +1167,9 @@ public class PermissionsCheckerFactoryTest {
 			final Permission perm,
 			final Exception e) {
 		try {
-			new PermissionsCheckerFactory(mock(WorkspaceDatabase.class), new WorkspaceUser("f"))
-				.getObjectChecker(oi, perm);
+			PermissionsCheckerFactory.getBuilder(mock(WorkspaceDatabase.class))
+					.withUser(new WorkspaceUser("f")).build()
+					.getObjectChecker(oi, perm);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, e);
@@ -988,7 +1185,8 @@ public class PermissionsCheckerFactoryTest {
 		// locked to test that permissions errors take precedence over locking
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		
-		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		final PermissionsCheckerFactory permfac = PermissionsCheckerFactory
+				.getBuilder(db).withUser(u).build();
 		
 		when(db.resolveWorkspaces(set(wsi3), false)).thenReturn(
 				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
