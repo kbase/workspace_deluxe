@@ -4,9 +4,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.now;
@@ -21,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,7 +43,9 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
+import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.auth.AuthToken;
@@ -64,6 +69,7 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -756,6 +762,115 @@ public class WorkspaceUnitTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
 			return got;
+		}
+	}
+	
+	@Test
+	public void setAdminObjectMetadataNoop() throws Exception {
+		final TestMocks mocks = initMocks();
+		mocks.ws.setAdminObjectMetadata(Collections.emptyMap());
+		
+		verify(mocks.db, never()).setAdminObjectMeta(any());
+		verify(mocks.db, never()).resolveWorkspaces(any(), anyBoolean());
+	}
+	
+	@Test
+	public void setAdminObjectMetadata() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier(6);
+		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(6, "foo", false, false);
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("myws");
+		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(8, "bar", false, false);
+		final MetadataUpdate mu1 = new MetadataUpdate(null, Arrays.asList("thing"));
+		final MetadataUpdate mu2 = new MetadataUpdate(null, Arrays.asList("fhang"));
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder("6/4").build();
+		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi1, 4);
+		final ObjectIdentifier oi2 = ObjectIdentifier.getBuilder("myws/obj/3").build();
+		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi2, "obj", 3);
+		
+		when(mocks.db.resolveWorkspaces(set(wsi1, wsi2), false)).thenReturn(ImmutableMap.of(
+				wsi1, rwsi1, wsi2, rwsi2));
+		
+		mocks.ws.setAdminObjectMetadata(ImmutableMap.of(oi1, mu1, oi2, mu2));
+		
+		verify(mocks.db).setAdminObjectMeta(ImmutableMap.of(roi1, mu1, roi2, mu2));
+	}
+	
+	@Test
+	public void setAdminObjectMetadataFailBadInput() throws Exception {
+		final TestMocks mocks = initMocks();
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder("6/4").build();
+		final MetadataUpdate mu = new MetadataUpdate(null, Arrays.asList("foo"));
+		
+		setAdminObjectMetadataFail(mocks.ws, null, new NullPointerException("update"));
+		
+		final Map<ObjectIdentifier, MetadataUpdate> nulls = new HashMap<>();
+		nulls.put(null, new MetadataUpdate(null, null));
+		setAdminObjectMetadataFail(mocks.ws, nulls, new NullPointerException(
+				"null found in update keys"));
+		
+		nulls.clear();
+		nulls.put(oi, null);
+		setAdminObjectMetadataFail(mocks.ws, nulls, new IllegalArgumentException(
+				"metadata updates cannot be null or updateless"));
+		
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(oi, new MetadataUpdate(null, null)),
+				new IllegalArgumentException("metadata updates cannot be null or updateless"));
+		
+		final ObjectIdentifier rp = ObjectIdentifier.getBuilderFromRefPath("6/4;7/5").build();
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(rp, mu), new IllegalArgumentException(
+				"Object lookups and reference paths are not supported"));
+		
+		final ObjectIdentifier lu = ObjectIdentifier.getBuilder("6/4")
+				.withLookupRequired(true).build();
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(lu, mu), new IllegalArgumentException(
+				"Object lookups and reference paths are not supported"));
+	}
+	
+	@Test
+	public void setAdminObjectMetadataFailOnResolveWorkspaces() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier(6);
+		final MetadataUpdate mu1 = new MetadataUpdate(null, Arrays.asList("thing"));
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder("6/4").build();
+		
+		when(mocks.db.resolveWorkspaces(set(wsi1), false)).thenThrow(
+				new NoSuchWorkspaceException("oh dang", wsi1));
+		
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(oi1, mu1),
+				new InaccessibleObjectException("Object 4 cannot be accessed: oh dang", oi1));
+	}
+	
+	@Test
+	public void setAdminObjectMetadataFailLockedWorkspace() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier(6);
+		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(6, "foo", true, false);
+		final MetadataUpdate mu1 = new MetadataUpdate(null, Arrays.asList("thing"));
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder("6/4").build();
+		
+		when(mocks.db.resolveWorkspaces(set(wsi1), false)).thenReturn(ImmutableMap.of(
+				wsi1, rwsi1));
+		
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(oi1, mu1),
+				new InaccessibleObjectException(
+						"Object 4 cannot be accessed: The workspace with id 6, name foo, "
+						+ "is locked and may not be modified",
+						oi1));
+	}
+	
+	private void setAdminObjectMetadataFail(
+			final Workspace ws,
+			final Map<ObjectIdentifier, MetadataUpdate> update,
+			final Exception expected) {
+		try {
+			ws.setAdminObjectMetadata(update);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
 }
