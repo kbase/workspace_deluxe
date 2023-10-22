@@ -17,9 +17,9 @@ import us.kbase.common.service.Tuple11;
  * <p>Original spec-file type: GetObjectInfo3Results</p>
  * <pre>
  * Output from the get_object_info3 function.
- *         list<object_info> infos - the object_info data for each object.
- *         list<list<obj_ref> paths - the path to the object through the object reference graph for
- *                 each object. All the references in the path are absolute.
+ *                 list<object_info> infos - the object_info data for each object.
+ *                 list<list<obj_ref> paths - the path to the object through the object reference graph for
+ *                         each object. All the references in the path are absolute.
  * </pre>
  * 
  */

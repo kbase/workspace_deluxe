@@ -16,25 +16,25 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: TypeInfo</p>
  * <pre>
  * Information about a type
- *         type_string type_def - resolved type definition id.
- *         string description - the description of the type from spec file.
- *         string spec_def - reconstruction of type definition from spec file.
- *         jsonschema json_schema - JSON schema of this type.
- *         string parsing_structure - json document describing parsing structure of type 
- *                 in spec file including involved sub-types.
- *         list<spec_version> module_vers - versions of spec-files containing
- *                 given type version.
- *         list<spec_version> released_module_vers - versions of released spec-files 
- *                 containing given type version.
- *         list<type_string> type_vers - all versions of type with given type name.
- *         list<type_string> released_type_vers - all released versions of type with 
- *                 given type name.
- *         list<func_string> using_func_defs - list of functions (with versions)
- *                 referring to this type version.
- *         list<type_string> using_type_defs - list of types (with versions)
- *                 referring to this type version.
- *         list<type_string> used_type_defs - list of types (with versions) 
- *                 referred from this type version.
+ *                 type_string type_def - resolved type definition id.
+ *                 string description - the description of the type from spec file.
+ *                 string spec_def - reconstruction of type definition from spec file.
+ *                 jsonschema json_schema - JSON schema of this type.
+ *                 string parsing_structure - json document describing parsing structure of type
+ *                         in spec file including involved sub-types.
+ *                 list<spec_version> module_vers - versions of spec-files containing
+ *                         given type version.
+ *                 list<spec_version> released_module_vers - versions of released spec-files
+ *                         containing given type version.
+ *                 list<type_string> type_vers - all versions of type with given type name.
+ *                 list<type_string> released_type_vers - all released versions of type with
+ *                         given type name.
+ *                 list<func_string> using_func_defs - list of functions (with versions)
+ *                         referring to this type version.
+ *                 list<type_string> using_type_defs - list of types (with versions)
+ *                         referring to this type version.
+ *                 list<type_string> used_type_defs - list of types (with versions)
+ *                         referred from this type version.
  * </pre>
  * 
  */

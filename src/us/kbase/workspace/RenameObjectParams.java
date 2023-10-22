@@ -15,9 +15,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: RenameObjectParams</p>
  * <pre>
  * Input parameters for the 'rename_object' function.
- * Required arguments:
- * ObjectIdentity obj - the object to rename.
- * obj_name new_name - the new name for the object.
+ *                 Required arguments:
+ *                 ObjectIdentity obj - the object to rename.
+ *                 obj_name new_name - the new name for the object.
  * </pre>
  * 
  */
@@ -33,18 +33,18 @@ public class RenameObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */
@@ -58,18 +58,18 @@ public class RenameObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */
@@ -82,18 +82,18 @@ public class RenameObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */

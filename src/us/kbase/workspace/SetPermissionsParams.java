@@ -16,13 +16,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: SetPermissionsParams</p>
  * <pre>
  * Input parameters for the "set_permissions" function.
- *         One, and only one, of the following is required:
- *         ws_id id - the numerical ID of the workspace.
- *         ws_name workspace - the name of the workspace.
- *         
- *         Required arguments:
- *         permission new_permission - the permission to assign to the users.
- *         list<username> users - the users whose permissions will be altered.
+ *                 One, and only one, of the following is required:
+ *                 ws_id id - the numerical ID of the workspace.
+ *                 ws_name workspace - the name of the workspace.
+ *                 Required arguments:
+ *                 permission new_permission - the permission to assign to the users.
+ *                 list<username> users - the users whose permissions will be altered.
  * </pre>
  * 
  */

@@ -248,13 +248,12 @@ class Workspace(object):
     def lock_workspace(self, wsi, context=None):
         """
         Lock a workspace, preventing further changes.
-                WARNING: Locking a workspace is permanent. A workspace, once locked,
-                cannot be unlocked.
-                
-                The only changes allowed for a locked workspace are changing user
-                based permissions or making a private workspace globally readable,
-                thus permanently publishing the workspace. A locked, globally readable
-                workspace cannot be made private.
+                        WARNING: Locking a workspace is permanent. A workspace, once locked,
+                        cannot be unlocked.
+                        The only changes allowed for a locked workspace are changing user
+                        based permissions or making a private workspace globally readable,
+                        thus permanently publishing the workspace. A locked, globally readable
+                        workspace cannot be made private.
         :param wsi: instance of type "WorkspaceIdentity" (A workspace
            identifier. Select a workspace by one, and only one, of the
            numerical id or name. ws_id id - the numerical ID of the
@@ -311,7 +310,7 @@ class Workspace(object):
     def get_workspacemeta(self, params, context=None):
         """
         Retrieves the metadata associated with the specified workspace.
-        Provided for backwards compatibility. 
+        Provided for backwards compatibility.
         @deprecated Workspace.get_workspace_info
         :param params: instance of type "get_workspacemeta_params"
            (DEPRECATED Input parameters for the "get_workspacemeta" function.
@@ -2513,21 +2512,18 @@ class Workspace(object):
     def get_referenced_objects(self, ref_chains, context=None):
         """
         DEPRECATED
-                Get objects by references from other objects.
-                NOTE: In the vast majority of cases, this method is not necessary and
-                get_objects should be used instead. 
-                
-                get_referenced_objects guarantees that a user that has access to an
-                object can always see a) objects that are referenced inside the object
-                and b) objects that are referenced in the object's provenance. This
-                ensures that the user has visibility into the entire provenance of the
-                object and the object's object dependencies (e.g. references).
-                
-                The user must have at least read access to the first object in each
-                reference chain, but need not have access to any further objects in
-                the chain, and those objects may be deleted.
-                
-                @deprecated Workspace.get_objects2
+                        Get objects by references from other objects.
+                        NOTE: In the vast majority of cases, this method is not necessary and
+                        get_objects should be used instead.
+                        get_referenced_objects guarantees that a user that has access to an
+                        object can always see a) objects that are referenced inside the object
+                        and b) objects that are referenced in the object's provenance. This
+                        ensures that the user has visibility into the entire provenance of the
+                        object and the object's object dependencies (e.g. references).
+                        The user must have at least read access to the first object in each
+                        reference chain, but need not have access to any further objects in
+                        the chain, and those objects may be deleted.
+                        @deprecated Workspace.get_objects2
         :param ref_chains: instance of list of type "ref_chain" (A chain of
            objects with references to one another. An object reference chain
            consists of a list of objects where the nth object possesses a
@@ -4169,8 +4165,8 @@ class Workspace(object):
     def revert_object(self, object, context=None):
         """
         Revert an object.
-                The object specified in the ObjectIdentity is reverted to the version
-                specified in the ObjectIdentity.
+                        The object specified in the ObjectIdentity is reverted to the version
+                        specified in the ObjectIdentity.
         :param object: instance of type "ObjectIdentity" (An object
            identifier. Select an object by either: One, and only one, of the
            numerical id or name of the workspace. ws_id wsid - the numerical
@@ -4550,17 +4546,17 @@ class Workspace(object):
     def release_module(self, mod, context=None):
         """
         Release a module for general use of its types.
-        Releases the most recent version of a module. Releasing a module does
-        two things to the module's types:
-        1) If a type's major version is 0, it is changed to 1. A major
-                version of 0 implies that the type is in development and may have
-                backwards incompatible changes from minor version to minor version.
-                Once a type is released, backwards incompatible changes always
-                cause a major version increment.
-        2) This version of the type becomes the default version, and if a 
-                specific version is not supplied in a function call, this version
-                will be used. This means that newer, unreleased versions of the
-                type may be skipped.
+                        Releases the most recent version of a module. Releasing a module does
+                        two things to the module's types:
+                        1) If a type's major version is 0, it is changed to 1. A major
+                                version of 0 implies that the type is in development and may have
+                                backwards incompatible changes from minor version to minor version.
+                                Once a type is released, backwards incompatible changes always
+                                cause a major version increment.
+                        2) This version of the type becomes the default version, and if a
+                                specific version is not supplied in a function call, this version
+                                will be used. This means that newer, unreleased versions of the
+                                type may be skipped.
         :param mod: instance of type "modulename" (A module name defined in a
            KIDL typespec.)
         :returns: instance of list of type "type_string" (A type string.

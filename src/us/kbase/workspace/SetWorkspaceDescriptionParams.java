@@ -15,14 +15,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: SetWorkspaceDescriptionParams</p>
  * <pre>
  * Input parameters for the "set_workspace_description" function.
- *         One, and only one, of the following is required:
- *         ws_id id - the numerical ID of the workspace.
- *         ws_name workspace - the name of the workspace.
- *         
- *         Optional arguments:
- *         string description - A free-text description of the workspace, 1000
- *                 characters max. Longer strings will be mercilessly and brutally
- *                 truncated. If omitted, the description is set to null.
+ *                 One, and only one, of the following is required:
+ *                 ws_id id - the numerical ID of the workspace.
+ *                 ws_name workspace - the name of the workspace.
+ *                 Optional arguments:
+ *                 string description - A free-text description of the workspace, 1000
+ *                         characters max. Longer strings will be mercilessly and brutally
+ *                         truncated. If omitted, the description is set to null.
  * </pre>
  * 
  */

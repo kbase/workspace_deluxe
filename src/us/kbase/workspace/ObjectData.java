@@ -18,33 +18,33 @@ import us.kbase.common.service.UObject;
  * <p>Original spec-file type: ObjectData</p>
  * <pre>
  * The data and supplemental info for an object.
- *         UnspecifiedObject data - the object's data or subset data.
- *         object_info info - information about the object.
- *         list<obj_ref> path - the path to the object through the object reference graph. All the
- *                 references in the path are absolute.
- *         list<ProvenanceAction> provenance - the object's provenance.
- *         username creator - the user that first saved the object to the workspace.
- *         ws_id orig_wsid - the id of the workspace in which this object was
- *                         originally saved. Missing for objects saved prior to version
- *                         0.4.1.
- *         timestamp created - the date the object was first saved to the
- *                 workspace.
- *         epoch epoch - the date the object was first saved to the
- *                 workspace.
- *         list<obj_ref> refs - the references contained within the object.
- *         obj_ref copied - the reference of the source object if this object is
- *                 a copy and the copy source exists and is accessible.
- *                 null otherwise.
- *         boolean copy_source_inaccessible - true if the object was copied from
- *                 another object, but that object is no longer accessible to the
- *                 user. False otherwise.
- *         mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
- *                 from the object.
- *         string handle_error - if an error occurs while setting ACLs on
- *                 embedded external IDs, it will be reported here. If not for historical reasons the
- *                 parameter would be called "external_id_error".
- *         string handle_stacktrace - the stacktrace for handle_error. As above, the parameter
- *                 should be called "external_id_stacktrace".
+ *                 UnspecifiedObject data - the object's data or subset data.
+ *                 object_info info - information about the object.
+ *                 list<obj_ref> path - the path to the object through the object reference graph. All the
+ *                         references in the path are absolute.
+ *                 list<ProvenanceAction> provenance - the object's provenance.
+ *                 username creator - the user that first saved the object to the workspace.
+ *                 ws_id orig_wsid - the id of the workspace in which this object was
+ *                                 originally saved. Missing for objects saved prior to version
+ *                                 0.4.1.
+ *                 timestamp created - the date the object was first saved to the
+ *                         workspace.
+ *                 epoch epoch - the date the object was first saved to the
+ *                         workspace.
+ *                 list<obj_ref> refs - the references contained within the object.
+ *                 obj_ref copied - the reference of the source object if this object is
+ *                         a copy and the copy source exists and is accessible.
+ *                         null otherwise.
+ *                 boolean copy_source_inaccessible - true if the object was copied from
+ *                         another object, but that object is no longer accessible to the
+ *                         user. False otherwise.
+ *                 mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
+ *                         from the object.
+ *                 string handle_error - if an error occurs while setting ACLs on
+ *                         embedded external IDs, it will be reported here. If not for historical reasons the
+ *                         parameter would be called "external_id_error".
+ *                 string handle_stacktrace - the stacktrace for handle_error. As above, the parameter
+ *                         should be called "external_id_stacktrace".
  * </pre>
  * 
  */

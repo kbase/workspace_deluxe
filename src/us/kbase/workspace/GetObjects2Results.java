@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: GetObjects2Results</p>
  * <pre>
  * Results from the get_objects2 function.
- *         list<ObjectData> data - the returned objects.
+ *                 list<ObjectData> data - the returned objects.
  * </pre>
  * 
  */

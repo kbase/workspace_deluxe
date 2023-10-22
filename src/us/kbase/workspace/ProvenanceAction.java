@@ -17,67 +17,62 @@ import us.kbase.common.service.UObject;
  * <p>Original spec-file type: ProvenanceAction</p>
  * <pre>
  * A provenance action.
- *         A provenance action (PA) is an action taken while transforming one data
- *         object to another. There may be several PAs taken in series. A PA is
- *         typically running a script, running an api command, etc. All of the
- *         following fields are optional, but more information provided equates to
- *         better data provenance.
- *         
- *         If a provenance action has no fields defined at all, it is silently dropped from
- *         the list.
- *         
- *         resolved_ws_objects should never be set by the user; it is set by the
- *         workspace service when returning data.
- *         
- *         On input, only one of the time or epoch may be supplied. Both are
- *         supplied on output.
- *         
- *         The maximum size of the entire provenance object, including all actions,
- *         is 1MB.
- *         
- *         timestamp time - the time the action was started
- *         epoch epoch - the time the action was started.
- *         string caller - the name or id of the invoker of this provenance
- *                 action. In most cases, this will be the same for all PAs.
- *         string service - the name of the service that performed this action.
- *         string service_ver - the version of the service that performed this action.
- *         string method - the method of the service that performed this action.
- *         list<UnspecifiedObject> method_params - the parameters of the method
- *                 that performed this action. If an object in the parameters is a
- *                 workspace object, also put the object reference in the
- *                 input_ws_object list.
- *         string script - the name of the script that performed this action.
- *         string script_ver - the version of the script that performed this action.
- *         string script_command_line - the command line provided to the script
- *                 that performed this action. If workspace objects were provided in
- *                 the command line, also put the object reference in the
- *                 input_ws_object list.
- *         list<ref_string> input_ws_objects - the workspace objects that
- *                 were used as input to this action; typically these will also be
- *                 present as parts of the method_params or the script_command_line
- *                 arguments. A reference path into the object graph may be supplied.
- *         list<obj_ref> resolved_ws_objects - the workspace objects ids from 
- *                 input_ws_objects resolved to permanent workspace object references
- *                 by the workspace service.
- *         list<string> intermediate_incoming - if the previous action produced 
- *                 output that 1) was not stored in a referrable way, and 2) is
- *                 used as input for this action, provide it with an arbitrary and
- *                 unique ID here, in the order of the input arguments to this action.
- *                 These IDs can be used in the method_params argument.
- *         list<string> intermediate_outgoing - if this action produced output
- *                 that 1) was not stored in a referrable way, and 2) is
- *                 used as input for the next action, provide it with an arbitrary and
- *                 unique ID here, in the order of the output values from this action.
- *                 These IDs can be used in the intermediate_incoming argument in the
- *                 next action.
- *         list<ExternalDataUnit> external_data - data external to the workspace
- *                 that was either imported to the workspace or used to create a
- *                 workspace object.
- *         list<SubAction> subactions - the subactions taken as a part of this
- *                 action.
- *         mapping<string, string> custom - user definable custom provenance
- *                 fields and their values.
- *         string description - a free text description of this action.
+ *                 A provenance action (PA) is an action taken while transforming one data
+ *                 object to another. There may be several PAs taken in series. A PA is
+ *                 typically running a script, running an api command, etc. All of the
+ *                 following fields are optional, but more information provided equates to
+ *                 better data provenance.
+ *                 If a provenance action has no fields defined at all, it is silently dropped from
+ *                 the list.
+ *                 resolved_ws_objects should never be set by the user; it is set by the
+ *                 workspace service when returning data.
+ *                 On input, only one of the time or epoch may be supplied. Both are
+ *                 supplied on output.
+ *                 The maximum size of the entire provenance object, including all actions,
+ *                 is 1MB.
+ *                 timestamp time - the time the action was started
+ *                 epoch epoch - the time the action was started.
+ *                 string caller - the name or id of the invoker of this provenance
+ *                         action. In most cases, this will be the same for all PAs.
+ *                 string service - the name of the service that performed this action.
+ *                 string service_ver - the version of the service that performed this action.
+ *                 string method - the method of the service that performed this action.
+ *                 list<UnspecifiedObject> method_params - the parameters of the method
+ *                         that performed this action. If an object in the parameters is a
+ *                         workspace object, also put the object reference in the
+ *                         input_ws_object list.
+ *                 string script - the name of the script that performed this action.
+ *                 string script_ver - the version of the script that performed this action.
+ *                 string script_command_line - the command line provided to the script
+ *                         that performed this action. If workspace objects were provided in
+ *                         the command line, also put the object reference in the
+ *                         input_ws_object list.
+ *                 list<ref_string> input_ws_objects - the workspace objects that
+ *                         were used as input to this action; typically these will also be
+ *                         present as parts of the method_params or the script_command_line
+ *                         arguments. A reference path into the object graph may be supplied.
+ *                 list<obj_ref> resolved_ws_objects - the workspace objects ids from
+ *                         input_ws_objects resolved to permanent workspace object references
+ *                         by the workspace service.
+ *                 list<string> intermediate_incoming - if the previous action produced
+ *                         output that 1) was not stored in a referrable way, and 2) is
+ *                         used as input for this action, provide it with an arbitrary and
+ *                         unique ID here, in the order of the input arguments to this action.
+ *                         These IDs can be used in the method_params argument.
+ *                 list<string> intermediate_outgoing - if this action produced output
+ *                         that 1) was not stored in a referrable way, and 2) is
+ *                         used as input for the next action, provide it with an arbitrary and
+ *                         unique ID here, in the order of the output values from this action.
+ *                         These IDs can be used in the intermediate_incoming argument in the
+ *                         next action.
+ *                 list<ExternalDataUnit> external_data - data external to the workspace
+ *                         that was either imported to the workspace or used to create a
+ *                         workspace object.
+ *                 list<SubAction> subactions - the subactions taken as a part of this
+ *                         action.
+ *                 mapping<string, string> custom - user definable custom provenance
+ *                         fields and their values.
+ *                 string description - a free text description of this action.
  * </pre>
  * 
  */

@@ -15,16 +15,15 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: CreateWorkspaceParams</p>
  * <pre>
  * Input parameters for the "create_workspace" function.
- *         Required arguments:
- *         ws_name workspace - name of the workspace to be created.
- *         
- *         Optional arguments:
- *         permission globalread - 'r' to set the new workspace globally readable,
- *                 default 'n'.
- *         string description - A free-text description of the new workspace, 1000
- *                 characters max. Longer strings will be mercilessly and brutally
- *                 truncated.
- *         usermeta meta - arbitrary user-supplied metadata for the workspace.
+ *                 Required arguments:
+ *                 ws_name workspace - name of the workspace to be created.
+ *                 Optional arguments:
+ *                 permission globalread - 'r' to set the new workspace globally readable,
+ *                         default 'n'.
+ *                 string description - A free-text description of the new workspace, 1000
+ *                         characters max. Longer strings will be mercilessly and brutally
+ *                         truncated.
+ *                 usermeta meta - arbitrary user-supplied metadata for the workspace.
  * </pre>
  * 
  */
