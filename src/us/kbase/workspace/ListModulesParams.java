@@ -15,8 +15,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ListModulesParams</p>
  * <pre>
  * Parameters for the list_modules() function.
- *         Optional arguments:
- *         username owner - only list modules owned by this user.
+ *                 Optional arguments:
+ *                 username owner - only list modules owned by this user.
  * </pre>
  * 
  */

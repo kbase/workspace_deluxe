@@ -15,13 +15,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: GrantModuleOwnershipParams</p>
  * <pre>
  * Parameters for the grant_module_ownership function.
- * Required arguments:
- * modulename mod - the module to modify.
- * username new_owner - the user to add to the module's list of
- *         owners.
- * Optional arguments:
- * boolean with_grant_option - true to allow the user to add owners
- *         to the module.
+ *                 Required arguments:
+ *                 modulename mod - the module to modify.
+ *                 username new_owner - the user to add to the module's list of
+ *                         owners.
+ *                 Optional arguments:
+ *                 boolean with_grant_option - true to allow the user to add owners
+ *                         to the module.
  * </pre>
  * 
  */

@@ -16,13 +16,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: AlterWorkspaceMetadataParams</p>
  * <pre>
  * Input parameters for the "alter_workspace_metadata" function.
- * Required arguments:
- * WorkspaceIdentity wsi - the workspace to be altered
- * One or both of the following arguments are required:
- * usermeta new - metadata to assign to the workspace. Duplicate keys will
- *         be overwritten.
- * list<string> remove - these keys will be removed from the workspace
- *         metadata key/value pairs.
+ *                 Required arguments:
+ *                 WorkspaceIdentity wsi - the workspace to be altered
+ *                 One or both of the following arguments are required:
+ *                 usermeta new - metadata to assign to the workspace. Duplicate keys will
+ *                         be overwritten.
+ *                 list<string> remove - these keys will be removed from the workspace
+ *                         metadata key/value pairs.
  * </pre>
  * 
  */

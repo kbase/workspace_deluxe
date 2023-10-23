@@ -15,28 +15,24 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: SubAction</p>
  * <pre>
  * Information about a subaction that is invoked by a provenance action.
- *         A provenance action (PA) may invoke subactions (SA), e.g. calling a
- *         separate piece of code, a service, or a script. In most cases these
- *         calls are the same from PA to PA and so do not need to be listed in
- *         the provenance since providing information about the PA alone provides
- *         reproducibility.
- *         
- *         In some cases, however, SAs may change over time, such that invoking
- *         the same PA with the same parameters may produce different results.
- *         For example, if a PA calls a remote server, that server may be updated
- *         between a PA invoked on day T and another PA invoked on day T+1.
- *         
- *         The SubAction structure allows for specifying information about SAs
- *         that may dynamically change from PA invocation to PA invocation.
- *         
- *         All fields are optional but at least one field must be present.
- *         
- *         string name - the name of the SA.
- *         string ver - the version of SA.
- *         string code_url - a url pointing to the SA's codebase.
- *         string commit - a version control commit ID for the SA.
- *         string endpoint_url - a url pointing to the access point for the SA -
- *                 a server url, for instance.
+ *                 A provenance action (PA) may invoke subactions (SA), e.g. calling a
+ *                 separate piece of code, a service, or a script. In most cases these
+ *                 calls are the same from PA to PA and so do not need to be listed in
+ *                 the provenance since providing information about the PA alone provides
+ *                 reproducibility.
+ *                 In some cases, however, SAs may change over time, such that invoking
+ *                 the same PA with the same parameters may produce different results.
+ *                 For example, if a PA calls a remote server, that server may be updated
+ *                 between a PA invoked on day T and another PA invoked on day T+1.
+ *                 The SubAction structure allows for specifying information about SAs
+ *                 that may dynamically change from PA invocation to PA invocation.
+ *                 All fields are optional but at least one field must be present.
+ *                 string name - the name of the SA.
+ *                 string ver - the version of SA.
+ *                 string code_url - a url pointing to the SA's codebase.
+ *                 string commit - a version control commit ID for the SA.
+ *                 string endpoint_url - a url pointing to the access point for the SA -
+ *                         a server url, for instance.
  * </pre>
  * 
  */

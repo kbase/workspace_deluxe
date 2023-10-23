@@ -14,17 +14,15 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * <p>Original spec-file type: CopyObjectParams</p>
  * <pre>
- * Input parameters for the 'copy_object' function. 
- *         If the 'from' ObjectIdentity includes no version and the object is
- *         copied to a new name, the entire version history of the object is
- *         copied. In all other cases only the version specified, or the latest
- *         version if no version is specified, is copied.
- *         
- *         The version from the 'to' ObjectIdentity is always ignored.
- *         
- *         Required arguments:
- *         ObjectIdentity from - the object to copy.
- *         ObjectIdentity to - where to copy the object.
+ * Input parameters for the 'copy_object' function.
+ *                 If the 'from' ObjectIdentity includes no version and the object is
+ *                 copied to a new name, the entire version history of the object is
+ *                 copied. In all other cases only the version specified, or the latest
+ *                 version if no version is specified, is copied.
+ *                 The version from the 'to' ObjectIdentity is always ignored.
+ *                 Required arguments:
+ *                 ObjectIdentity from - the object to copy.
+ *                 ObjectIdentity to - where to copy the object.
  * </pre>
  * 
  */
@@ -40,18 +38,18 @@ public class CopyObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */
@@ -61,18 +59,18 @@ public class CopyObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */
@@ -84,18 +82,18 @@ public class CopyObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */
@@ -108,18 +106,18 @@ public class CopyObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */
@@ -137,18 +135,18 @@ public class CopyObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */
@@ -161,18 +159,18 @@ public class CopyObjectParams {
      * <p>Original spec-file type: ObjectIdentity</p>
      * <pre>
      * An object identifier.
-     * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace.
-     *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - the name of the workspace.
-     *         AND 
-     *         One, and only one, of the numerical id or name of the object.
-     *                 obj_id objid- the numerical ID of the object.
-     *                 obj_name name - name of the object.
-     *         OPTIONALLY
-     *                 obj_ver ver - the version of the object.
-     * OR an object reference string:
-     *         obj_ref ref - an object reference string.
+     *                 Select an object by either:
+     *                         One, and only one, of the numerical id or name of the workspace.
+     *                                 ws_id wsid - the numerical ID of the workspace.
+     *                                 ws_name workspace - the name of the workspace.
+     *                         AND
+     *                         One, and only one, of the numerical id or name of the object.
+     *                                 obj_id objid- the numerical ID of the object.
+     *                                 obj_name name - name of the object.
+     *                         OPTIONALLY
+     *                                 obj_ver ver - the version of the object.
+     *                 OR an object reference string:
+     *                         obj_ref ref - an object reference string.
      * </pre>
      * 
      */

@@ -15,9 +15,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: RenameWorkspaceParams</p>
  * <pre>
  * Input parameters for the 'rename_workspace' function.
- * Required arguments:
- * WorkspaceIdentity wsi - the workspace to rename.
- * ws_name new_name - the new name for the workspace.
+ *                 Required arguments:
+ *                 WorkspaceIdentity wsi - the workspace to rename.
+ *                 ws_name new_name - the new name for the workspace.
  * </pre>
  * 
  */

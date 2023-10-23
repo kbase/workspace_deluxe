@@ -85,7 +85,7 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  * and retrieval system for KBase typed objects (TO) defined with the KBase
  * Interface Description Language (KIDL). It has the following primary features:
  * - Immutable storage of TOs with
- *         - user defined metadata 
+ *         - user defined metadata
  *         - data provenance
  * - Versioning of TOs
  * - Referencing from TO to TO
@@ -99,7 +99,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "2b31e92a5810e610b9a43d516355a4436db11b82";
+    private static final String gitCommitHash = "77fa6739e4670d62146a7f78ef88f88b0e1523ae";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
@@ -373,6 +373,17 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
     //END_CLASS_HEADER
 
+//    public WorkspaceServer() throws Exception {
+//        super("Workspace");
+//        //BEGIN_CONSTRUCTOR
+//        // uncomment this constructor to recompile, recomment when done
+//        wsmeth = null;
+//        types = null;
+//        wsadmin = null;
+//        ws = null;
+//        //END_CONSTRUCTOR
+//    }
+
     /**
      * <p>Original spec-file function name: ver</p>
      * <pre>
@@ -481,13 +492,12 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: lock_workspace</p>
      * <pre>
      * Lock a workspace, preventing further changes.
-     *         WARNING: Locking a workspace is permanent. A workspace, once locked,
-     *         cannot be unlocked.
-     *         
-     *         The only changes allowed for a locked workspace are changing user
-     *         based permissions or making a private workspace globally readable,
-     *         thus permanently publishing the workspace. A locked, globally readable
-     *         workspace cannot be made private.
+     *                 WARNING: Locking a workspace is permanent. A workspace, once locked,
+     *                 cannot be unlocked.
+     *                 The only changes allowed for a locked workspace are changing user
+     *                 based permissions or making a private workspace globally readable,
+     *                 thus permanently publishing the workspace. A locked, globally readable
+     *                 workspace cannot be made private.
      * </pre>
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
      * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
@@ -507,7 +517,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: get_workspacemeta</p>
      * <pre>
      * Retrieves the metadata associated with the specified workspace.
-     * Provided for backwards compatibility. 
+     * Provided for backwards compatibility.
      * @deprecated Workspace.get_workspace_info
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.GetWorkspacemetaParams GetWorkspacemetaParams} (original type "get_workspacemeta_params")
@@ -652,7 +662,6 @@ public class WorkspaceServer extends JsonServerServlet {
      * Saves the input object data and metadata into the selected workspace,
      *         returning the object_metadata of the saved object. Provided
      *         for backwards compatibility.
-     *         
      * @deprecated Workspace.save_objects
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.SaveObjectParams SaveObjectParams} (original type "save_object_params")
@@ -907,21 +916,18 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: get_referenced_objects</p>
      * <pre>
      * DEPRECATED
-     *         Get objects by references from other objects.
-     *         NOTE: In the vast majority of cases, this method is not necessary and
-     *         get_objects should be used instead. 
-     *         
-     *         get_referenced_objects guarantees that a user that has access to an
-     *         object can always see a) objects that are referenced inside the object
-     *         and b) objects that are referenced in the object's provenance. This
-     *         ensures that the user has visibility into the entire provenance of the
-     *         object and the object's object dependencies (e.g. references).
-     *         
-     *         The user must have at least read access to the first object in each
-     *         reference chain, but need not have access to any further objects in
-     *         the chain, and those objects may be deleted.
-     *         
-     *         @deprecated Workspace.get_objects2
+     *                 Get objects by references from other objects.
+     *                 NOTE: In the vast majority of cases, this method is not necessary and
+     *                 get_objects should be used instead.
+     *                 get_referenced_objects guarantees that a user that has access to an
+     *                 object can always see a) objects that are referenced inside the object
+     *                 and b) objects that are referenced in the object's provenance. This
+     *                 ensures that the user has visibility into the entire provenance of the
+     *                 object and the object's object dependencies (e.g. references).
+     *                 The user must have at least read access to the first object in each
+     *                 reference chain, but need not have access to any further objects in
+     *                 the chain, and those objects may be deleted.
+     *                 @deprecated Workspace.get_objects2
      * </pre>
      * @param   refChains   instance of list of original type "ref_chain" (A chain of objects with references to one another. An object reference chain consists of a list of objects where the nth object possesses a reference, either in the object itself or in the object provenance, to the n+1th object.) &rarr; list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -1240,8 +1246,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: revert_object</p>
      * <pre>
      * Revert an object.
-     *         The object specified in the ObjectIdentity is reverted to the version
-     *         specified in the ObjectIdentity.
+     *                 The object specified in the ObjectIdentity is reverted to the version
+     *                 specified in the ObjectIdentity.
      * </pre>
      * @param   object   instance of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "reverted" of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
@@ -1430,17 +1436,17 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: release_module</p>
      * <pre>
      * Release a module for general use of its types.
-     * Releases the most recent version of a module. Releasing a module does
-     * two things to the module's types:
-     * 1) If a type's major version is 0, it is changed to 1. A major
-     *         version of 0 implies that the type is in development and may have
-     *         backwards incompatible changes from minor version to minor version.
-     *         Once a type is released, backwards incompatible changes always
-     *         cause a major version increment.
-     * 2) This version of the type becomes the default version, and if a 
-     *         specific version is not supplied in a function call, this version
-     *         will be used. This means that newer, unreleased versions of the
-     *         type may be skipped.
+     *                 Releases the most recent version of a module. Releasing a module does
+     *                 two things to the module's types:
+     *                 1) If a type's major version is 0, it is changed to 1. A major
+     *                         version of 0 implies that the type is in development and may have
+     *                         backwards incompatible changes from minor version to minor version.
+     *                         Once a type is released, backwards incompatible changes always
+     *                         cause a major version increment.
+     *                 2) This version of the type becomes the default version, and if a
+     *                         specific version is not supplied in a function call, this version
+     *                         will be used. This means that newer, unreleased versions of the
+     *                         type may be skipped.
      * </pre>
      * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
      * @return   parameter "types" of list of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1)

@@ -16,13 +16,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: GetNamesByPrefixParams</p>
  * <pre>
  * Input parameters for the get_names_by_prefix function.
- *         Required arguments:
- *         list<WorkspaceIdentity> workspaces - the workspaces to search.
- *         string prefix - the prefix of the object names to return.
- *         
- *         Optional arguments:
- *         boolean includeHidden - include names of hidden objects in the results.
- *                 Default false.
+ *                 Required arguments:
+ *                 list<WorkspaceIdentity> workspaces - the workspaces to search.
+ *                 string prefix - the prefix of the object names to return.
+ *                 Optional arguments:
+ *                 boolean includeHidden - include names of hidden objects in the results.
+ *                         Default false.
  * </pre>
  * 
  */

@@ -15,18 +15,16 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: get_workspacemeta_params</p>
  * <pre>
  * DEPRECATED
- *         Input parameters for the "get_workspacemeta" function. Provided for
- *         backwards compatibility.
- *         One, and only one of:
- *         ws_name workspace - name of the workspace.
- *         ws_id id - the numerical ID of the workspace.
- *                 
- *         Optional arguments:
- *         string auth - the authentication token of the KBase account accessing
- *                 the workspace. Overrides the client provided authorization
- *                 credentials if they exist.
- *         
- *         @deprecated Workspace.WorkspaceIdentity
+ *                 Input parameters for the "get_workspacemeta" function. Provided for
+ *                 backwards compatibility.
+ *                 One, and only one of:
+ *                 ws_name workspace - name of the workspace.
+ *                 ws_id id - the numerical ID of the workspace.
+ *                 Optional arguments:
+ *                 string auth - the authentication token of the KBase account accessing
+ *                         the workspace. Overrides the client provided authorization
+ *                         credentials if they exist.
+ *                 @deprecated Workspace.WorkspaceIdentity
  * </pre>
  * 
  */

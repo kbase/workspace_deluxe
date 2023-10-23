@@ -67,7 +67,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         succeeds, the object will be returned as normal. Note that the search
  *         will automatically fail after a certain (but much larger than necessary
  *         for the vast majority of cases) number of objects are traversed.
- *         
  * OBJECT SUBSETS:
  * When selecting a subset of an array in an object, the returned
  * array is compressed to the size of the subset, but the ordering of

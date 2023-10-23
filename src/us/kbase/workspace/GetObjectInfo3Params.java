@@ -16,17 +16,16 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: GetObjectInfo3Params</p>
  * <pre>
  * Input parameters for the "get_object_info3" function.
- *         Required arguments:
- *         list<ObjectSpecification> objects - the objects for which the
- *                 information should be fetched. Subsetting related parameters are
- *                 ignored.
- *         
- *         Optional arguments:
- *         boolean includeMetadata - include the object metadata in the returned
- *                 information. Default false.
- *         boolean ignoreErrors - Don't throw an exception if an object cannot
- *                 be accessed; return null for that object's information and path instead.
- *                 Default false.
+ *                 Required arguments:
+ *                 list<ObjectSpecification> objects - the objects for which the
+ *                         information should be fetched. Subsetting related parameters are
+ *                         ignored.
+ *                 Optional arguments:
+ *                 boolean includeMetadata - include the object metadata in the returned
+ *                         information. Default false.
+ *                 boolean ignoreErrors - Don't throw an exception if an object cannot
+ *                         be accessed; return null for that object's information and path instead.
+ *                         Default false.
  * </pre>
  * 
  */

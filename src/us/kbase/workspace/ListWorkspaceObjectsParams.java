@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * string auth - the authentication token of the KBase account requesting
  *         access. Overrides the client provided authorization credentials if
  *         they exist.
- *         
  * @deprecated Workspace.ListObjectsParams
  * </pre>
  * 

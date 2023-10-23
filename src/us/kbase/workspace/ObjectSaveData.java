@@ -17,24 +17,22 @@ import us.kbase.common.service.UObject;
  * <p>Original spec-file type: ObjectSaveData</p>
  * <pre>
  * An object and associated data required for saving.
- *         Required arguments:
- *         type_string type - the type of the object. Omit the version information
- *                 to use the latest version.
- *         UnspecifiedObject data - the object data.
- *         One, and only one, of:
- *                 obj_name name - the name of the object.
- *                 obj_id objid - the id of the object to save over.
- *         
- *         
- *         Optional arguments:
- *         usermeta meta - arbitrary user-supplied metadata for the object,
- *                 not to exceed 16kb; if the object type specifies automatic
- *                 metadata extraction with the 'meta ws' annotation, and your
- *                 metadata name conflicts, then your metadata will be silently
- *                 overwritten.
- *         list<ProvenanceAction> provenance - provenance data for the object.
- *         boolean hidden - true if this object should not be listed when listing
- *                 workspace objects.
+ *                 Required arguments:
+ *                 type_string type - the type of the object. Omit the version information
+ *                         to use the latest version.
+ *                 UnspecifiedObject data - the object data.
+ *                 One, and only one, of:
+ *                         obj_name name - the name of the object.
+ *                         obj_id objid - the id of the object to save over.
+ *                 Optional arguments:
+ *                 usermeta meta - arbitrary user-supplied metadata for the object,
+ *                         not to exceed 16kb; if the object type specifies automatic
+ *                         metadata extraction with the 'meta ws' annotation, and your
+ *                         metadata name conflicts, then your metadata will be silently
+ *                         overwritten.
+ *                 list<ProvenanceAction> provenance - provenance data for the object.
+ *                 boolean hidden - true if this object should not be listed when listing
+ *                         workspace objects.
  * </pre>
  * 
  */
