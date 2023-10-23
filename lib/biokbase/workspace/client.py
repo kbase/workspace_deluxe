@@ -5237,6 +5237,17 @@ class Workspace(object):
         return self._client.call_method('Workspace.list_all_types',
                                         [params], self._service_ver, context)
 
+    def get_admin_role(self, context=None):
+        """
+        Get the administrative role for the current user.
+        :returns: instance of type "GetAdminRoleResults" (The results of the
+           get_admin_role call. adminrole - the users's administration role,
+           one of `none`, `read`, or `full`.) -> structure: parameter
+           "adminrole" of String
+        """
+        return self._client.call_method('Workspace.get_admin_role',
+                                        [], self._service_ver, context)
+
     def administer(self, command, context=None):
         """
         The administration interface.

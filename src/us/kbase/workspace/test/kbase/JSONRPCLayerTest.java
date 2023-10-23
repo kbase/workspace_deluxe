@@ -3527,6 +3527,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareInfo(info.getInfos(), exp);
 		assertThat("incorrect paths", info.getPaths(), is(paths));
 	}
+	
+	@Test
+	public void getAdminRole() throws Exception {
+		assertThat("incorrect admin role", CLIENT_AA_ADMIN_NONE.getAdminRole().getAdminrole(),
+				is("none"));
+		assertThat("incorrect admin role", CLIENT_AA_ADMIN_READ.getAdminRole().getAdminrole(),
+				is("read"));
+		assertThat("incorrect admin role", CLIENT_AA_ADMIN_FULL.getAdminRole().getAdminrole(),
+				is("full"));
+	}
 
 	@Test
 	public void adminGetSetConfig() throws Exception {

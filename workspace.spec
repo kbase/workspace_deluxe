@@ -2050,7 +2050,23 @@ module Workspace {
 		returns (mapping<modulename, mapping<typename, typever>>)
 		authentication optional;
 
+	/****************************
+	  Administration functions
+	****************************/
+
+	/* The results of the get_admin_role call.
+	
+		adminrole - the users's administration role, one of `none`, `read`, or `full`.
+	*/
+	typedef structure {
+		string adminrole;
+	} GetAdminRoleResults;
+	
+	/* Get the administrative role for the current user. */
+	funcdef get_admin_role() returns (GetAdminRoleResults results) authentication required;
+	
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)
 		returns(UnspecifiedObject response) authentication required;
+		
 };

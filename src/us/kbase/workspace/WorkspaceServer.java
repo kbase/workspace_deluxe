@@ -48,6 +48,8 @@ import java.util.Set;
 import org.productivity.java.syslog4j.SyslogIF;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 
@@ -71,6 +73,7 @@ import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
+import us.kbase.workspace.kbase.admin.AdminRole;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.KBaseWorkspaceConfigException;
@@ -99,7 +102,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "77fa6739e4670d62146a7f78ef88f88b0e1523ae";
+    private static final String gitCommitHash = "f896c7f497c8780a470487cec1f3434d2fcfed80";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
@@ -112,6 +115,12 @@ public class WorkspaceServer extends JsonServerServlet {
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
 	private static final int MAX_RPC_PACKAGE_MEM_USE = 100000000;
+	
+	private static final Map<AdminRole, String> ADMIN_ROLE_MAP = ImmutableMap.of(
+			AdminRole.NONE, "none",
+			AdminRole.READ_ONLY, "read",
+			AdminRole.ADMIN, "full"
+	);
 	
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
@@ -1674,6 +1683,23 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		returnVal = types.listAllTypes(params, authPart);
         //END list_all_types
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_admin_role</p>
+     * <pre>
+     * Get the administrative role for the current user.
+     * </pre>
+     * @return   parameter "results" of type {@link us.kbase.workspace.GetAdminRoleResults GetAdminRoleResults}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_admin_role", async=true)
+    public GetAdminRoleResults getAdminRole(AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
+        GetAdminRoleResults returnVal = null;
+        //BEGIN get_admin_role
+		returnVal = new GetAdminRoleResults().withAdminrole(
+				ADMIN_ROLE_MAP.get(wsadmin.getAdminRole(authPart)));
+        //END get_admin_role
         return returnVal;
     }
 

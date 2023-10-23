@@ -7992,6 +7992,79 @@ version.
  
 
 
+=head2 get_admin_role
+
+  $results = $obj->get_admin_role()
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$results is a Workspace.GetAdminRoleResults
+GetAdminRoleResults is a reference to a hash where the following keys are defined:
+	adminrole has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$results is a Workspace.GetAdminRoleResults
+GetAdminRoleResults is a reference to a hash where the following keys are defined:
+	adminrole has a value which is a string
+
+
+=end text
+
+=item Description
+
+Get the administrative role for the current user.
+
+=back
+
+=cut
+
+ sub get_admin_role
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 0)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_admin_role (received $n, expecting 0)");
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_admin_role",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'get_admin_role',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_admin_role",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_admin_role',
+				       );
+    }
+}
+ 
+
+
 =head2 administer
 
   $response = $obj->administer($command)
@@ -12333,6 +12406,43 @@ with_empty_modules has a value which is a Workspace.boolean
 
 a reference to a hash where the following keys are defined:
 with_empty_modules has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 GetAdminRoleResults
+
+=over 4
+
+
+
+=item Description
+
+The results of the get_admin_role call.
+
+        adminrole - the users's administration role, one of `none`, `read`, or `full`.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+adminrole has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+adminrole has a value which is a string
 
 
 =end text

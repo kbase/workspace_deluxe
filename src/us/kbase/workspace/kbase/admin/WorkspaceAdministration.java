@@ -224,7 +224,13 @@ public class WorkspaceAdministration {
 		}
 	}
 	
-	private AdminRole getAdminRole(final AuthToken token) throws AdministratorHandlerException {
+	/** Get the workspace administrator role for a user.
+	 * @param token the user's token.
+	 * @return the user's role.
+	 * @throws AdministratorHandlerException if an error occurs getting the role.
+	 */
+	public AdminRole getAdminRole(final AuthToken token) throws AdministratorHandlerException {
+		requireNonNull(token, "token");
 		try {
 			return adminCache.get(token.getUserName(), new Callable<AdminRole>() {
 				
