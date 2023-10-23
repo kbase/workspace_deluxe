@@ -1624,7 +1624,47 @@ public class Workspace {
 		}
 		return wsid.getID();
 	}
-
+	
+	/** Set administrator metadata on one or more objects.
+	 * 
+	 * This method should not be exposed in a public API; it is restricted to administrator
+	 * use only.
+	 * 
+	 * Only direct object access is supported; reference paths and object DAG
+	 * searches are not allowed (which are not necessary for admins in any case).
+	 * 
+	 * @param update the metadata updates to apply.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws InaccessibleObjectException if any of the objects are not accessible.
+	 * @throws NoSuchObjectException if any of the objects do not exist.
+	 */
+	public void setAdminObjectMetadata(final Map<ObjectIdentifier, MetadataUpdate> update)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+				CorruptWorkspaceDBException, NoSuchObjectException {
+		noNulls(requireNonNull(update, "update").keySet(), "null found in update keys");
+		if (update.isEmpty()) {
+			return;
+		}
+		for (final ObjectIdentifier oi: update.keySet()) {
+			if (oi.isLookupRequired() || oi.hasRefPath()) {
+				throw new IllegalArgumentException(
+						"Object lookups and reference paths are not supported");
+			}
+			if (update.get(oi) == null || !update.get(oi).hasUpdate()) {
+				throw new IllegalArgumentException(
+						"metadata updates cannot be null or updateless");
+			}
+		}
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> res = PermissionsCheckerFactory
+				.getBuilder(db).withAsAdmin(true).build()
+				.getObjectChecker(update.keySet(), Permission.WRITE).check();
+		db.setAdminObjectMeta(update.entrySet().stream()
+				.collect(Collectors.toMap(s -> res.get(s.getKey()), s -> s.getValue())));
+		// YAGNI a listener for this most likely. Add if needed
+	}
+		
 	/* admin method only, should not be exposed in public API
 	 */
 	public Set<WorkspaceUser> getAllWorkspaceOwners()
