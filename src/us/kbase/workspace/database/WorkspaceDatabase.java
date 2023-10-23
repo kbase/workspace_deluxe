@@ -101,6 +101,19 @@ public interface WorkspaceDatabase {
 	Optional<Instant> setWorkspaceMeta(ResolvedWorkspaceID wsid, MetadataUpdate meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
+	/** Sets administrative metadata on one or more objects, overwriting existing keys if
+	 * duplicate keys are supplied.
+	 * @param update object identifiers mapped to the metadata update for each object.
+	 * @throws NoSuchObjectException if any of the objects don't exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 * @throws IllegalArgumentException if no metadata is supplied or the 
+	 * updated metadata exceeds the allowed size.
+	 */
+	void setAdminObjectMeta(Map<ObjectIDResolvedWS, MetadataUpdate> update)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException;
+	
 	/** Clone a workspace.
 	 * @param user the user cloning the workspace
 	 * @param wsid the ID of the workspace to be cloned.

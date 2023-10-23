@@ -167,6 +167,7 @@ public class ObjectListerTest {
 
 		if (includeMeta) {
 			p.append("meta", 1);
+			p.append("adminmeta", 1);
 		}
 		return p;
 	}

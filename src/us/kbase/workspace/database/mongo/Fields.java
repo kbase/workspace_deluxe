@@ -65,10 +65,22 @@ public class Fields {
 	public static final String VER_TYPE_MINOR_VERSION = "tymin";
 	public static final String VER_SIZE = "size";
 	public static final String VER_RVRT = "revert";
-	public static final String VER_META = "meta";
 	public static final String VER_COPIED = "copied";
 	//in 0.3.0, if missing assume no external IDs
 	public static final String VER_EXT_IDS = "extids";
+	/*
+	 * Metadata provided by the user and / or automatically extracted from the object, stored
+	 * as a list of dictionaries, each with a key and value field (see below), storing the
+	 * metadata key and metadata value for each metadata key/value pair. It is stored this
+	 * way rather than a simple mapping so that mongo can index the metadata.
+	 */
+	public static final String VER_META = "meta"; 
+	/*
+	 * Metadata provided by an administrative user, stored the same way as user metadata.
+	 * As of 2023/10/12 administrative metadata is not indexed and there are no plans to index it.
+	 */
+	public static final String VER_ADMINMETA = "adminmeta";
+	// may want a moddate for admin meta in the future? YAGNI for now
 	
 	// meta document key & value
 	public static final String META_KEY = "k";
