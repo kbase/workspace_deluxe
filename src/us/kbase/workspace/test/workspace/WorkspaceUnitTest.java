@@ -221,7 +221,8 @@ public class WorkspaceUnitTest {
 		final TestMocks mocks = initMocks();
 		
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ws", false, false);
-		when(mocks.db.resolveWorkspace(new WorkspaceIdentifier("ws"))).thenReturn(rwsi);
+		when(mocks.db.resolveWorkspaces(set(new WorkspaceIdentifier("ws")))).thenReturn(
+				ImmutableMap.of(new WorkspaceIdentifier("ws"), rwsi));
 		
 		final long id = mocks.ws.setWorkspaceDescription(
 				null, new WorkspaceIdentifier("ws"), "foo", true);
@@ -236,7 +237,8 @@ public class WorkspaceUnitTest {
 		final TestMocks mocks = initMocks();
 		
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ws", false, false);
-		when(mocks.db.resolveWorkspace(new WorkspaceIdentifier("ws"))).thenReturn(rwsi);
+		when(mocks.db.resolveWorkspaces(set(new WorkspaceIdentifier("ws")))).thenReturn(
+				ImmutableMap.of(new WorkspaceIdentifier("ws"), rwsi));
 		
 		when(mocks.db.getWorkspaceDescription(rwsi)).thenReturn("my desc");
 		
@@ -256,7 +258,8 @@ public class WorkspaceUnitTest {
 		final TestMocks mocks = initMocks();
 		
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ws", true, false);
-		when(mocks.db.resolveWorkspace(new WorkspaceIdentifier("ws"))).thenReturn(rwsi);
+		when(mocks.db.resolveWorkspaces(set(new WorkspaceIdentifier("ws")))).thenReturn(
+				ImmutableMap.of(new WorkspaceIdentifier("ws"), rwsi));
 		
 		setWorkspaceDescriptionFail(mocks.ws, new WorkspaceIdentifier("ws"), true,
 				new WorkspaceAuthorizationException(

@@ -519,38 +519,13 @@ public class WorkspaceListenerTest {
 		
 		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
-				PermissionSet.getBuilder(user, new AllUsers('*'))
-						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
-		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
-		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
-				.thenReturn(Instant.ofEpochMilli(30000));
-		
-		ws.setWorkspaceOwner(user, wsi, newUser, Optional.empty(), false);
-
-		verify(m.l1).setWorkspaceOwner(user, 24L, newUser, Optional.empty(),
-				Instant.ofEpochMilli(30000));
-	}
-	
-	@Test
-	public void setWorkspaceOwner1AsAdmin() throws Exception {
-		final Mocks m = new Mocks();
-		
-		final WorkspaceUser user = new WorkspaceUser("foo");
-		final WorkspaceUser newUser = new WorkspaceUser("bar");
-		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foobar", false, false);
-		
-		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
-		
 		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
 		when(m.db.getWorkspaceOwner(rwsi)).thenReturn(user);
 		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
 		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
-		ws.setWorkspaceOwner(null, wsi, newUser, Optional.empty(), true);
+		ws.setWorkspaceOwner(wsi, newUser, Optional.empty());
 
 		verify(m.l1).setWorkspaceOwner(null, 24L, newUser, Optional.empty(),
 				Instant.ofEpochMilli(30000));
@@ -568,19 +543,17 @@ public class WorkspaceListenerTest {
 		
 		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
-				PermissionSet.getBuilder(user, new AllUsers('*'))
-						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
+		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(m.db.getWorkspaceOwner(rwsi)).thenReturn(user);
 		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
 		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.of("bar:foobar")))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
-		ws.setWorkspaceOwner(user, wsi, newUser, Optional.empty(), false);
+		ws.setWorkspaceOwner(wsi, newUser, Optional.empty());
 
-		verify(m.l1).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
+		verify(m.l1).setWorkspaceOwner(null, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
-		verify(m.l2).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
+		verify(m.l2).setWorkspaceOwner(null, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
 	}
 	

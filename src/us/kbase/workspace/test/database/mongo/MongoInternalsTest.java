@@ -370,8 +370,8 @@ public class MongoInternalsTest {
 		WorkspaceTester.failWSRename(ws, user1, cloning, "foo", noWSExcp);
 
 		//test set ws owner
-		WorkspaceTester.failSetWorkspaceOwner(ws, user1, cloning,
-				new WorkspaceUser("barbaz"), Optional.of("barbaz"), false, noWSExcp);
+		WorkspaceTester.failSetWorkspaceOwner(ws, cloning,
+				new WorkspaceUser("barbaz"), Optional.of("barbaz"), noWSExcp);
 
 		//test list workspaces
 		List<WorkspaceInformation> wsl = ws.listWorkspaces(

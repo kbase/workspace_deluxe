@@ -217,7 +217,8 @@ public class Workspace {
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		requireNonNull(meta, "meta");
-		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+		final ResolvedWorkspaceID wsid = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("alter metadata for").check();
 		if (!meta.hasUpdate()) {
@@ -242,7 +243,8 @@ public class Workspace {
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			PreExistingWorkspaceException, NoSuchObjectException {
-		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+		final ResolvedWorkspaceID wsid = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getWorkspaceChecker(wsi, Permission.READ).check();
 		new WorkspaceIdentifier(newname, user); //check for errors, ensures user != null
 		final WorkspaceInformation info = db.cloneWorkspace(user, wsid, newname, globalread,
@@ -271,7 +273,8 @@ public class Workspace {
 			final WorkspaceIdentifier wsi)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+		final ResolvedWorkspaceID wsid = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("lock").check();
 		final Instant time = db.lockWorkspace(wsid);
@@ -310,15 +313,10 @@ public class Workspace {
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		requireNonNull(wsi, "wsi");
-		final ResolvedWorkspaceID wsid;
-		if (asAdmin) {
-			wsid = db.resolveWorkspace(wsi);
-			PermissionsCheckerFactory.checkLocked(Permission.WRITE, wsid);
-		} else {
-			wsid = new PermissionsCheckerFactory(db, user)
-					.getWorkspaceChecker(wsi, Permission.ADMIN)
-					.withOperation("set description on").check();
-		}
+		final ResolvedWorkspaceID wsid = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).withAsAdmin(asAdmin).build()
+				.getWorkspaceChecker(wsi, Permission.ADMIN)
+				.withOperation("set description on").check();
 		// ugh, should be setting the time rather than getting it from the db impl.
 		final Instant time = db.setWorkspaceDescription(
 				wsid, pruneWorkspaceDescription(description));
@@ -346,39 +344,29 @@ public class Workspace {
 			final boolean asAdmin)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid;
-		if (asAdmin) {
-			wsid = db.resolveWorkspace(wsi);
-		} else {
-			wsid = new PermissionsCheckerFactory(db, user)
-					.getWorkspaceChecker(wsi, Permission.READ).check();
-		}
+		final ResolvedWorkspaceID wsid = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).withAsAdmin(asAdmin).build()
+				.getWorkspaceChecker(wsi, Permission.READ).check();
 		return db.getWorkspaceDescription(wsid);
 	}
 	
-	/** Change the owner of a workspace.
-	 * @param owner the current owner.
+	/** Change the owner of a workspace. This is an administrative function only and should
+	 * not be exposed in the public API as it's open to abuse.
 	 * @param wsi the workspace.
 	 * @param newUser the new owner.
 	 * @param newName the new name for the workspace, if any.
-	 * @param asAdmin run this command with admin privileges - e.g. the owner argument is ignored
-	 * and the command proceeds whether the owner provided actually owns the workspace ornot.
 	 * @return information about the workspace.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
 	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
 	 * storage system.
-	 * @throws WorkspaceAuthorizationException if the user is not authorized to set the workspace
-	 * owner.
 	 */
 	public WorkspaceInformation setWorkspaceOwner(
-			WorkspaceUser owner,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newUser,
-			Optional<String> newName,
-			final boolean asAdmin)
+			Optional<String> newName)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+				CorruptWorkspaceDBException {
 		if (newUser == null) {
 			throw new NullPointerException("newUser cannot be null");
 		}
@@ -388,15 +376,11 @@ public class Workspace {
 		if (newName == null) {
 			throw new NullPointerException("newName");
 		}
-		final ResolvedWorkspaceID rwsi;
-		if (asAdmin) {
-			rwsi = db.resolveWorkspace(wsi);
-			owner = db.getWorkspaceOwner(rwsi);
-		} else {
-			rwsi = new PermissionsCheckerFactory(db, owner)
-					.getWorkspaceChecker(wsi, Permission.OWNER)
-					.withOperation("change the owner of").check();
-		}
+		// we don't use the PermissionsChecker here since a locked workspace should not
+		// prevent a ownership change. The permission for a non-admin would be OWNER which would
+		// trigger the lock check.
+		final ResolvedWorkspaceID rwsi = db.resolveWorkspace(wsi);
+		final WorkspaceUser owner = db.getWorkspaceOwner(rwsi);
 		final Permission p = db.getPermission(newUser, rwsi);
 		if (p.equals(Permission.OWNER)) {
 			throw new IllegalArgumentException(newUser.getUser() +
@@ -416,7 +400,7 @@ public class Workspace {
 		}
 		final Instant time = db.setWorkspaceOwner(rwsi, owner, newUser, newName);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceOwner(asAdmin ? null : owner, rwsi.getID(), newUser, newName, time);
+			l.setWorkspaceOwner(null, rwsi.getID(), newUser, newName, time);
 		}
 		return db.getWorkspaceInformation(newUser, rwsi);
 	}
@@ -454,7 +438,8 @@ public class Workspace {
 				db.getPermissions(user, wsid).getUserPermission(wsid);
 		if (currentPerm.equals(Permission.NONE)) {
 			//always throw exception here
-			new PermissionsCheckerFactory(db, user).getWorkspaceChecker(wsi, Permission.ADMIN)
+			PermissionsCheckerFactory.getBuilder(db).withUser(user).build()
+					.getWorkspaceChecker(wsi, Permission.ADMIN)
 					.withOperation("set permissions on").check();
 		}
 		if (Permission.ADMIN.compareTo(currentPerm) > 0) {
@@ -611,7 +596,8 @@ public class Workspace {
 			final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+		final ResolvedWorkspaceID wsid = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getWorkspaceChecker(wsi, Permission.READ).check();
 		return db.getWorkspaceInformation(user, wsid);
 	}
@@ -695,7 +681,8 @@ public class Workspace {
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
-		final ResolvedWorkspaceID rwsi = new PermissionsCheckerFactory(db, user)
+		final ResolvedWorkspaceID rwsi = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getWorkspaceChecker(wsi, Permission.WRITE).check();
 		idHandlerFac.addFactory(getHandlerFactory(user));
 		final IdReferenceHandlerSet<IDAssociation> idhandler =
@@ -1241,9 +1228,9 @@ public class Workspace {
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException, NoSuchObjectException {
 		//could combine these next two lines, but probably doesn't matter
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws =
-				new PermissionsCheckerFactory(db, user).getObjectChecker(loi, Permission.READ)
-						.check();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = PermissionsCheckerFactory
+				.getBuilder(db).withUser(user).build()
+				.getObjectChecker(loi, Permission.READ).check();
 		final PermissionSet perms = db.getPermissions(user, Permission.READ, false);
 		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> refs = 
 				db.getReferencingObjects(perms,
@@ -1262,9 +1249,9 @@ public class Workspace {
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException, NoSuchObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws =
-				new PermissionsCheckerFactory(db, user).getObjectChecker(loi, Permission.READ)
-					.check();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = PermissionsCheckerFactory
+				.getBuilder(db).withUser(user).build()
+				.getObjectChecker(loi, Permission.READ).check();
 		final Map<ObjectIDResolvedWS, Integer> counts =
 				db.getReferencingObjectCounts(
 						new HashSet<ObjectIDResolvedWS>(ws.values()));
@@ -1311,8 +1298,9 @@ public class Workspace {
 			final boolean asAdmin)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 					CorruptWorkspaceDBException, NoSuchObjectException {
-		final ObjectIDResolvedWS o = new PermissionsCheckerFactory(db, user)
-						.getObjectChecker(oi, asAdmin ? Permission.NONE : Permission.READ).check();
+		final ObjectIDResolvedWS o = PermissionsCheckerFactory.getBuilder(db)
+						.withUser(user).withAsAdmin(asAdmin).build()
+						.getObjectChecker(oi, Permission.READ).check();
 		return db.getObjectHistory(o);
 	}
 	
@@ -1423,9 +1411,9 @@ public class Workspace {
 			return new LinkedList<>();
 		}
 		
-		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				new PermissionsCheckerFactory(db, user).getWorkspaceChecker(wsis, Permission.READ)
-					.check();
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis = PermissionsCheckerFactory
+				.getBuilder(db).withUser(user).build()
+				.getWorkspaceChecker(wsis, Permission.READ).check();
 		final Map<ResolvedWorkspaceID, List<String>> names =
 				db.getNamesByPrefix(
 						new HashSet<ResolvedWorkspaceID>(rwsis.values()),
@@ -1460,7 +1448,8 @@ public class Workspace {
 			final String newname)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+		final ResolvedWorkspaceID wsid = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getWorkspaceChecker(wsi, Permission.OWNER).withOperation("rename").check();
 		new WorkspaceIdentifier(newname, user); //check for errors
 		final Instant time = db.renameWorkspace(wsid, newname);
@@ -1477,9 +1466,9 @@ public class Workspace {
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, NoSuchObjectException {
 		ObjectIDNoWSNoVer.checkObjectName(newname);
-		final ObjectIDResolvedWS obj = new PermissionsCheckerFactory(db, user)
-				.getObjectChecker(oi, Permission.WRITE)
-				.withOperation("rename objects in").check();
+		final ObjectIDResolvedWS obj = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
+				.getObjectChecker(oi, Permission.WRITE).withOperation("rename objects in").check();
 		final ObjectInfoWithModDate objdate = db.renameObject(obj, newname);
 		final ObjectInformation objinfo = objdate.getObjectInfo();
 		for (final WorkspaceEventListener l: listeners) {
@@ -1495,9 +1484,11 @@ public class Workspace {
 			final ObjectIdentifier to)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, NoSuchObjectException {
-		final ObjectIDResolvedWS f = new PermissionsCheckerFactory(db, user)
+		final ObjectIDResolvedWS f = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getObjectChecker(from, Permission.READ).check();
-		final ObjectIDResolvedWS t = new PermissionsCheckerFactory(db, user)
+		final ObjectIDResolvedWS t = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getObjectChecker(to, Permission.WRITE).check();
 		final CopyResult cr = db.copyObject(user, f, t);
 		final ObjectInformation oi = cr.getObjectInformation();
@@ -1517,7 +1508,8 @@ public class Workspace {
 	public ObjectInformation revertObject(final WorkspaceUser user, final ObjectIdentifier oi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, NoSuchObjectException {
-		final ObjectIDResolvedWS target = new PermissionsCheckerFactory(db, user)
+		final ObjectIDResolvedWS target = PermissionsCheckerFactory.getBuilder(db)
+				.withUser(user).build()
 				.getObjectChecker(oi, Permission.WRITE).check();
 		final ObjectInformation objinfo = db.revertObject(user, target);
 		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
@@ -1534,11 +1526,11 @@ public class Workspace {
 			final boolean hide)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, NoSuchObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws =
-				new PermissionsCheckerFactory(db, user)
-						.getObjectChecker(loi, Permission.WRITE)
-						.withOperation((hide ? "" : "un") + "hide objects from")
-						.check();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = PermissionsCheckerFactory
+				.getBuilder(db).withUser(user).build()
+				.getObjectChecker(loi, Permission.WRITE)
+				.withOperation((hide ? "" : "un") + "hide objects from")
+				.check();
 		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsHidden(
 				new HashSet<>(ws.values()), hide);
 		for (final WorkspaceEventListener l: listeners) {
@@ -1549,15 +1541,17 @@ public class Workspace {
 		}
 	}
 	
-	public void setObjectsDeleted(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi, final boolean delete)
+	public void setObjectsDeleted(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean delete)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
-			InaccessibleObjectException, NoSuchObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws =
-				new PermissionsCheckerFactory(db, user)
-						.getObjectChecker(loi, Permission.WRITE)
-						.withOperation((delete ? "" : "un") + "delete objects from")
-						.check();
+				InaccessibleObjectException, NoSuchObjectException {
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = PermissionsCheckerFactory
+				.getBuilder(db).withUser(user).build()
+				.getObjectChecker(loi, Permission.WRITE)
+				.withOperation((delete ? "" : "un") + "delete objects from")
+				.check();
 		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsDeleted(
 				new HashSet<>(ws.values()), delete);
 		for (final WorkspaceEventListener l: listeners) {

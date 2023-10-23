@@ -1596,27 +1596,23 @@ public class WorkspaceTester {
 	}
 
 	protected void failSetWorkspaceOwner(
-			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newuser,
 			final Optional<String> name,
-			final boolean asAdmin,
 			final Exception expected)
 			throws Exception {
-		failSetWorkspaceOwner(ws, user, wsi, newuser, name, asAdmin, expected);
+		failSetWorkspaceOwner(ws, wsi, newuser, name, expected);
 	}
 
 	public static void failSetWorkspaceOwner(
 			final Workspace ws,
-			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newuser,
 			final Optional<String> name,
-			final boolean asAdmin,
 			final Exception expected)
 			throws Exception {
 		try {
-			ws.setWorkspaceOwner(user, wsi, newuser, name, asAdmin);
+			ws.setWorkspaceOwner(wsi, newuser, name);
 			fail("expected set owner to fail");
 		} catch (Exception got) {
 			assertExceptionCorrect(got, expected);

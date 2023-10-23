@@ -985,7 +985,7 @@ public class WorkspaceTest extends WorkspaceTester {
 
 		//basic test
 		WorkspaceInformation wsinfo =
-				ws.setWorkspaceOwner(u1, wsi, u2, Optional.empty(), false);
+				ws.setWorkspaceOwner(wsi, u2, Optional.empty());
 		checkWSInfo(wsinfo, u2, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 		Map<User, Permission> pexp = new HashMap<User, Permission>();
 		pexp.put(u1, Permission.ADMIN);
@@ -993,36 +993,22 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("permissions correct", ws.getPermissions(
 				u2, Arrays.asList(wsi)).get(0), is (pexp));
 
-		failSetWorkspaceOwner(null, wsi, u2, Optional.empty(), true,
-				new IllegalArgumentException("bar already owns workspace wsfoo"));
-		failSetWorkspaceOwner(u2, wsi, u2, Optional.empty(), false,
+		failSetWorkspaceOwner(wsi, u2, Optional.empty(),
 				new IllegalArgumentException("bar already owns workspace wsfoo"));
 
-		failSetWorkspaceOwner(null, wsi, null, Optional.empty(), true,
-				new NullPointerException("newUser cannot be null"));
-		failSetWorkspaceOwner(u2, wsi, null, Optional.empty(), false,
+		failSetWorkspaceOwner(wsi, null, Optional.empty(),
 				new NullPointerException("newUser cannot be null"));
 
-		failSetWorkspaceOwner(u1, wsi, u2, null, false, new NullPointerException("newName"));
+		failSetWorkspaceOwner(wsi, u2, null, new NullPointerException("newName"));
 
-		failSetWorkspaceOwner(null, null, u1, Optional.empty(), true,
-				new NullPointerException("wsi cannot be null"));
-		failSetWorkspaceOwner(u2, null, u1, Optional.empty(), false,
+		failSetWorkspaceOwner(null, u1, Optional.empty(),
 				new NullPointerException("wsi cannot be null"));
 
 		WorkspaceIdentifier fake = new WorkspaceIdentifier("wsfoofake");
-		failSetWorkspaceOwner(null, fake, u2, Optional.empty(), true,
-				new NoSuchWorkspaceException("No workspace with name wsfoofake exists", fake));
-		failSetWorkspaceOwner(u2, fake, u2, Optional.empty(), false,
+		failSetWorkspaceOwner(fake, u2, Optional.empty(),
 				new NoSuchWorkspaceException("No workspace with name wsfoofake exists", fake));
 
-		failSetWorkspaceOwner(null, wsi, u1, Optional.empty(), false,
-				new WorkspaceAuthorizationException("Anonymous users may not change the owner of workspace wsfoo"));
-		failSetWorkspaceOwner(u1, wsi, u1, Optional.empty(), false,
-				new WorkspaceAuthorizationException("User foo may not change the owner of workspace wsfoo"));
-
-		//test as admin
-		wsinfo = ws.setWorkspaceOwner(null, wsi, u1, Optional.empty(), true);
+		wsinfo = ws.setWorkspaceOwner(wsi, u1, Optional.empty());
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 		pexp.put(u1, Permission.OWNER);
 		pexp.put(u2, Permission.ADMIN);
@@ -1030,48 +1016,43 @@ public class WorkspaceTest extends WorkspaceTester {
 				u2, Arrays.asList(wsi)).get(0), is (pexp));
 
 		//test basic name change
-		wsinfo = ws.setWorkspaceOwner(u1, wsi, u2, Optional.of("wsfoonew"), false);
+		wsinfo = ws.setWorkspaceOwner(wsi, u2, Optional.of("wsfoonew"));
 		checkWSInfo(wsinfo, u2, "wsfoonew", 0L, Permission.OWNER, false, "unlocked", mt);
 		wsi = new WorkspaceIdentifier("wsfoonew");
 
 		//illegal name change to invalid user
 		final Optional<String> newName = Optional.of("bar:wsfoo");
-		failSetWorkspaceOwner(u2, wsi, u1, newName, false, new IllegalArgumentException(
-				"Workspace name bar:wsfoo must only contain the user name foo " +
-				"prior to the : delimiter"));
-		failSetWorkspaceOwner(null, wsi, u1, newName, true, new IllegalArgumentException(
+		failSetWorkspaceOwner(wsi, u1, newName, new IllegalArgumentException(
 				"Workspace name bar:wsfoo must only contain the user name foo " +
 				"prior to the : delimiter"));
 
 		//test failing name when ws is prefixed by previous user name
 		ws.renameWorkspace(u2, wsi, "bar:wsfoo");
 		wsi = new WorkspaceIdentifier("bar:wsfoo");
-		failSetWorkspaceOwner(u2, wsi, u1, Optional.of("bar:wsfoo"), false,
+		failSetWorkspaceOwner(wsi, u1, Optional.of("bar:wsfoo"),
 				new IllegalArgumentException("Workspace name bar:wsfoo must only contain " +
 						"the user name foo prior to the : delimiter"));
 
 		//test auto rename of workspace
-		wsinfo = ws.setWorkspaceOwner(u2, wsi, u1, Optional.empty(), false);
+		wsinfo = ws.setWorkspaceOwner(wsi, u1, Optional.empty());
 		wsi = new WorkspaceIdentifier("foo:wsfoo");
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 
 		//test manual rename of workspace
-		wsinfo = ws.setWorkspaceOwner(u1, wsi, u2, Optional.of("bar:wsfoo"), false);
+		wsinfo = ws.setWorkspaceOwner(wsi, u2, Optional.of("bar:wsfoo"));
 		wsi = new WorkspaceIdentifier("bar:wsfoo");
 		checkWSInfo(wsinfo, u2, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 
 		//test rename to preexisting workspace
 		final Optional<String> newName2 = Optional.of("foo:wsfoo2");
 		ws.createWorkspace(u1, "foo:wsfoo2", false, null, null);
-		failSetWorkspaceOwner(u2, wsi, u1, newName2, false,
-				new IllegalArgumentException("There is already a workspace named foo:wsfoo2"));
-		failSetWorkspaceOwner(null, wsi, u1, newName2, true,
+		failSetWorkspaceOwner(wsi, u1, newName2,
 				new IllegalArgumentException("There is already a workspace named foo:wsfoo2"));
 
 		//test rename with same name
 		ws.renameWorkspace(u2, wsi, "wsfoo");
 		wsi = new WorkspaceIdentifier("wsfoo");
-		wsinfo = ws.setWorkspaceOwner(u2, wsi, u1, Optional.of("wsfoo"), false);
+		wsinfo = ws.setWorkspaceOwner(wsi, u1, Optional.of("wsfoo"));
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 	}
 
