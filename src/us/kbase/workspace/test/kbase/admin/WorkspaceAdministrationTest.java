@@ -201,6 +201,31 @@ public class WorkspaceAdministrationTest {
 		}
 	}
 	
+	@Test
+	public void getAdminRole() throws Exception {
+		// cache eviction is tested below
+		getAdminRole(AdminRole.NONE);
+		getAdminRole(AdminRole.READ_ONLY);
+		getAdminRole(AdminRole.ADMIN);
+	}
+
+	private void getAdminRole(final AdminRole role) throws AdministratorHandlerException {
+		final TestMocks mocks = initTestMocks();
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah"))).thenReturn(role);
+		
+		assertThat("incorrect role", mocks.admin.getAdminRole(new AuthToken("tok", "usah")),
+				is(role));
+	}
+	
+	@Test
+	public void getAdminRoleFail() {
+		try {
+			initTestMocks().admin.getAdminRole(null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("token"));
+		}
+	}
 	
 	@Test
 	public void failNotAdmin() throws Exception {

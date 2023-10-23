@@ -1367,6 +1367,22 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: get_admin_role</p>
+     * <pre>
+     * Get the administrative role for the current user.
+     * </pre>
+     * @return   parameter "results" of type {@link us.kbase.workspace.GetAdminRoleResults GetAdminRoleResults}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public GetAdminRoleResults getAdminRole(RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        TypeReference<List<GetAdminRoleResults>> retType = new TypeReference<List<GetAdminRoleResults>>() {};
+        List<GetAdminRoleResults> res = caller.jsonrpcCall("Workspace.get_admin_role", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: administer</p>
      * <pre>
      * The administration interface.
