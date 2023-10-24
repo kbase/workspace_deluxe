@@ -1634,18 +1634,20 @@ public class Workspace {
 	 * searches are not allowed (which are not necessary for admins in any case).
 	 * 
 	 * @param update the metadata updates to apply.
+	 * @return A mapping of the input objects to their resolved counterparts.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
 	 * storage system.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
 	 * @throws InaccessibleObjectException if any of the objects are not accessible.
 	 * @throws NoSuchObjectException if any of the objects do not exist.
 	 */
-	public void setAdminObjectMetadata(final Map<ObjectIdentifier, MetadataUpdate> update)
+	public Map<ObjectIdentifier, ResolvedObjectID> setAdminObjectMetadata(
+			final Map<ObjectIdentifier, MetadataUpdate> update)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, NoSuchObjectException {
 		noNulls(requireNonNull(update, "update").keySet(), "null found in update keys");
 		if (update.isEmpty()) {
-			return;
+			return Collections.emptyMap();
 		}
 		for (final ObjectIdentifier oi: update.keySet()) {
 			if (oi.isLookupRequired() || oi.hasRefPath()) {
@@ -1660,9 +1662,12 @@ public class Workspace {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> res = PermissionsCheckerFactory
 				.getBuilder(db).withAsAdmin(true).build()
 				.getObjectChecker(update.keySet(), Permission.WRITE).check();
-		db.setAdminObjectMeta(update.entrySet().stream()
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> map = db.setAdminObjectMeta(
+				update.entrySet().stream()
 				.collect(Collectors.toMap(s -> res.get(s.getKey()), s -> s.getValue())));
 		// YAGNI a listener for this most likely. Add if needed
+		return update.keySet().stream()
+				.collect(Collectors.toMap(oi -> oi, oi -> map.get(res.get(oi))));
 	}
 		
 	/* admin method only, should not be exposed in public API

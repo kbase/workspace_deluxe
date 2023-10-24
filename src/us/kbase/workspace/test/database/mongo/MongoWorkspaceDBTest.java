@@ -57,6 +57,7 @@ import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -1074,14 +1075,22 @@ public class MongoWorkspaceDBTest {
 		final ObjectIDResolvedWS oi3_1 = new ObjectIDResolvedWS(rwsi, "newobj3", 1);
 		
 		// 1st round - add metadata
-		mocks.mdb.setAdminObjectMeta(ImmutableMap.of(
-				oi1_1, new MetadataUpdate(
-						new WorkspaceUserMetadata(ImmutableMap.of("foo", "bar")), null),
-				oi1_2, new MetadataUpdate(
-						new WorkspaceUserMetadata(ImmutableMap.of("a", "b", "c", "d")), null),
-				oi2_1, new MetadataUpdate(
-						new WorkspaceUserMetadata(ImmutableMap.of("x", "y")), null)
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> res = mocks.mdb.setAdminObjectMeta(
+				ImmutableMap.of(
+						oi1_1, new MetadataUpdate(
+								new WorkspaceUserMetadata(ImmutableMap.of("foo", "bar")), null),
+						oi1_2, new MetadataUpdate(
+								new WorkspaceUserMetadata(
+										ImmutableMap.of("a", "b", "c", "d")), null),
+						oi2_1, new MetadataUpdate(
+								new WorkspaceUserMetadata(ImmutableMap.of("x", "y")), null)
 		));
+		
+		assertThat("incorrect result", res, is(ImmutableMap.of(
+				oi1_1, new ResolvedObjectID(rwsi, 1, 1, "newobj", false),
+				oi1_2, new ResolvedObjectID(rwsi, 1, 2, "newobj", false),
+				oi2_1, new ResolvedObjectID(rwsi, 2, 1, "newobj2", false)
+		)));
 		
 		final Map<ObjectIDResolvedWS, ObjectInformation> infos = mocks.mdb.getObjectInformation(
 				set(oi1_1, oi1_2, oi2_1, oi3_1), true, true, false, true);
