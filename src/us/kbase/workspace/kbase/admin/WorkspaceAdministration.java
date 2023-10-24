@@ -243,6 +243,26 @@ public class WorkspaceAdministration {
 			throw (AdministratorHandlerException) e.getCause();
 		}
 	}
+	
+	/** Ensure that a user has a particular administrative role.
+	 * @param token the user's token.
+	 * @param requiredRole the required administrative role.
+	 * @param failMessage the message for the exception thrown if the user doesn't have a
+	 * role with the required privileges.
+	 * @throws AdministratorHandlerException if an error occurs looking up the user's role.
+	 * @throws AuthException if the user does not possess the required role.
+	 */
+	public void ensureAdminRole(
+			final AuthToken token,
+			final AdminRole requiredRole,
+			final String failMessage)
+			throws AdministratorHandlerException, AuthException {
+		requireNonNull(requiredRole, "requiredRole");
+		final AdminRole role = getAdminRole(token);
+		if (role.compareTo(requiredRole) < 0) {
+			throw new AuthException(failMessage);
+		}
+	}
 
 	/** Run an administration command.
 	 * @param token the administrator's token.

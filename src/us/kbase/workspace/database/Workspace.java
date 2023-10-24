@@ -1627,8 +1627,8 @@ public class Workspace {
 	
 	/** Set administrator metadata on one or more objects.
 	 * 
-	 * This method should not be exposed in a public API; it is restricted to administrator
-	 * use only.
+	 * This method should not be exposed in a public API; it is restricted to administrators
+	 * with full privileges only.
 	 * 
 	 * Only direct object access is supported; reference paths and object DAG
 	 * searches are not allowed (which are not necessary for admins in any case).

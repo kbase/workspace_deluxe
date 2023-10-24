@@ -6,13 +6,12 @@ package us.kbase.workspace.kbase.admin;
  */
 public enum AdminRole {
 
-	/** Full administration privileges. */
-	ADMIN,
+	/** No administration privileges. */
+	NONE,
 	
 	/** Read only privileges. */
 	READ_ONLY,
 	
-	/** No administration privileges. */
-	NONE;
-	
+	/** Full administration privileges. */
+	ADMIN;
 }
