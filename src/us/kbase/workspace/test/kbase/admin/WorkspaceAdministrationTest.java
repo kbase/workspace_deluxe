@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
@@ -217,6 +218,65 @@ public class WorkspaceAdministrationTest {
 				is(role));
 	}
 	
+	@Test
+	public void ensureAdminRole() throws Exception {
+		ensureAdminRole(AdminRole.NONE, AdminRole.NONE);
+		ensureAdminRole(AdminRole.NONE, AdminRole.READ_ONLY);
+		ensureAdminRole(AdminRole.NONE, AdminRole.ADMIN);
+		ensureAdminRole(AdminRole.READ_ONLY, AdminRole.READ_ONLY);
+		ensureAdminRole(AdminRole.READ_ONLY, AdminRole.ADMIN);
+		ensureAdminRole(AdminRole.ADMIN, AdminRole.ADMIN);
+	}
+	
+	private void ensureAdminRole(final AdminRole required, final AdminRole has)
+			throws Exception {
+		final TestMocks mocks = initTestMocks();
+		when(mocks.ah.getAdminRole(new AuthToken("t", "u"))).thenReturn(has);
+		
+		mocks.admin.ensureAdminRole(new AuthToken("t", "u"), required, "no message");
+	}
+	
+	@Test
+	public void ensureAdminRoleFailNulls() throws Exception {
+		final WorkspaceAdministration a = initTestMocks().admin;
+		
+		ensureAdminRoleFail(a, null, AdminRole.ADMIN, "oops",
+				new NullPointerException("token"));
+		ensureAdminRoleFail(a, new AuthToken("t", "u"), null, "oops",
+				new NullPointerException("requiredRole"));
+	}
+	
+	@Test
+	public void ensureAdminRoleFailUnAuthorized() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final WorkspaceAdministration a = mocks.admin;
+		final AuthToken t = new AuthToken("t", "u");
+		final AdminRole r = AdminRole.READ_ONLY;
+		final AdminRole f = AdminRole.ADMIN;
+		
+		when(mocks.ah.getAdminRole(t))
+				.thenReturn(AdminRole.NONE, AdminRole.NONE, AdminRole.READ_ONLY, null);
+		
+		ensureAdminRoleFail(a, t, r, "read req", new AuthException("read req"));
+		ensureAdminRoleFail(a, t, f, "full req", new AuthException("full req"));
+		ensureAdminRoleFail(a, t, f, "full req 2", new AuthException("full req 2"));
+	}
+	
+	private void ensureAdminRoleFail(
+			final WorkspaceAdministration admin,
+			final AuthToken token,
+			final AdminRole required,
+			final String message,
+			final Exception expected) {
+		try {
+			admin.ensureAdminRole(token, required, message);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+
 	@Test
 	public void getAdminRoleFail() {
 		try {

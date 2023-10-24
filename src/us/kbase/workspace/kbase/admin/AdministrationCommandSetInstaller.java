@@ -53,6 +53,22 @@ import us.kbase.workspace.kbase.admin.WorkspaceAdministration.Builder;
 
 /** Builds the standard set of administration command handlers. */
 public class AdministrationCommandSetInstaller {
+	
+	/* NOTE FOR FUTURE DEVS:
+	 * Doing admin methods this way was probably a mistake. It makes them a real pain to use
+	 * as you have to go to the admin interface documentation, find the method you want,
+	 * flip back to the API documentation to figure out the data structures for the method,
+	 * flip back to the admin docs to figure out the overall structure, etc. etc.
+	 * 
+	 * In the future, instead of adding more admin methods, we should just add standard API
+	 * methods that check the user's admin status with an `asAdmin` boolean toggle if the method
+	 * is applicable to admins and non-admins. This keeps the `sudo` like protections for admin
+	 * methods.
+	 * 
+	 * Currently there are no plans to revamp all the current admin methods - the time spent
+	 * there would be better spent converting the workspace from JSON-RPC to a more REST like
+	 * interface.
+	 */
 
 	private static final String GET_TYPE_DELEGATION_TARGET = "getTypeDelegationTarget";
 	private static final String DENY_MOD_REQUEST = "denyModRequest";
