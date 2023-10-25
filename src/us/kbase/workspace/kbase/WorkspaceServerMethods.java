@@ -1,5 +1,6 @@
 package us.kbase.workspace.kbase;
 
+import static java.util.Objects.requireNonNull;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.checkLong;
 import static us.kbase.workspace.kbase.ArgUtils.chooseInstant;
@@ -29,6 +30,9 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
@@ -42,6 +46,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet;
+import us.kbase.workspace.AlterAdminObjectMetadataParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
@@ -53,6 +58,7 @@ import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectMetadataUpdate;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
@@ -61,11 +67,13 @@ import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.RefLimit;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.UserWorkspaceIDs;
 import us.kbase.workspace.database.Workspace;
@@ -103,6 +111,10 @@ public class WorkspaceServerMethods {
 		this.ws = ws;
 		this.idFacBuilder = idFacBuilder;
 		this.auth = auth;
+	}
+	
+	private static Logger getLogger() {
+		return LoggerFactory.getLogger(WorkspaceServerMethods.class);
 	}
 	
 	/** Get the core workspace instance underlying this server -> core translation layer.
@@ -639,5 +651,57 @@ public class WorkspaceServerMethods {
 			CorruptWorkspaceDBException, NoSuchObjectException {
 		final ObjectIdentifier oi = processObjectIdentifier(object);
 		return objInfoToTuple(ws.getObjectHistory(user, oi, asAdmin), true, false);
+	}
+
+	/** Set administrative metadata on an object. This method is reserved for full workspace
+	 * administrators only and should not be exposed in a public API.
+	 * @param params the method parameters.
+	 * @throws NoSuchObjectException if one of the objects doesn't exist.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 * @throws WorkspaceCommunicationException if a communication error occurs contacting the
+	 * database.
+	 * @throws InaccessibleObjectException if one of the objects is inaccessible.
+	 */
+	public void setAdminObjectMetadata(final AlterAdminObjectMetadataParams params)
+			// TODO CODE corrupt & comm exceptions should be unchecked, there's no recovery
+			//			 and it's not the user's fault
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+				CorruptWorkspaceDBException, NoSuchObjectException {
+		checkAddlArgs(
+				requireNonNull(params, "params").getAdditionalProperties(), params.getClass());
+		if (params.getUpdates() == null || params.getUpdates().isEmpty()) {
+			throw new IllegalArgumentException("updates list cannot be empty");
+		}
+		final Map<ObjectIdentifier, MetadataUpdate> update = new HashMap<>();
+		final ListIterator<ObjectMetadataUpdate> iter = params.getUpdates().listIterator();
+		while (iter.hasNext()) {
+			try {
+				final ObjectMetadataUpdate u = requireNonNull(iter.next(),
+						ObjectMetadataUpdate.class.getSimpleName() + " cannot be null");
+				checkAddlArgs(u.getAdditionalProperties(), ObjectMetadataUpdate.class);
+				final MetadataUpdate mu = new MetadataUpdate(
+						new WorkspaceUserMetadata(u.getNew()), u.getRemove());
+				if (!mu.hasUpdate()) {
+					throw new IllegalArgumentException("A metadata update is required");
+				}
+				update.put(processObjectIdentifier(u.getOi()), mu);
+			} catch (NullPointerException | IllegalArgumentException | MetadataException e) {
+				// TODO CODE user caused exceptions should be checked & have custom classes
+				//           in preparation for adding error codes. Will need to do this if
+				//           methods are converted to a REST-like API so 400s and 500s can be
+				//           distinguished
+				throw new IllegalArgumentException(String.format(
+						"Error processing update index %s: %s",
+						iter.previousIndex(), e.getMessage()), e);
+			}
+		}
+		final Map<ObjectIdentifier, ResolvedObjectID> objs = ws.setAdminObjectMetadata(update);
+		for (final ResolvedObjectID r: objs.values()) {
+			getLogger().info("Object {}/{}/{}",
+					r.getWorkspaceIdentifier().getID(),
+					r.getId(),
+					r.getVersion()
+			);
+		}
 	}
 }
