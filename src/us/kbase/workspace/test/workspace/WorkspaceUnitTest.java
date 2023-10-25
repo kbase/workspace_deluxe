@@ -76,6 +76,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -768,8 +769,10 @@ public class WorkspaceUnitTest {
 	@Test
 	public void setAdminObjectMetadataNoop() throws Exception {
 		final TestMocks mocks = initMocks();
-		mocks.ws.setAdminObjectMetadata(Collections.emptyMap());
+		final Map<ObjectIdentifier, ResolvedObjectID> res = mocks.ws.setAdminObjectMetadata(
+				Collections.emptyMap());
 		
+		assertThat("incorrect result", res, is(Collections.emptyMap()));
 		verify(mocks.db, never()).setAdminObjectMeta(any());
 		verify(mocks.db, never()).resolveWorkspaces(any(), anyBoolean());
 	}
@@ -786,15 +789,20 @@ public class WorkspaceUnitTest {
 		final MetadataUpdate mu2 = new MetadataUpdate(null, Arrays.asList("fhang"));
 		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder("6/4").build();
 		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi1, 4);
+		final ResolvedObjectID rroi1 = new ResolvedObjectID(rwsi1, 4, 8, "stuff", false);
 		final ObjectIdentifier oi2 = ObjectIdentifier.getBuilder("myws/obj/3").build();
 		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi2, "obj", 3);
+		final ResolvedObjectID rroi2 = new ResolvedObjectID(rwsi2, 89, 3, "obj", false);
 		
 		when(mocks.db.resolveWorkspaces(set(wsi1, wsi2), false)).thenReturn(ImmutableMap.of(
 				wsi1, rwsi1, wsi2, rwsi2));
+		when(mocks.db.setAdminObjectMeta(ImmutableMap.of(roi1, mu1, roi2, mu2))).thenReturn(
+				ImmutableMap.of(roi1, rroi1, roi2, rroi2));
 		
-		mocks.ws.setAdminObjectMetadata(ImmutableMap.of(oi1, mu1, oi2, mu2));
+		final Map<ObjectIdentifier, ResolvedObjectID> res = mocks.ws.setAdminObjectMetadata(
+				ImmutableMap.of(oi1, mu1, oi2, mu2));
 		
-		verify(mocks.db).setAdminObjectMeta(ImmutableMap.of(roi1, mu1, roi2, mu2));
+		assertThat("incorrect result", res, is(ImmutableMap.of(oi1, rroi1, oi2, rroi2)));
 	}
 	
 	@Test

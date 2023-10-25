@@ -726,7 +726,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	
 	@Override
-	public void setAdminObjectMeta(final Map<ObjectIDResolvedWS, MetadataUpdate> update)
+	public Map<ObjectIDResolvedWS, ResolvedObjectID> setAdminObjectMeta(
+			final Map<ObjectIDResolvedWS, MetadataUpdate> update)
 			throws NoSuchObjectException, WorkspaceCommunicationException,
 				CorruptWorkspaceDBException {
 		noNulls(requireNonNull(update, "update").keySet(), "null object ID in update");
@@ -770,6 +771,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new IllegalArgumentException(err, e);
 			}
 		}
+		return oids;
 	}
 	
 	private Optional<Instant> setMetadataOnDocument(
