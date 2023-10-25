@@ -17,7 +17,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * Input parameters for the alter_admin_object_metadata method.
  *         updates - the metadata updates to apply to the objects. If the same object is specified
- *                 twice in the list, the update order is unspecified.
+ *                 twice in the list, the update order is unspecified. At most 1000 updates are allowed
+ *                 in one call.
  * </pre>
  * 
  */

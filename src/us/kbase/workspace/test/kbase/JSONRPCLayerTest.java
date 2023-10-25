@@ -42,6 +42,7 @@ import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.workspace.AlterAdminObjectMetadataParams;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
@@ -65,6 +66,7 @@ import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectMetadataUpdate;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.ProvenanceAction;
@@ -962,18 +964,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new WorkspaceIdentity().withWorkspace("saveget")).getE1();
 
 		//save some objects to get
-		Map<String, Object> data = new HashMap<String, Object>();
-		Map<String, Object> data2 = new HashMap<String, Object>();
-		Map<String, String> meta = new HashMap<String, String>();
-		Map<String, Object> moredata = new HashMap<String, Object>();
-		moredata.put("foo", "bar");
-		data.put("fubar", moredata);
-		data2.put("fubar2", moredata);
-		meta.put("metastuff", "meta");
-		Map<String, String> meta2 = new HashMap<String, String>();
-		meta2.put("meta2", "my hovercraft is full of eels");
-		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
-		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("saveget")
+		final Map<String, Object> moredata = ImmutableMap.of("foo", "bar");
+		final Map<String, Object> data = ImmutableMap.of("fubar", moredata);
+		final Map<String, Object> data2 = ImmutableMap.of("fubar2", moredata);
+		final Map<String, String> meta = ImmutableMap.of("metastuff", "meta");
+		final Map<String, String> meta2 = ImmutableMap.of("meta2", "my hovercraft is full of eels");
+		final Map<String, String> mtmeta = Collections.emptyMap();
+
+		final List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		final SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("saveget")
 				.withObjects(objects);
 
 		try {
@@ -1043,7 +1042,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("auto2").withVer(1L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(1L));
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 1, USER1,
-				wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
+				wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta, mtmeta, data);
 		loi.clear();
 		// w/o versions
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
@@ -1061,7 +1060,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(2L));
 
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 2, USER1,
-				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, mtmeta, data2);
 
 		failGetObjects(new ArrayList<ObjectIdentity>(), "No object identifiers provided");
 
@@ -4276,6 +4275,137 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				is("my desc"));
 	}
 
+	@Test
+	public void alterAdminObjectMetadata() throws Exception {
+		final Map<String, Object> data = ImmutableMap.of("foo", "bar");
+		final UObject udata = new UObject(data); 
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("objadminmeta"));
+		
+		final ImmutableMap<String, String> meta1 = ImmutableMap.of("1", "2");
+		final ImmutableMap<String, String> meta2 = ImmutableMap.of("3", "4");
+		final ImmutableMap<String, String> meta3 = ImmutableMap.of("5", "6");
+		final ImmutableMap<String, String> meta4 = ImmutableMap.of("7", "8");
+		CLIENT1.saveObjects(new SaveObjectsParams()
+				.withId(1L)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withType(SAFE_TYPE).withName("one").withData(udata)
+								.withMeta(meta1),
+						new ObjectSaveData().withType(SAFE_TYPE).withName("two").withData(udata)
+								.withMeta(meta2),
+						new ObjectSaveData().withType(SAFE_TYPE).withName("two").withData(udata)
+								.withMeta(meta3),
+						new ObjectSaveData().withType(SAFE_TYPE).withName("three").withData(udata)
+								.withMeta(meta4)
+				))
+		);
+		final ObjectIdentity oi1 = new ObjectIdentity().withRef("1/1/1");
+		final ObjectIdentity oi2_1 = new ObjectIdentity().withRef("1/2/1");
+		final ObjectIdentity oi2_2 = new ObjectIdentity().withRef("1/2/2");
+		final ObjectIdentity oi3 = new ObjectIdentity().withRef("1/3/1");
+		
+		CLIENT2.alterAdminObjectMetadata(new AlterAdminObjectMetadataParams()
+				.withUpdates(Arrays.asList(
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withRef("1/1"))
+								.withNew(ImmutableMap.of("a", "b", "c", "d")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity()
+										.withWorkspace("objadminmeta")
+										.withName("two")
+										.withVer(1L)
+								)
+								.withNew(ImmutableMap.of("e", "f", "h", "pointed stick")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withWsid(1L).withObjid(2L))
+								.withNew(ImmutableMap.of("i", "j", "k", "iter var"))
+				))
+		);
+		checkSavedObjects(list(oi1), 1L, "one", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta1,
+				ImmutableMap.of("a", "b", "c", "d"), data);
+		checkSavedObjects(list(oi2_1), 2L, "two", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta2,
+				ImmutableMap.of("e", "f", "h", "pointed stick"), data);
+		checkSavedObjects(list(oi2_2), 2L, "two", SAFE_TYPE, 2, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta3,
+				ImmutableMap.of("i", "j", "k", "iter var"), data);
+		checkSavedObjects(list(oi3), 3L, "three", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta4, MT_META, data);
+		
+		// test remove
+		CLIENT2.alterAdminObjectMetadata(new AlterAdminObjectMetadataParams()
+				.withUpdates(Arrays.asList(
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withRef("1/1"))
+								.withNew(ImmutableMap.of("x", "y"))
+								.withRemove(Arrays.asList("c")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity()
+										.withWorkspace("objadminmeta")
+										.withName("two")
+										.withVer(1L)
+								)
+								.withNew(ImmutableMap.of("e", "fresh fruit")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withWsid(1L).withObjid(2L))
+								.withRemove(Arrays.asList("i", "k"))
+				))
+		);
+		checkSavedObjects(list(oi1), 1L, "one", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta1,
+				ImmutableMap.of("a", "b", "x", "y"), data);
+		checkSavedObjects(list(oi2_1), 2L, "two", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta2,
+				ImmutableMap.of("e", "fresh fruit", "h", "pointed stick"), data);
+		checkSavedObjects(list(oi2_2), 2L, "two", SAFE_TYPE, 2, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta3, MT_META, data);
+		checkSavedObjects(list(oi3), 3L, "three", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta4, MT_META, data);
+	}
+	
+	
+	@Test
+	public void alterAdminObjectMetaFailPerms() throws Exception {
+		final String err = "Full workspace serivce administrator permissions are required to "
+				+ "alter object metadata";
+		// standard admin handler
+		alterAdminObjectMetaFail(CLIENT1, new AlterAdminObjectMetadataParams(),
+				new ServerException(err, 1, "name"));
+		// auth service admin handler
+		alterAdminObjectMetaFail(CLIENT_AA_ADMIN_NONE, new AlterAdminObjectMetadataParams(),
+				new ServerException(err, 1, "name"));
+		alterAdminObjectMetaFail(CLIENT_AA_ADMIN_READ, new AlterAdminObjectMetadataParams(),
+				new ServerException(err, 1, "name"));
+	}
+	
+	@Test
+	public void alterAdminObjectMetaFail() throws Exception {
+		// test a couple examples of failing calls; unit tests cover everything so no need to get
+		// too thorough
+		final AlterAdminObjectMetadataParams params = new AlterAdminObjectMetadataParams()
+				.withUpdates(Arrays.asList(new ObjectMetadataUpdate()
+						.withOi(new ObjectIdentity().withRef("3/1"))
+				));
+		alterAdminObjectMetaFail( CLIENT2, params, new ServerException(
+				"Error processing update index 0: A metadata update is required", 1, "name"));
+		
+		params.getUpdates().get(0).withRemove(Arrays.asList("foo"));
+		alterAdminObjectMetaFail(CLIENT2, params, new ServerException(
+				"Object 1 cannot be accessed: No workspace with id 3 exists", 1, "name"));
+	}
+	
+	private void alterAdminObjectMetaFail(
+			final WorkspaceClient client,
+			final AlterAdminObjectMetadataParams update,
+			final Exception expected) {
+		try {
+			client.alterAdminObjectMetadata(update);
+			fail("expected exception");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, expected);
+		}
+	}
 
 	@Test
 	public void getAllWorkspaceOwners() throws Exception {

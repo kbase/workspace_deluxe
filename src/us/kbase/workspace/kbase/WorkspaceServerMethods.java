@@ -11,6 +11,7 @@ import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
+import static us.kbase.workspace.kbase.ArgUtils.objInfoToClass;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
@@ -432,8 +433,14 @@ public class WorkspaceServerMethods {
 				includeMeta,
 				longToBoolean(params.getIgnoreErrors()),
 				asAdmin);
-		return new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true, !includeMeta))
-				.withPaths(toObjectPaths(infos));
+		if (longToBoolean(params.getInfostruct(), false)) {
+			return new GetObjectInfo3Results()
+					.withInfostructs(objInfoToClass(infos, !includeMeta));
+		} else {
+			return new GetObjectInfo3Results().withInfos(
+					objInfoToTuple(infos, true, !includeMeta))
+					.withPaths(toObjectPaths(infos));
+		}
 	}
 	
 	/** Get objects.
@@ -477,7 +484,7 @@ public class WorkspaceServerMethods {
 				user,
 				longToBoolean(params.getSkipExternalSystemUpdates(), false),
 				longToBoolean(params.getBatchExternalSystemUpdates(), false),
-				true)); // log objects
+				longToBoolean(params.getInfostruct(), false)));
 	}
 
 	private IdReferencePermissionHandlerSet getPermissionsHandler(final WorkspaceUser user) {
@@ -492,9 +499,8 @@ public class WorkspaceServerMethods {
 	
 	public List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
-			final WorkspaceUser user,
-			final boolean logObjects) {
-		return translateObjectData(objects, user, false, false, logObjects);
+			final WorkspaceUser user) {
+		return translateObjectData(objects, user, false, false, false);
 	}
 	
 	private List<ObjectData> translateObjectData(
@@ -502,11 +508,11 @@ public class WorkspaceServerMethods {
 			final WorkspaceUser user,
 			final boolean skipExternalSystemUpdates,
 			final boolean batchExternalSystemUpdates,
-			final boolean logObjects) {
+			final boolean objectInfoAsClass) {
 		final Optional<IdReferencePermissionHandlerSet> handlers = skipExternalSystemUpdates ? 
 				Optional.empty() : Optional.of(getPermissionsHandler(user));
 		return ArgUtils.translateObjectData(
-				objects, handlers, batchExternalSystemUpdates, logObjects);
+				objects, handlers, batchExternalSystemUpdates, objectInfoAsClass);
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -673,6 +679,7 @@ public class WorkspaceServerMethods {
 			throw new IllegalArgumentException("updates list cannot be empty");
 		}
 		final Map<ObjectIdentifier, MetadataUpdate> update = new HashMap<>();
+		final Map<ObjectIdentity, ObjectIdentifier> oimap = new HashMap<>(); 
 		final ListIterator<ObjectMetadataUpdate> iter = params.getUpdates().listIterator();
 		while (iter.hasNext()) {
 			try {
@@ -684,7 +691,9 @@ public class WorkspaceServerMethods {
 				if (!mu.hasUpdate()) {
 					throw new IllegalArgumentException("A metadata update is required");
 				}
-				update.put(processObjectIdentifier(u.getOi()), mu);
+				final ObjectIdentifier oi = processObjectIdentifier(u.getOi());
+				oimap.put(u.getOi(), oi);
+				update.put(oi, mu);
 			} catch (NullPointerException | IllegalArgumentException | MetadataException e) {
 				// TODO CODE user caused exceptions should be checked & have custom classes
 				//           in preparation for adding error codes. Will need to do this if
@@ -696,7 +705,8 @@ public class WorkspaceServerMethods {
 			}
 		}
 		final Map<ObjectIdentifier, ResolvedObjectID> objs = ws.setAdminObjectMetadata(update);
-		for (final ResolvedObjectID r: objs.values()) {
+		for (final ObjectMetadataUpdate u: params.getUpdates()) {
+			final ResolvedObjectID r = objs.get(oimap.get(u.getOi()));
 			getLogger().info("Object {}/{}/{}",
 					r.getWorkspaceIdentifier().getID(),
 					r.getId(),

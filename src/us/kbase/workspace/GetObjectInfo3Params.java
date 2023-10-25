@@ -21,7 +21,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         information should be fetched. Subsetting related parameters are
  *                         ignored.
  *                 Optional arguments:
- *                 boolean includeMetadata - include the object metadata in the returned
+ *                 boolean infostruct - return information about the object as a structure rather than a tuple.
+ *                         Default false. If true, infos and paths will be null.
+ *                 boolean includeMetadata - include the user and admin metadata in the returned
  *                         information. Default false.
  *                 boolean ignoreErrors - Don't throw an exception if an object cannot
  *                         be accessed; return null for that object's information and path instead.
@@ -33,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "objects",
+    "infostruct",
     "includeMetadata",
     "ignoreErrors"
 })
@@ -40,6 +43,8 @@ public class GetObjectInfo3Params {
 
     @JsonProperty("objects")
     private List<ObjectSpecification> objects;
+    @JsonProperty("infostruct")
+    private Long infostruct;
     @JsonProperty("includeMetadata")
     private Long includeMetadata;
     @JsonProperty("ignoreErrors")
@@ -58,6 +63,21 @@ public class GetObjectInfo3Params {
 
     public GetObjectInfo3Params withObjects(List<ObjectSpecification> objects) {
         this.objects = objects;
+        return this;
+    }
+
+    @JsonProperty("infostruct")
+    public Long getInfostruct() {
+        return infostruct;
+    }
+
+    @JsonProperty("infostruct")
+    public void setInfostruct(Long infostruct) {
+        this.infostruct = infostruct;
+    }
+
+    public GetObjectInfo3Params withInfostruct(Long infostruct) {
+        this.infostruct = infostruct;
         return this;
     }
 
@@ -103,7 +123,7 @@ public class GetObjectInfo3Params {
 
     @Override
     public String toString() {
-        return ((((((((("GetObjectInfo3Params"+" [objects=")+ objects)+", includeMetadata=")+ includeMetadata)+", ignoreErrors=")+ ignoreErrors)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((("GetObjectInfo3Params"+" [objects=")+ objects)+", infostruct=")+ infostruct)+", includeMetadata=")+ includeMetadata)+", ignoreErrors=")+ ignoreErrors)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

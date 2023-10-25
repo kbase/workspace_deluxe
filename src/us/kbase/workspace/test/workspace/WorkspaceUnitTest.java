@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.junit.Test;
@@ -812,6 +813,14 @@ public class WorkspaceUnitTest {
 		final MetadataUpdate mu = new MetadataUpdate(null, Arrays.asList("foo"));
 		
 		setAdminObjectMetadataFail(mocks.ws, null, new NullPointerException("update"));
+		
+		final Map<ObjectIdentifier, MetadataUpdate> huge = IntStream.range(1, 1002)
+				.mapToObj(i -> Integer.valueOf(i))
+				.collect(Collectors.toMap(
+						i -> ObjectIdentifier.getBuilderFromRefPath("1/" + i).build(),
+						i -> new MetadataUpdate(null, Arrays.asList("f"))));
+		setAdminObjectMetadataFail(mocks.ws, huge, new IllegalArgumentException(
+				"No more than 1000 updates can be applied at once"));
 		
 		final Map<ObjectIdentifier, MetadataUpdate> nulls = new HashMap<>();
 		nulls.put(null, new MetadataUpdate(null, null));

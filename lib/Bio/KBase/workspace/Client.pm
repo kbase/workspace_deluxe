@@ -2304,6 +2304,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2332,6 +2333,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2396,6 +2411,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2424,6 +2440,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2541,6 +2571,7 @@ $results is a Workspace.GetObjects2Results
 GetObjects2Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 	ignoreErrors has a value which is a Workspace.boolean
+	infostruct has a value which is a Workspace.boolean
 	no_data has a value which is a Workspace.boolean
 	skip_external_system_updates has a value which is a Workspace.boolean
 	batch_external_system_updates has a value which is a Workspace.boolean
@@ -2581,6 +2612,7 @@ GetObjects2Results is a reference to a hash where the following keys are defined
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2609,6 +2641,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2658,6 +2704,7 @@ $results is a Workspace.GetObjects2Results
 GetObjects2Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 	ignoreErrors has a value which is a Workspace.boolean
+	infostruct has a value which is a Workspace.boolean
 	no_data has a value which is a Workspace.boolean
 	skip_external_system_updates has a value which is a Workspace.boolean
 	batch_external_system_updates has a value which is a Workspace.boolean
@@ -2698,6 +2745,7 @@ GetObjects2Results is a reference to a hash where the following keys are defined
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2726,6 +2774,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2857,6 +2919,7 @@ boolean is an int
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2885,6 +2948,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2953,6 +3030,7 @@ boolean is an int
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2981,6 +3059,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -3521,6 +3613,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -3549,6 +3642,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -3614,6 +3721,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -3642,6 +3750,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -4922,6 +5044,7 @@ $params is a Workspace.GetObjectInfo3Params
 $results is a Workspace.GetObjectInfo3Results
 GetObjectInfo3Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+	infostruct has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	ignoreErrors has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
@@ -4959,6 +5082,7 @@ object_path is a string
 GetObjectInfo3Results is a reference to a hash where the following keys are defined:
 	infos has a value which is a reference to a list where each element is a Workspace.object_info
 	paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+	infostructs has a value which is a reference to a list where each element is a Workspace.ObjectInfo
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -4975,6 +5099,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 
 </pre>
 
@@ -4986,6 +5124,7 @@ $params is a Workspace.GetObjectInfo3Params
 $results is a Workspace.GetObjectInfo3Results
 GetObjectInfo3Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+	infostruct has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	ignoreErrors has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
@@ -5023,6 +5162,7 @@ object_path is a string
 GetObjectInfo3Results is a reference to a hash where the following keys are defined:
 	infos has a value which is a reference to a list where each element is a Workspace.object_info
 	paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+	infostructs has a value which is a reference to a list where each element is a Workspace.ObjectInfo
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -5039,6 +5179,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 
 
 =end text
@@ -8065,6 +8219,127 @@ Get the administrative role for the current user.
  
 
 
+=head2 alter_admin_object_metadata
+
+  $obj->alter_admin_object_metadata($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.AlterAdminObjectMetadataParams
+AlterAdminObjectMetadataParams is a reference to a hash where the following keys are defined:
+	updates has a value which is a reference to a list where each element is a Workspace.ObjectMetadataUpdate
+ObjectMetadataUpdate is a reference to a hash where the following keys are defined:
+	oi has a value which is a Workspace.ObjectIdentity
+	new has a value which is a Workspace.usermeta
+	remove has a value which is a reference to a list where each element is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.AlterAdminObjectMetadataParams
+AlterAdminObjectMetadataParams is a reference to a hash where the following keys are defined:
+	updates has a value which is a reference to a list where each element is a Workspace.ObjectMetadataUpdate
+ObjectMetadataUpdate is a reference to a hash where the following keys are defined:
+	oi has a value which is a Workspace.ObjectIdentity
+	new has a value which is a Workspace.usermeta
+	remove has a value which is a reference to a list where each element is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+
+=end text
+
+=item Description
+
+Update admin metadata for an object. The user must have full workspace service
+administration privileges.
+
+=back
+
+=cut
+
+ sub alter_admin_object_metadata
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function alter_admin_object_metadata (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to alter_admin_object_metadata:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'alter_admin_object_metadata');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.alter_admin_object_metadata",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'alter_admin_object_metadata',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method alter_admin_object_metadata",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'alter_admin_object_metadata',
+				       );
+    }
+}
+ 
+
+
 =head2 administer
 
   $response = $obj->administer($command)
@@ -9482,6 +9757,82 @@ a reference to a list containing 11 items:
 
 
 
+=head2 ObjectInfo
+
+=over 4
+
+
+
+=item Description
+
+Information about an object as a struct rather than a tuple.
+This allows adding fields in a backward compatible way in the future.
+Includes more fields than object_info.
+
+obj_id objid - the numerical id of the object.
+obj_name name - the name of the object.
+type_string type - the type of the object.
+timestamp save_date - the save date of the object.
+obj_ver ver - the version of the object.
+username saved_by - the user that saved or copied the object.
+ws_id wsid - the workspace containing the object.
+ws_name workspace - the workspace containing the object.
+string chsum - the md5 checksum of the object.
+int size - the size of the object in bytes.
+usermeta meta - arbitrary user-supplied metadata about the object.
+usermeta adminmeta - service administrator metadata set on an object. Unlike most
+        other object fields, admin metadata is mutable.
+list<obj_ref> path - the path to the object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+objid has a value which is a Workspace.obj_id
+name has a value which is a Workspace.obj_name
+type has a value which is a Workspace.type_string
+save_date has a value which is a Workspace.timestamp
+version has a value which is an int
+saved_by has a value which is a Workspace.username
+wsid has a value which is a Workspace.ws_id
+workspace has a value which is a Workspace.ws_name
+chsum has a value which is a string
+size has a value which is an int
+meta has a value which is a Workspace.usermeta
+adminmeta has a value which is a Workspace.usermeta
+path has a value which is a reference to a list where each element is a Workspace.obj_ref
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+objid has a value which is a Workspace.obj_id
+name has a value which is a Workspace.obj_name
+type has a value which is a Workspace.type_string
+save_date has a value which is a Workspace.timestamp
+version has a value which is an int
+saved_by has a value which is a Workspace.username
+wsid has a value which is a Workspace.ws_id
+workspace has a value which is a Workspace.ws_name
+chsum has a value which is a string
+size has a value which is an int
+meta has a value which is a Workspace.usermeta
+adminmeta has a value which is a Workspace.usermeta
+path has a value which is a reference to a list where each element is a Workspace.obj_ref
+
+
+=end text
+
+=back
+
+
+
 =head2 ExternalDataUnit
 
 =over 4
@@ -10560,6 +10911,7 @@ The data and supplemental info for an object.
 
                 UnspecifiedObject data - the object's data or subset data.
                 object_info info - information about the object.
+                ObjectInfo infostruct - information about the object as a structure rather than a tuple.
                 list<obj_ref> path - the path to the object through the object reference graph. All the
                         references in the path are absolute.
                 list<ProvenanceAction> provenance - the object's provenance.
@@ -10595,6 +10947,7 @@ The data and supplemental info for an object.
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info
+infostruct has a value which is a Workspace.ObjectInfo
 path has a value which is a reference to a list where each element is a Workspace.obj_ref
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
@@ -10617,6 +10970,7 @@ handle_stacktrace has a value which is a string
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info
+infostruct has a value which is a Workspace.ObjectInfo
 path has a value which is a reference to a list where each element is a Workspace.obj_ref
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
@@ -10656,6 +11010,9 @@ Input parameters for the get_objects2 function.
                 boolean ignoreErrors - Don't throw an exception if an object cannot
                         be accessed; return null for that object's information instead.
                         Default false.
+                boolean infostruct - return the object information as a structure rather than a tuple.
+                        Default false. If true, ObjectData.path will be null as it is provided in
+                        the ObjectInfo data.
                 boolean no_data - return the provenance, references, and
                         object_info for this object without the object data. Default false.
                 boolean skip_external_system_updates - if the objects contain any external IDs, don't
@@ -10678,6 +11035,7 @@ Input parameters for the get_objects2 function.
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 ignoreErrors has a value which is a Workspace.boolean
+infostruct has a value which is a Workspace.boolean
 no_data has a value which is a Workspace.boolean
 skip_external_system_updates has a value which is a Workspace.boolean
 batch_external_system_updates has a value which is a Workspace.boolean
@@ -10691,6 +11049,7 @@ batch_external_system_updates has a value which is a Workspace.boolean
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 ignoreErrors has a value which is a Workspace.boolean
+infostruct has a value which is a Workspace.boolean
 no_data has a value which is a Workspace.boolean
 skip_external_system_updates has a value which is a Workspace.boolean
 batch_external_system_updates has a value which is a Workspace.boolean
@@ -11267,7 +11626,9 @@ Input parameters for the "get_object_info3" function.
                         ignored.
 
                 Optional arguments:
-                boolean includeMetadata - include the object metadata in the returned
+                boolean infostruct - return information about the object as a structure rather than a tuple.
+                        Default false. If true, infos and paths will be null.
+                boolean includeMetadata - include the user and admin metadata in the returned
                         information. Default false.
                 boolean ignoreErrors - Don't throw an exception if an object cannot
                         be accessed; return null for that object's information and path instead.
@@ -11281,6 +11642,7 @@ Input parameters for the "get_object_info3" function.
 <pre>
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+infostruct has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 ignoreErrors has a value which is a Workspace.boolean
 
@@ -11292,6 +11654,7 @@ ignoreErrors has a value which is a Workspace.boolean
 
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+infostruct has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 ignoreErrors has a value which is a Workspace.boolean
 
@@ -11315,6 +11678,7 @@ Output from the get_object_info3 function.
                 list<object_info> infos - the object_info data for each object.
                 list<list<obj_ref> paths - the path to the object through the object reference graph for
                         each object. All the references in the path are absolute.
+                list<ObjectInfo> infostructs - the ObjectInfo data for each object.
 
 
 =item Definition
@@ -11325,6 +11689,7 @@ Output from the get_object_info3 function.
 a reference to a hash where the following keys are defined:
 infos has a value which is a reference to a list where each element is a Workspace.object_info
 paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+infostructs has a value which is a reference to a list where each element is a Workspace.ObjectInfo
 
 </pre>
 
@@ -11335,6 +11700,7 @@ paths has a value which is a reference to a list where each element is a referen
 a reference to a hash where the following keys are defined:
 infos has a value which is a reference to a list where each element is a Workspace.object_info
 paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+infostructs has a value which is a reference to a list where each element is a Workspace.ObjectInfo
 
 
 =end text
@@ -12443,6 +12809,93 @@ adminrole has a value which is a string
 
 a reference to a hash where the following keys are defined:
 adminrole has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 ObjectMetadataUpdate
+
+=over 4
+
+
+
+=item Description
+
+An object metadata update specification.
+
+                Required arguments:
+                ObjectIdentity oi - the object to be altered
+
+                One or both of the following arguments are required:
+                usermeta new - metadata to assign to the workspace. Duplicate keys will
+                        be overwritten.
+                list<string> remove - these keys will be removed from the workspace
+                        metadata key/value pairs.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+oi has a value which is a Workspace.ObjectIdentity
+new has a value which is a Workspace.usermeta
+remove has a value which is a reference to a list where each element is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+oi has a value which is a Workspace.ObjectIdentity
+new has a value which is a Workspace.usermeta
+remove has a value which is a reference to a list where each element is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 AlterAdminObjectMetadataParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the alter_admin_object_metadata method.
+
+        updates - the metadata updates to apply to the objects. If the same object is specified
+                twice in the list, the update order is unspecified. At most 1000 updates are allowed
+                in one call.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+updates has a value which is a reference to a list where each element is a Workspace.ObjectMetadataUpdate
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+updates has a value which is a reference to a list where each element is a Workspace.ObjectMetadataUpdate
 
 
 =end text

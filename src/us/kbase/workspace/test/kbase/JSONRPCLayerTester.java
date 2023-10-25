@@ -2,6 +2,7 @@ package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -60,6 +61,7 @@ import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectInfo;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RegisterTypespecParams;
@@ -1006,10 +1008,22 @@ public class JSONRPCLayerTester {
 		}
 	}
 
+	// expects all the object identities to point to the same object
 	@SuppressWarnings("deprecation")
-	protected void checkSavedObjects(List<ObjectIdentity> loi, long id, String name,
-			String type, int ver, String user, long wsid, String wsname, String chksum, long size,
-			Map<String, String> meta, Map<String, Object> data) throws Exception {
+	protected void checkSavedObjects(
+			final List<ObjectIdentity> loi,
+			final long id,
+			final String name,
+			final String type,
+			final int ver,
+			final String user,
+			final long wsid,
+			final String wsname,
+			final String chksum,
+			final long size,
+			final Map<String, String> meta,
+			final Map<String, Object> data)
+			throws Exception {
 
 		List<ObjectData> retdata = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(toObjSpec(loi))).getData();
@@ -1031,7 +1045,7 @@ public class JSONRPCLayerTester {
 					chksum, size, meta, data);
 		}
 
-		List<ObjectData> prov2 = CLIENT1.getObjects2(new GetObjects2Params()
+		final List<ObjectData> prov2 = CLIENT1.getObjects2(new GetObjects2Params()
 			.withNoData(1L)
 			.withObjects(toObjSpec(loi))).getData();
 			assertThat("num data correct", prov2.size(), is(loi.size()));
@@ -1041,7 +1055,7 @@ public class JSONRPCLayerTester {
 			assertNull("got unrequested data", p.getData());
 		}
 
-		List<us.kbase.workspace.ObjectProvenanceInfo> prov =
+		final List<us.kbase.workspace.ObjectProvenanceInfo> prov =
 				CLIENT1.getObjectProvenance(loi);
 		assertThat("num prov correct", prov.size(), is(loi.size()));
 		for (us.kbase.workspace.ObjectProvenanceInfo p: prov) {
@@ -1053,6 +1067,7 @@ public class JSONRPCLayerTester {
 		GetObjectInfo3Results info3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 				.withObjects(toObjSpec(loi)).withIncludeMetadata(1L)
 				.withIgnoreErrors(0L));
+		assertThat("incorrect infostruct", info3.getInfostructs(), is(nullValue()));
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
 				String, Long, Map<String, String>>> retusermeta = info3.getInfos();
 
@@ -1091,6 +1106,7 @@ public class JSONRPCLayerTester {
 		info3 = CLIENT1.getObjectInfo3(new us.kbase.workspace.GetObjectInfo3Params()
 				.withObjects(toObjSpec(loi)));
 		retusermeta = info3.getInfos();
+		assertThat("incorrect infostruct", info3.getInfostructs(), is(nullValue()));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (int i = 0; i < retusermeta.size(); i ++) {
@@ -1122,6 +1138,63 @@ public class JSONRPCLayerTester {
 					chksum, size, null);
 		}
 	}
+	
+	// expects all the object identities to point to the same object
+	// tests struct based object meta
+	protected void checkSavedObjects(
+			final List<ObjectIdentity> loi,
+			final long id,
+			final String name,
+			final String type,
+			final int ver,
+			final String user,
+			final long wsid,
+			final String wsname,
+			final String chksum,
+			final long size,
+			final Map<String, String> meta,
+			final Map<String, String> adminmeta,
+			final Map<String, Object> data)
+			throws Exception {
+		final List<ObjectData> retdata = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toObjSpec(loi)).withInfostruct(1L)).getData();
+		assertThat("num data correct", retdata.size(), is(loi.size()));
+		for (ObjectData o: retdata) {
+			assertThat("object data incorrect", o.getData().asClassInstance(Object.class),
+					is((Object) data));
+			assertThat("incorrect object path", o.getPath(), is(nullValue()));
+			assertThat("incorrect info", o.getInfo(), is(nullValue()));
+			checkInfo(o.getInfostruct(), id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta, adminmeta);
+		}
+		
+		//obj info 3 with metadata
+		final GetObjectInfo3Results info3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(toObjSpec(loi)).withIncludeMetadata(1L).withInfostruct(1L)
+				.withIgnoreErrors(0L));
+		assertThat("incorrect infos", info3.getInfos(), is(nullValue()));
+		assertThat("incorrect paths", info3.getPaths(), is(nullValue()));
+		assertThat("num data correct", info3.getInfostructs().size(), is(loi.size()));
+		for (final ObjectInfo oi: info3.getInfostructs()) {
+			checkInfo(oi, id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta, adminmeta);
+		}
+		
+		// obj info 3 without metadata
+		final GetObjectInfo3Results info32 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(toObjSpec(loi)).withInfostruct(1L));
+		assertThat("incorrect infos", info32.getInfos(), is(nullValue()));
+		assertThat("incorrect paths", info32.getPaths(), is(nullValue()));
+		assertThat("num data correct", info32.getInfostructs().size(), is(loi.size()));
+		for (final ObjectInfo oi: info32.getInfostructs()) {
+			checkInfo(oi, id, name, type, ver, user, wsid, wsname,
+					chksum, size, null, null);
+		}
+		
+		// now do all the deprecated methods & tuple infos stuff
+		checkSavedObjects(
+				loi, id, name, type, ver, user, wsid, wsname, chksum, size, meta, data);
+	}
 
 	@SuppressWarnings("deprecation")
 	protected List<us.kbase.workspace.SubObjectIdentity> objIDToSubObjID(
@@ -1146,11 +1219,11 @@ public class JSONRPCLayerTester {
 			throws Exception {
 
 		assertThat("same number of ObjectData", got.size(), is(expected.size()));
-		Iterator<ObjectData> eIter = expected.iterator();
-		Iterator<ObjectData> gIter = got.iterator();
+		final Iterator<ObjectData> eIter = expected.iterator();
+		final Iterator<ObjectData> gIter = got.iterator();
 		while (eIter.hasNext()) {
-			ObjectData exp = eIter.next();
-			ObjectData gt = gIter.next();
+			final ObjectData exp = eIter.next();
+			final ObjectData gt = gIter.next();
 
 			compareObjectInfo(gt.getInfo(), exp.getInfo());
 			assertThat("object data is correct", gt.getData().asClassInstance(Object.class),
@@ -1168,35 +1241,55 @@ public class JSONRPCLayerTester {
 			List<ObjectData> exp) throws Exception {
 
 		assertThat("not same number of ObjectInfos", info.size(), is(exp.size()));
-		Iterator<ObjectData> eIter = exp.iterator();
-		Iterator<Tuple11<Long, String, String, String, Long, String, Long,
+		final Iterator<ObjectData> eIter = exp.iterator();
+		final Iterator<Tuple11<Long, String, String, String, Long, String, Long,
 			String, String, Long, Map<String, String>>> gIter = info.iterator();
 		while (eIter.hasNext()) {
-			ObjectData e = eIter.next();
-			Tuple11<Long, String, String, String, Long, String, Long, String,
+			final ObjectData e = eIter.next();
+			final Tuple11<Long, String, String, String, Long, String, Long, String,
 				String, Long, Map<String, String>> gt = gIter.next();
 			compareObjectInfo(gt, e.getInfo());
 		}
 	}
 
-	protected void checkData(ObjectData retdata, long id, String name,
-			String typeString, int ver, String user, long wsid, String wsname,
-			String chksum, long size, Map<String, String> meta, Map<String, Object> data)
+	protected void checkData(
+			final ObjectData retdata,
+			final long id,
+			final String name,
+			final String typeString,
+			final int ver,
+			final String user,
+			final long wsid,
+			final String wsname,
+			final String chksum,
+			final long size,
+			final Map<String, String> meta,
+			final Map<String, Object> data)
 			throws Exception {
 
 		assertThat("object data incorrect", retdata.getData().asClassInstance(Object.class),
 				is((Object) data));
 		assertThat("incorrect object path", retdata.getPath(),
 				is(Arrays.asList(wsid + "/" + id + "/" + ver)));
+		assertThat("incorrect infostruct", retdata.getInfostruct(), is(nullValue()));
 
 		checkInfo(retdata.getInfo(), id, name, typeString, ver, user,
 				wsid, wsname, chksum, size, meta);
 	}
 
 	protected void checkInfo(
-			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> infousermeta,
-			long id, String name, String typeString, int ver, String user,
-			long wsid, String wsname, String chksum, long size, Map<String, String> meta)
+			final Tuple11<Long, String, String, String, Long, String, Long, String, String,
+					Long, Map<String, String>> infousermeta,
+			final long id,
+			final String name,
+			final String typeString,
+			final int ver,
+			final String user,
+			final long wsid,
+			final String wsname,
+			final String chksum,
+			final long size,
+			final Map<String, String> meta)
 			throws Exception {
 
 		assertThat("id is correct", infousermeta.getE1(), is(id));
@@ -1210,6 +1303,37 @@ public class JSONRPCLayerTester {
 		assertThat("chksum is correct", infousermeta.getE9(), is(chksum));
 		assertThat("size is correct", infousermeta.getE10(), is(size));
 		assertThat("meta is correct", infousermeta.getE11(), is(meta));
+	}
+	
+	protected void checkInfo(
+			final ObjectInfo info,
+			final long id,
+			final String name,
+			final String typeString,
+			final int ver,
+			final String user,
+			final long wsid,
+			final String wsname,
+			final String chksum,
+			final long size,
+			final Map<String, String> meta,
+			final Map<String, String> adminmeta)
+			throws Exception {
+
+		assertThat("incorrect id", info.getObjid(), is(id));
+		assertThat("incorrect name", info.getName(), is(name));
+		assertThat("incorrect type", info.getType(), is(typeString));
+		DATE_FORMAT.parse(info.getSaveDate()); //should throw error if bad format
+		assertThat("incorrect version", (int) info.getVersion().longValue(), is(ver));
+		assertThat("incorrect user", info.getSavedBy(), is(user));
+		assertThat("incorrect wsid", info.getWsid(), is(wsid));
+		assertThat("incorrect ws name", info.getWorkspace(), is(wsname));
+		assertThat("incorrect chksum", info.getChsum(), is(chksum));
+		assertThat("incorrect size", info.getSize(), is(size));
+		assertThat("incorrect meta", info.getMeta(), is(meta));
+		assertThat("incorrect adminmeta", info.getAdminmeta(), is(adminmeta));
+		assertThat("incorrect incorrect object path", info.getPath(),
+				is(Arrays.asList(wsid + "/" + id + "/" + ver)));
 	}
 
 	protected static Thread watchForMem(final String header, final boolean[] threadStopWrapper) {

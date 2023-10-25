@@ -102,7 +102,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "f896c7f497c8780a470487cec1f3434d2fcfed80";
+    private static final String gitCommitHash = "5154d57474407fb8e21e5bcd238c6db20666fca8";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
@@ -797,7 +797,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<WorkspaceObjectData> objects =
 				ws.getObjects(wsmeth.getUser(authPart), loi, false, false, false);
 		resourcesToDelete.set(objects);
-		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
+		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart));
         //END get_objects
         return returnVal;
     }
@@ -849,7 +849,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<WorkspaceObjectData> objects =
 				ws.getObjects(wsmeth.getUser(authPart), loi, false, false, false);
 		resourcesToDelete.set(objects);
-		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
+		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart));
         //END get_object_subset
         return returnVal;
     }
@@ -972,7 +972,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				wsmeth.getUser(authPart), chains, false, false, false);
 		resourcesToDelete.set(objects);
-		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
+		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart));
         //END get_referenced_objects
         return returnVal;
     }
@@ -1701,6 +1701,26 @@ public class WorkspaceServer extends JsonServerServlet {
 				ADMIN_ROLE_MAP.get(wsadmin.getAdminRole(authPart)));
         //END get_admin_role
         return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: alter_admin_object_metadata</p>
+     * <pre>
+     * Update admin metadata for an object. The user must have full workspace service
+     * administration privileges.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.AlterAdminObjectMetadataParams AlterAdminObjectMetadataParams}
+     */
+    @JsonServerMethod(rpc = "Workspace.alter_admin_object_metadata", async=true)
+    public void alterAdminObjectMetadata(AlterAdminObjectMetadataParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
+        //BEGIN alter_admin_object_metadata
+		wsadmin.ensureAdminRole(
+				authPart,
+				AdminRole.ADMIN,
+				"Full workspace serivce administrator permissions are required to alter "
+				+ "object metadata");
+		wsmeth.setAdminObjectMetadata(params);
+        //END alter_admin_object_metadata
     }
 
     /**
