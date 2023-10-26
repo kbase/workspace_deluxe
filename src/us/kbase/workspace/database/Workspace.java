@@ -1649,6 +1649,9 @@ public class Workspace {
 		if (update.isEmpty()) {
 			return Collections.emptyMap();
 		}
+		if (update.size() > 1000) {
+			throw new IllegalArgumentException("No more than 1000 updates can be applied at once");
+		}
 		for (final ObjectIdentifier oi: update.keySet()) {
 			if (oi.isLookupRequired() || oi.hasRefPath()) {
 				throw new IllegalArgumentException(

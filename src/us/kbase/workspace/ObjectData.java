@@ -20,6 +20,7 @@ import us.kbase.common.service.UObject;
  * The data and supplemental info for an object.
  *                 UnspecifiedObject data - the object's data or subset data.
  *                 object_info info - information about the object.
+ *                 ObjectInfo infostruct - information about the object as a structure rather than a tuple.
  *                 list<obj_ref> path - the path to the object through the object reference graph. All the
  *                         references in the path are absolute.
  *                 list<ProvenanceAction> provenance - the object's provenance.
@@ -53,6 +54,7 @@ import us.kbase.common.service.UObject;
 @JsonPropertyOrder({
     "data",
     "info",
+    "infostruct",
     "path",
     "provenance",
     "creator",
@@ -72,6 +74,31 @@ public class ObjectData {
     private UObject data;
     @JsonProperty("info")
     private Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info;
+    /**
+     * <p>Original spec-file type: ObjectInfo</p>
+     * <pre>
+     * Information about an object as a struct rather than a tuple.
+     * This allows adding fields in a backward compatible way in the future.
+     * Includes more fields than object_info.
+     * obj_id objid - the numerical id of the object.
+     * obj_name name - the name of the object.
+     * type_string type - the type of the object.
+     * timestamp save_date - the save date of the object.
+     * obj_ver ver - the version of the object.
+     * username saved_by - the user that saved or copied the object.
+     * ws_id wsid - the workspace containing the object.
+     * ws_name workspace - the workspace containing the object.
+     * string chsum - the md5 checksum of the object.
+     * int size - the size of the object in bytes.
+     * usermeta meta - arbitrary user-supplied metadata about the object.
+     * usermeta adminmeta - service administrator metadata set on an object. Unlike most
+     *         other object fields, admin metadata is mutable.
+     * list<obj_ref> path - the path to the object.
+     * </pre>
+     * 
+     */
+    @JsonProperty("infostruct")
+    private ObjectInfo infostruct;
     @JsonProperty("path")
     private List<String> path;
     @JsonProperty("provenance")
@@ -125,6 +152,67 @@ public class ObjectData {
 
     public ObjectData withInfo(Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info) {
         this.info = info;
+        return this;
+    }
+
+    /**
+     * <p>Original spec-file type: ObjectInfo</p>
+     * <pre>
+     * Information about an object as a struct rather than a tuple.
+     * This allows adding fields in a backward compatible way in the future.
+     * Includes more fields than object_info.
+     * obj_id objid - the numerical id of the object.
+     * obj_name name - the name of the object.
+     * type_string type - the type of the object.
+     * timestamp save_date - the save date of the object.
+     * obj_ver ver - the version of the object.
+     * username saved_by - the user that saved or copied the object.
+     * ws_id wsid - the workspace containing the object.
+     * ws_name workspace - the workspace containing the object.
+     * string chsum - the md5 checksum of the object.
+     * int size - the size of the object in bytes.
+     * usermeta meta - arbitrary user-supplied metadata about the object.
+     * usermeta adminmeta - service administrator metadata set on an object. Unlike most
+     *         other object fields, admin metadata is mutable.
+     * list<obj_ref> path - the path to the object.
+     * </pre>
+     * 
+     */
+    @JsonProperty("infostruct")
+    public ObjectInfo getInfostruct() {
+        return infostruct;
+    }
+
+    /**
+     * <p>Original spec-file type: ObjectInfo</p>
+     * <pre>
+     * Information about an object as a struct rather than a tuple.
+     * This allows adding fields in a backward compatible way in the future.
+     * Includes more fields than object_info.
+     * obj_id objid - the numerical id of the object.
+     * obj_name name - the name of the object.
+     * type_string type - the type of the object.
+     * timestamp save_date - the save date of the object.
+     * obj_ver ver - the version of the object.
+     * username saved_by - the user that saved or copied the object.
+     * ws_id wsid - the workspace containing the object.
+     * ws_name workspace - the workspace containing the object.
+     * string chsum - the md5 checksum of the object.
+     * int size - the size of the object in bytes.
+     * usermeta meta - arbitrary user-supplied metadata about the object.
+     * usermeta adminmeta - service administrator metadata set on an object. Unlike most
+     *         other object fields, admin metadata is mutable.
+     * list<obj_ref> path - the path to the object.
+     * </pre>
+     * 
+     */
+    @JsonProperty("infostruct")
+    public void setInfostruct(ObjectInfo infostruct) {
+        this.infostruct = infostruct;
+    }
+
+    public ObjectData withInfostruct(ObjectInfo infostruct) {
+        this.infostruct = infostruct;
         return this;
     }
 
@@ -320,7 +408,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", path=")+ path)+", provenance=")+ provenance)+", creator=")+ creator)+", origWsid=")+ origWsid)+", created=")+ created)+", epoch=")+ epoch)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", infostruct=")+ infostruct)+", path=")+ path)+", provenance=")+ provenance)+", creator=")+ creator)+", origWsid=")+ origWsid)+", created=")+ created)+", epoch=")+ epoch)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

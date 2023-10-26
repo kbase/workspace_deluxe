@@ -420,6 +420,42 @@ module Workspace {
 		timestamp save_date, int version, username saved_by,
 		ws_id wsid, ws_name workspace, string chsum, int size, usermeta meta>
 		object_info;
+		
+	/* Information about an object as a struct rather than a tuple.
+		This allows adding fields in a backward compatible way in the future.
+		Includes more fields than object_info.
+
+		obj_id objid - the numerical id of the object.
+		obj_name name - the name of the object.
+		type_string type - the type of the object.
+		timestamp save_date - the save date of the object.
+		obj_ver ver - the version of the object.
+		username saved_by - the user that saved or copied the object.
+		ws_id wsid - the workspace containing the object.
+		ws_name workspace - the workspace containing the object.
+		string chsum - the md5 checksum of the object.
+		int size - the size of the object in bytes.
+		usermeta meta - arbitrary user-supplied metadata about the object.
+		usermeta adminmeta - service administrator metadata set on an object. Unlike most
+			other object fields, admin metadata is mutable.
+		list<obj_ref> path - the path to the object.
+
+	*/
+	typedef structure {
+		obj_id objid;
+		obj_name name;
+		type_string type;
+		timestamp save_date;
+		int version;
+		username saved_by;
+		ws_id wsid;
+		ws_name workspace;
+		string chsum;
+		int size;
+		usermeta meta;
+		usermeta adminmeta;
+		list<obj_ref> path;
+	} ObjectInfo;
 
 	/* An external data unit. A piece of data from a source outside the
 		Workspace.
@@ -1020,6 +1056,7 @@ module Workspace {
 
 		UnspecifiedObject data - the object's data or subset data.
 		object_info info - information about the object.
+		ObjectInfo infostruct - information about the object as a structure rather than a tuple.
 		list<obj_ref> path - the path to the object through the object reference graph. All the
 			references in the path are absolute.
 		list<ProvenanceAction> provenance - the object's provenance.
@@ -1050,6 +1087,7 @@ module Workspace {
 	typedef structure {
 		UnspecifiedObject data;
 		object_info info;
+		ObjectInfo infostruct;
 		list<obj_ref> path;
 		list<ProvenanceAction> provenance;
 		username creator;
@@ -1082,6 +1120,9 @@ module Workspace {
 		boolean ignoreErrors - Don't throw an exception if an object cannot
 			be accessed; return null for that object's information instead.
 			Default false.
+		boolean infostruct - return the object information as a structure rather than a tuple.
+			Default false. If true, ObjectData.path will be null as it is provided in
+			the ObjectInfo data.
 		boolean no_data - return the provenance, references, and
 			object_info for this object without the object data. Default false.
 		boolean skip_external_system_updates - if the objects contain any external IDs, don't
@@ -1098,6 +1139,7 @@ module Workspace {
 	typedef structure {
 		list<ObjectSpecification> objects;
 		boolean ignoreErrors;
+		boolean infostruct;
 		boolean no_data;
 		boolean skip_external_system_updates;
 		boolean batch_external_system_updates;
@@ -1512,7 +1554,9 @@ module Workspace {
 			ignored.
 
 		Optional arguments:
-		boolean includeMetadata - include the object metadata in the returned
+		boolean infostruct - return information about the object as a structure rather than a tuple.
+			Default false. If true, infos and paths will be null.
+		boolean includeMetadata - include the user and admin metadata in the returned
 			information. Default false.
 		boolean ignoreErrors - Don't throw an exception if an object cannot
 			be accessed; return null for that object's information and path instead.
@@ -1520,6 +1564,7 @@ module Workspace {
 	*/
 	typedef structure {
 		list<ObjectSpecification> objects;
+		boolean infostruct;
 		boolean includeMetadata;
 		boolean ignoreErrors;
 	} GetObjectInfo3Params;
@@ -1529,10 +1574,12 @@ module Workspace {
 		list<object_info> infos - the object_info data for each object.
 		list<list<obj_ref> paths - the path to the object through the object reference graph for
 			each object. All the references in the path are absolute.
+		list<ObjectInfo> infostructs - the ObjectInfo data for each object.
 	*/
 	typedef structure {
 		list<object_info> infos;
 		list<list<obj_ref>> paths;
+		list<ObjectInfo> infostructs;
 	} GetObjectInfo3Results;
 
 	funcdef get_object_info3(GetObjectInfo3Params params)
@@ -2064,6 +2111,39 @@ module Workspace {
 	
 	/* Get the administrative role for the current user. */
 	funcdef get_admin_role() returns (GetAdminRoleResults results) authentication required;
+	
+	/* An object metadata update specification.
+
+		Required arguments:
+		ObjectIdentity oi - the object to be altered
+
+		One or both of the following arguments are required:
+		usermeta new - metadata to assign to the workspace. Duplicate keys will
+			be overwritten.
+		list<string> remove - these keys will be removed from the workspace
+			metadata key/value pairs.
+	*/
+	typedef structure {
+		ObjectIdentity oi;
+		usermeta new;
+		list<string> remove;
+	} ObjectMetadataUpdate;
+	
+	/* Input parameters for the alter_admin_object_metadata method.
+	
+		updates - the metadata updates to apply to the objects. If the same object is specified
+			twice in the list, the update order is unspecified. At most 1000 updates are allowed
+			in one call.
+	*/
+	typedef structure {
+		list<ObjectMetadataUpdate> updates;
+	} AlterAdminObjectMetadataParams;
+	
+	/* Update admin metadata for an object. The user must have full workspace service
+		administration privileges.
+	*/
+	funcdef alter_admin_object_metadata(AlterAdminObjectMetadataParams params) returns()
+		authentication required;
 	
 	/* The administration interface. */
 	funcdef administer(UnspecifiedObject command)

@@ -1383,6 +1383,23 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: alter_admin_object_metadata</p>
+     * <pre>
+     * Update admin metadata for an object. The user must have full workspace service
+     * administration privileges.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.AlterAdminObjectMetadataParams AlterAdminObjectMetadataParams}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public void alterAdminObjectMetadata(AlterAdminObjectMetadataParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<Object> retType = new TypeReference<Object>() {};
+        caller.jsonrpcCall("Workspace.alter_admin_object_metadata", args, retType, false, true, jsonRpcContext, this.serviceVersion);
+    }
+
+    /**
      * <p>Original spec-file function name: administer</p>
      * <pre>
      * The administration interface.

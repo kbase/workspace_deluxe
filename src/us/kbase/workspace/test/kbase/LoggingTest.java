@@ -29,19 +29,19 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.UObject;
-import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.test.TestCommon;
-import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
+import us.kbase.workspace.AlterAdminObjectMetadataParams;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectMetadataUpdate;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.RegisterTypespecParams;
@@ -66,6 +66,7 @@ public class LoggingTest {
 
 	private static final String ARGUTILS = "us.kbase.workspace.kbase.ArgUtils";
 	private static final String SERV = "us.kbase.workspace.WorkspaceServer";
+	private static final String WSMETH = "us.kbase.workspace.kbase.WorkspaceServerMethods";
 
 	private static final String DB_WS_NAME = "LoggingTest";
 	private static final String DB_TYPE_NAME = "LoggingTest_Types";
@@ -118,20 +119,8 @@ public class LoggingTest {
 		SERVER.changeSyslogOutput(logout);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
-		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t1);
-		} catch (UnauthorizedException ue) {
-			throw new TestException("Unable to login with test.user1: " + USER1 +
-					"\nPlease check the credentials in the test configuration.", ue);
-		}
-		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t2);
-		} catch (UnauthorizedException ue) {
-			throw new TestException("Unable to login with test.user2: " + USER2 +
-					"\nPlease check the credentials in the test configuration.", ue);
-		}
+		CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), t1);
+		CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), t2);
 
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
@@ -287,8 +276,11 @@ public class LoggingTest {
 		public String user;
 		public String caller;
 
-		public ExpectedLog(int level, String method, String message,
-				String user, String caller) {
+		public ExpectedLog(final int level,
+				final String method,
+				final String message,
+				final String user,
+				final String caller) {
 			this.level = level;
 			this.method = method;
 			this.message = message;
@@ -299,8 +291,16 @@ public class LoggingTest {
 
 	private static class LogObjExp extends ExpectedLog {
 
-		public LogObjExp(String method, String message, String caller) {
+		public LogObjExp(final String method, final String message, final String caller) {
 			super(INFO, method, message, USER1, caller);
+		}
+		
+		public LogObjExp(
+				final String method,
+				final String message,
+				final String caller,
+				final String user) {
+			super(INFO, method, message, user, caller);
 		}
 	}
 
@@ -378,15 +378,30 @@ public class LoggingTest {
 				.withObjects(d));
 		checkLogging(convertLogObjExp(Arrays.asList(
 				new LogObjExp("save_objects", "start method", SERV),
-				new LogObjExp("save_objects",
-						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
-				new LogObjExp("save_objects",
-						"Object 1/2/1 SomeModule.BType-1.0", ARGUTILS),
-				new LogObjExp("save_objects",
-						"Object 1/3/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("save_objects", "Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("save_objects", "Object 1/2/1 SomeModule.BType-1.0", ARGUTILS),
+				new LogObjExp("save_objects", "Object 1/3/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("save_objects", "end method", SERV))));
 		logout.reset();
-
+		
+		// alter admin meta
+		CLIENT2.alterAdminObjectMetadata(new AlterAdminObjectMetadataParams()
+				.withUpdates(Arrays.asList(
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withRef("myws/foo"))
+								.withRemove(Arrays.asList("a")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withRef("1/3/1"))
+								.withRemove(Arrays.asList("a"))
+				))
+		);
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("alter_admin_object_metadata", "start method", SERV, USER2),
+				new LogObjExp("alter_admin_object_metadata", "Object 1/1/1", WSMETH, USER2),
+				new LogObjExp("alter_admin_object_metadata", "Object 1/3/1", WSMETH, USER2),
+				new LogObjExp("alter_admin_object_metadata", "end method", SERV, USER2))));
+		logout.reset();
+				
 		// rename
 		CLIENT1.renameObject(new RenameObjectParams()
 				.withNewName("bak")

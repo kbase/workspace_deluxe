@@ -722,8 +722,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new RuntimeException("You divided by zero, didn't you, you absolute muppet", e);
 		}
 	}
-
-	
 	
 	@Override
 	public Map<ObjectIDResolvedWS, ResolvedObjectID> setAdminObjectMeta(

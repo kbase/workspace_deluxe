@@ -1,5 +1,6 @@
 package us.kbase.workspace.kbase;
 
+import static java.util.Objects.requireNonNull;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
@@ -39,6 +40,7 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
+import us.kbase.workspace.ObjectInfo;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Reference;
@@ -350,7 +352,41 @@ public class ArgUtils {
 		}
 		return ret;
 	}
+	
+	private static ObjectInfo objInfoToClass(
+			final ObjectInformation oi,
+			final boolean nullForEmptyMeta) {
+		requireNonNull(oi, "oi");
+		getLogger().info("Object {}/{}/{} {}", oi.getWorkspaceId(),
+				oi.getObjectId(), oi.getVersion(),
+				oi.getTypeString());
+		return new ObjectInfo()
+				.withObjid(oi.getObjectId())
+				.withName(oi.getObjectName())
+				.withType(oi.getTypeString())
+				.withSaveDate(formatDate(oi.getSavedDate()))
+				.withVersion(Long.valueOf(oi.getVersion()))
+				.withSavedBy(oi.getSavedBy().getUser())
+				.withWsid(oi.getWorkspaceId())
+				.withWorkspace(oi.getWorkspaceName())
+				.withChsum(oi.getCheckSum())
+				.withSize(oi.getSize())
+				.withMeta(oi.getUserMetaDataMap(nullForEmptyMeta))
+				.withAdminmeta(oi.getAdminUserMetaDataMap(nullForEmptyMeta))
+				.withPath(toObjectPath(oi.getReferencePath()));
+	}
 
+	/** Translate a list of object information internal class instances to their KB-SDK equivalent.
+	 * @param ois the object informations.
+	 * @param nullForEmptyMeta if meta data is missing, return null rather than an empty map.
+	 * @return the translated object informations.
+	 */
+	public static List<ObjectInfo> objInfoToClass(
+			final List<ObjectInformation> ois,
+			final boolean nullForEmptyMeta) {
+		return ois.stream().map(o -> objInfoToClass(o, nullForEmptyMeta))
+				.collect(Collectors.toList());
+	}
 
 	public static Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>
@@ -407,14 +443,14 @@ public class ArgUtils {
 	 * speed up the updates, but the drawback is that if the external update fails for any object,
 	 * all the objects that required updates for that system will be marked as having a failed
 	 * update. Has no effect if the permissions handler is not present.
-	 * @param logObjects if true, log the object ref and type.
+	 * @param objectInfoAsClass return the object information as a Class rather than a Tuple.
 	 * @return the translated objects.
 	 */
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects,
 			final Optional<IdReferencePermissionHandlerSet> permHandler,
 			final boolean batchExternalUpdates,
-			final boolean logObjects) {
+			final boolean objectInfoAsClass) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		Map<WorkspaceObjectData, PermError> errs = null;
 		if (batchExternalUpdates) {
@@ -436,10 +472,8 @@ public class ArgUtils {
 				throw new RuntimeException(
 						"An unexpected error occurred: " + e.getLocalizedMessage(), e);
 			}
-			ret.add(new ObjectData()
+			final ObjectData od = new ObjectData()
 					.withData(data)
-					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects, false))
-					.withPath(toObjectPath(o.getObjectInfo().getReferencePath()))
 					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withOrigWsid(o.getProvenance().getWorkspaceID().orElse(null))
@@ -451,7 +485,14 @@ public class ArgUtils {
 					.withCopySourceInaccessible(o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
 					.withHandleError(errs.get(o).error)
-					.withHandleStacktrace(errs.get(o).stackTrace));
+					.withHandleStacktrace(errs.get(o).stackTrace);
+			if (objectInfoAsClass) {
+				od.withInfostruct(objInfoToClass(o.getObjectInfo(), false));
+			} else {
+				od.withInfo(objInfoToTuple(o.getObjectInfo(), true, false))
+						.withPath(toObjectPath(o.getObjectInfo().getReferencePath()));
+			}
+			ret.add(od);
 		}
 		return ret;
 	}
