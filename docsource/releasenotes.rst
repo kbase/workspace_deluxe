@@ -3,11 +3,12 @@
 Workspace service release notes
 ===============================
 
-VERSION: unreleased
-------------------------------------
+VERSION: 0.14.2 (Released TBD)
+------------------------------
 
 UPDATES:
 
+* Added the ``alter_admin_object_metdata`` method.
 * Update to using Java 11 for building, running, and testing the workspace.
 
 
