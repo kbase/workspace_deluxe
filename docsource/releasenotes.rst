@@ -3,12 +3,16 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.14.2 (Released TBD)
-------------------------------
+VERSION: 0.14.2 (Released 11/9/2023)
+------------------------------------
 
 UPDATES:
 
 * Added the ``alter_admin_object_metdata`` method.
+* Added the ``get_admin_role`` method.
+* Added the ``infostruct`` toggle to ``get_objects2`` and ``get_object_info3`` methods that
+  controls returning the object information as a struct or a tuple. The struct also contains
+  additional information.
 * Update to using Java 11 for building, running, and testing the workspace.
 
 
