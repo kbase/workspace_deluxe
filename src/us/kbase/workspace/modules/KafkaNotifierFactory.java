@@ -358,7 +358,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		public void revertObject(final ObjectInformation oi, final boolean isPublic) {
 			newEvent(oi.getSavedBy().getUser(), oi.getWorkspaceId(), oi.getObjectId(),
 					oi.getVersion(), oi.getTypeString(), NEW_VERSION,
-					oi.getSavedDate().toInstant());
+					oi.getSavedDate());
 			
 		}
 
@@ -388,7 +388,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		public void copyObject(final ObjectInformation oi, final boolean isPublic) {
 			newEvent(oi.getSavedBy().getUser(), oi.getWorkspaceId(), oi.getObjectId(),
 					oi.getVersion(), oi.getTypeString(), NEW_VERSION,
-					oi.getSavedDate().toInstant());
+					oi.getSavedDate());
 		}
 
 		@Override
@@ -406,7 +406,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		public void saveObject(final ObjectInformation oi, final boolean isPublic) {
 			newEvent(oi.getSavedBy().getUser(), oi.getWorkspaceId(), oi.getObjectId(),
 					oi.getVersion(), oi.getTypeString(), NEW_VERSION,
-					oi.getSavedDate().toInstant());
+					oi.getSavedDate());
 		}
 		
 		private void newEvent(

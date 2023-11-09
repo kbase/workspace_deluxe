@@ -16,8 +16,8 @@ import us.kbase.common.service.ServiceChecker;
 import us.kbase.common.service.ServiceChecker.ServiceException;
 
 public class ServiceCheckerTest {
-	
-	private final static String KBASE_ENV = "https://next.kbase.us"; // "https://kbase.us/"
+
+	private static final String KBASE_ENV = "https://ci.kbase.us"; // "https://kbase.us/"
 
 	public static class TestSpec {
 		public final String err;
@@ -28,9 +28,9 @@ public class ServiceCheckerTest {
 			this.url = new URL(url);
 		}
 	}
-	
+
 	public static Map<String, TestSpec> TESTS = new HashMap<>();
-	
+
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		TESTS.put("Perl", new TestSpec(
@@ -56,45 +56,45 @@ public class ServiceCheckerTest {
 				"to a KBase SDK generated service. Code: 200, message: OK, " +
 				"content: {",
 				KBASE_ENV + "/services/shock-api"));
-		
+
 	}
-	
+
 	@Test
 	public void testPerl() throws Exception {
 		test();
 	}
-	
+
 	@Test
 	public void testPython() throws Exception {
 		test();
 	}
-	
+
 	@Test
 	public void testJava() throws Exception {
 		test();
 	}
-	
+
 	// no longer any http SDK services available
 //	@Test
 //	public void testHTTP() throws Exception {
 //		test();
 //	}
-	
+
 	@Test
 	public void test500() throws Exception {
 		test();
 	}
-	
+
 	@Test
 	public void test200() throws Exception {
 		test();
 	}
-	
+
 	@Test
 	public void short200() throws Exception {
 		test();
 	}
-	
+
 	public static void test() throws Exception {
 		final Exception e = new Exception();
 		e.fillInStackTrace();

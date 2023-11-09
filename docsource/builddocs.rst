@@ -10,13 +10,19 @@ Requirements
 
 The build requires:
 
-Java JDK 8+
+Java JDK 11
 
 `Java ant <http://ant.apache.org/>`_::
 
     sudo apt-get install ant
-  
+
 `Python <https://www.python.org/>`_ `Sphinx <http://sphinx-doc.org/>`_ 1.3+::
+
+Either
+
+    sudo apt-get install python3-sphinx
+
+or, if the `python3-sphinx` package is not available for your distribution
 
     curl https://bootstrap.pypa.io/get-pip.py > get-pip.py
     sudo python get-pip.py
@@ -43,13 +49,13 @@ Clone the jars and workspace_deluxe repos::
     remote: Total 22004 (delta 41), reused 0 (delta 0), pack-reused 21921
     Receiving objects: 100% (22004/22004), 21.44 MiB | 2.44 MiB/s, done.
     Resolving deltas: 100% (14000/14000), done.
-    
+
 Build
 -----
-    
+
 Build the documentation::
 
     bareubuntu@bu:~/ws$ cd workspace_deluxe/
     bareubuntu@bu:~/ws/workspace_deluxe$ make build-docs
-    
+
 The build directory is ``docs``.

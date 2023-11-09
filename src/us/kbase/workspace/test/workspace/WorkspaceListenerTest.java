@@ -10,13 +10,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -27,8 +27,10 @@ import org.mockito.ArgumentMatcher;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
@@ -36,6 +38,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.CopyResult;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -82,10 +85,18 @@ public class WorkspaceListenerTest {
 			.withGlobalRead(true)
 			.build();
 	
-	public static final ObjectInformation OBJ_INFO = new ObjectInformation(
-			42L, "whee", "a type", new Date(40000), 45, new WorkspaceUser("bar"),
-			new ResolvedWorkspaceID(24, "whee", false, false), "chksum",
-			20, new UncheckedUserMetadata(Collections.emptyMap()));
+	public static final ObjectInformation OBJ_INFO = ObjectInformation.getBuilder()
+			.withObjectID(42)
+			.withObjectName("whee")
+			.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+			.withSavedDate(inst(40000))
+			.withVersion(45)
+			.withSavedBy(new WorkspaceUser("bar"))
+			.withWorkspace(new ResolvedWorkspaceID(24, "whee", false, false))
+			.withChecksum("chksum")
+			.withSize(20)
+			.withUserMetadata(new UncheckedUserMetadata(Collections.emptyMap()))
+			.build();
 
 	private static class Mocks {
 		
@@ -194,7 +205,7 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
 		
-		ws.setWorkspaceMetadata(user, wsi, META, null);
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(META, null));
 		
 		verify(m.l1, never()).setWorkspaceMetadata(
 				any(WorkspaceUser.class), anyLong(), any(Instant.class));
@@ -216,10 +227,11 @@ public class WorkspaceListenerTest {
 		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.setWorkspaceMeta(rwsi, new MetadataUpdate(meta, null)))
+				.thenReturn(Optional.of(inst(20000)));
 
 		
-		ws.setWorkspaceMetadata(user, wsi, meta, null);
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(meta, null));
 		
 		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
@@ -240,10 +252,11 @@ public class WorkspaceListenerTest {
 		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.setWorkspaceMeta(rwsi, new MetadataUpdate(meta, null)))
+				.thenReturn(Optional.of(inst(20000)));
 
 		
-		ws.setWorkspaceMetadata(user, wsi, meta, null);
+		ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(meta, null));
 		
 		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 		verify(m.l2).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
@@ -267,72 +280,15 @@ public class WorkspaceListenerTest {
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
 		
 		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(m.db).setWorkspaceMeta(rwsi, meta);
+				.when(m.db).setWorkspaceMeta(rwsi, new MetadataUpdate(meta, Arrays.asList("foo")));
 		try {
-			ws.setWorkspaceMetadata(user, wsi, meta, Arrays.asList("foo"));
+			ws.setWorkspaceMetadata(user, wsi, new MetadataUpdate(meta, Arrays.asList("foo")));
 		} catch(WorkspaceCommunicationException e) {
 			//fine
 		}
 		
 		verify(m.l1, never()).setWorkspaceMetadata(
 				any(WorkspaceUser.class), anyLong(), any(Instant.class));
-	}
-	
-	@Test
-	public void setWorkspaceMetadataExceptionOnFirstRemove() throws Exception {
-		final Mocks m = new Mocks();
-		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata(
-				ImmutableMap.of("foo", "bar"));
-		
-		final WorkspaceUser user = new WorkspaceUser("foo");
-		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
-		
-		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
-		
-		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
-				PermissionSet.getBuilder(user, new AllUsers('*'))
-						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
-		
-		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(m.db).removeWorkspaceMetaKey(rwsi, "foo");
-		try {
-			ws.setWorkspaceMetadata(user, wsi, meta, Arrays.asList("foo"));
-		} catch(WorkspaceCommunicationException e) {
-			//fine
-		}
-		
-		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
-	}
-	
-	@Test
-	public void setWorkspaceMetadataExceptionOnSecondRemove() throws Exception {
-		final Mocks m = new Mocks();
-		
-		final WorkspaceUser user = new WorkspaceUser("foo");
-		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
-		
-		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
-		
-		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
-				PermissionSet.getBuilder(user, new AllUsers('*'))
-						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(m.db.setWorkspaceMeta(rwsi, META)).thenReturn(Instant.ofEpochMilli(20000));
-		when(m.db.removeWorkspaceMetaKey(rwsi, "bar")).thenReturn(Instant.ofEpochMilli(30000));
-		
-		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(m.db).removeWorkspaceMetaKey(rwsi, "foo");
-		try {
-			ws.setWorkspaceMetadata(user, wsi, META, Arrays.asList("bar", "foo"));
-		} catch(WorkspaceCommunicationException e) {
-			//fine
-		}
-		
-		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -563,38 +519,13 @@ public class WorkspaceListenerTest {
 		
 		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
-				PermissionSet.getBuilder(user, new AllUsers('*'))
-						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
-		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
-		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
-				.thenReturn(Instant.ofEpochMilli(30000));
-		
-		ws.setWorkspaceOwner(user, wsi, newUser, Optional.empty(), false);
-
-		verify(m.l1).setWorkspaceOwner(user, 24L, newUser, Optional.empty(),
-				Instant.ofEpochMilli(30000));
-	}
-	
-	@Test
-	public void setWorkspaceOwner1AsAdmin() throws Exception {
-		final Mocks m = new Mocks();
-		
-		final WorkspaceUser user = new WorkspaceUser("foo");
-		final WorkspaceUser newUser = new WorkspaceUser("bar");
-		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foobar", false, false);
-		
-		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
-		
 		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
 		when(m.db.getWorkspaceOwner(rwsi)).thenReturn(user);
 		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
 		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
-		ws.setWorkspaceOwner(null, wsi, newUser, Optional.empty(), true);
+		ws.setWorkspaceOwner(wsi, newUser, Optional.empty());
 
 		verify(m.l1).setWorkspaceOwner(null, 24L, newUser, Optional.empty(),
 				Instant.ofEpochMilli(30000));
@@ -612,19 +543,17 @@ public class WorkspaceListenerTest {
 		
 		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
-				PermissionSet.getBuilder(user, new AllUsers('*'))
-						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
+		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(m.db.getWorkspaceOwner(rwsi)).thenReturn(user);
 		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
 		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.of("bar:foobar")))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
-		ws.setWorkspaceOwner(user, wsi, newUser, Optional.empty(), false);
+		ws.setWorkspaceOwner(wsi, newUser, Optional.empty());
 
-		verify(m.l1).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
+		verify(m.l1).setWorkspaceOwner(null, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
-		verify(m.l2).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
+		verify(m.l2).setWorkspaceOwner(null, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
 	}
 	
@@ -1030,13 +959,28 @@ public class WorkspaceListenerTest {
 		final ResolvedSaveObject rso2 = wso2.resolve(rwsi, vto1, set(), Collections.emptyList(),
 				Collections.emptyMap());
 		
-		final ObjectInformation oi1 = new ObjectInformation(
-				35, "foo1", "foo.bar-2.1", new Date(60000), 6, new WorkspaceUser("foo"),
-				rwsi, "chcksum1", 18, null);
-		
-		final ObjectInformation oi2 = new ObjectInformation(
-				76, "foo2", "foo.baz-1.0", new Date(70000), 1, new WorkspaceUser("foo"),
-				rwsi, "chcksum2", 22, null);
+		final ObjectInformation oi1 = ObjectInformation.getBuilder()
+				.withObjectID(35)
+				.withObjectName("foo1")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("foo.bar"), 2, 1))
+				.withSavedDate(inst(60000))
+				.withVersion(6)
+				.withSavedBy(new WorkspaceUser("foo"))
+				.withWorkspace(rwsi)
+				.withChecksum("chcksum1")
+				.withSize(18)
+				.build();
+		final ObjectInformation oi2 = ObjectInformation.getBuilder()
+				.withObjectID(76)
+				.withObjectName("foo2")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("foo.baz"), 1, 0))
+				.withSavedDate(inst(70000))
+				.withVersion(1)
+				.withSavedBy(new WorkspaceUser("foo"))
+				.withWorkspace(rwsi)
+				.withChecksum("chcksum2")
+				.withSize(22)
+				.build();
 		
 		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
 				.withID(24)
@@ -1099,13 +1043,28 @@ public class WorkspaceListenerTest {
 		final ResolvedSaveObject rso2 = wso2.resolve(rwsi, vto1, set(), Collections.emptyList(),
 				Collections.emptyMap());
 		
-		final ObjectInformation oi1 = new ObjectInformation(
-				35, "foo1", "foo.bar-2.1", new Date(60000), 6, new WorkspaceUser("foo"),
-				rwsi, "chcksum1", 18, null);
-		
-		final ObjectInformation oi2 = new ObjectInformation(
-				76, "foo2", "foo.baz-1.0", new Date(70000), 1, new WorkspaceUser("foo"),
-				rwsi, "chcksum2", 22, null);
+		final ObjectInformation oi1 = ObjectInformation.getBuilder()
+				.withObjectID(35)
+				.withObjectName("foo1")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("foo.bar"), 2, 1))
+				.withSavedDate(inst(60000))
+				.withVersion(6)
+				.withSavedBy(new WorkspaceUser("foo"))
+				.withWorkspace(rwsi)
+				.withChecksum("chcksum1")
+				.withSize(18)
+				.build();
+		final ObjectInformation oi2 = ObjectInformation.getBuilder()
+				.withObjectID(76)
+				.withObjectName("foo2")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("foo.baz"), 1, 0))
+				.withSavedDate(inst(70000))
+				.withVersion(1)
+				.withSavedBy(new WorkspaceUser("foo"))
+				.withWorkspace(rwsi)
+				.withChecksum("chcksum2")
+				.withSize(22)
+				.build();
 		
 		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
 				.withID(24)

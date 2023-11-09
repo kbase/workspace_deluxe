@@ -16,27 +16,29 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: GetObjects2Params</p>
  * <pre>
  * Input parameters for the get_objects2 function.
- *         Required parameters:
- *         list<ObjectSpecification> objects - the list of object specifications
- *                 for the objects to return (via reference chain and as a subset if
- *                 specified).
- *                 
- *         Optional parameters:
- *         boolean ignoreErrors - Don't throw an exception if an object cannot
- *                 be accessed; return null for that object's information instead.
- *                 Default false.
- *         boolean no_data - return the provenance, references, and
- *                 object_info for this object without the object data. Default false.
- *         boolean skip_external_system_updates - if the objects contain any external IDs, don't
- *                 contact external systems to perform any updates for those IDs (often ACL updates,
- *                 e.g. for handle / blobstore / sample IDs). In some cases this can speed up fetching the
- *                 data. Default false.
- *         boolean batch_external_system_updates - if the objects contain any external IDs,
- *                 send all external system updates in a batch to each external system when possible
- *                 rather than object by object. This can potentially speed up the updates, but the
- *                 drawback is that if the external update fails for any object, all the objects that
- *                 required updates for that system will be marked as having a failed update.
- *                 Has no effect if skip_external_system_updates is true. Default false.
+ *                 Required parameters:
+ *                 list<ObjectSpecification> objects - the list of object specifications
+ *                         for the objects to return (via reference chain and as a subset if
+ *                         specified).
+ *                 Optional parameters:
+ *                 boolean ignoreErrors - Don't throw an exception if an object cannot
+ *                         be accessed; return null for that object's information instead.
+ *                         Default false.
+ *                 boolean infostruct - return the object information as a structure rather than a tuple.
+ *                         Default false. If true, ObjectData.path will be null as it is provided in
+ *                         the ObjectInfo data.
+ *                 boolean no_data - return the provenance, references, and
+ *                         object_info for this object without the object data. Default false.
+ *                 boolean skip_external_system_updates - if the objects contain any external IDs, don't
+ *                         contact external systems to perform any updates for those IDs (often ACL updates,
+ *                         e.g. for handle / blobstore / sample IDs). In some cases this can speed up fetching the
+ *                         data. Default false.
+ *                 boolean batch_external_system_updates - if the objects contain any external IDs,
+ *                         send all external system updates in a batch to each external system when possible
+ *                         rather than object by object. This can potentially speed up the updates, but the
+ *                         drawback is that if the external update fails for any object, all the objects that
+ *                         required updates for that system will be marked as having a failed update.
+ *                         Has no effect if skip_external_system_updates is true. Default false.
  * </pre>
  * 
  */
@@ -45,6 +47,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({
     "objects",
     "ignoreErrors",
+    "infostruct",
     "no_data",
     "skip_external_system_updates",
     "batch_external_system_updates"
@@ -55,6 +58,8 @@ public class GetObjects2Params {
     private List<ObjectSpecification> objects;
     @JsonProperty("ignoreErrors")
     private Long ignoreErrors;
+    @JsonProperty("infostruct")
+    private Long infostruct;
     @JsonProperty("no_data")
     private Long noData;
     @JsonProperty("skip_external_system_updates")
@@ -90,6 +95,21 @@ public class GetObjects2Params {
 
     public GetObjects2Params withIgnoreErrors(Long ignoreErrors) {
         this.ignoreErrors = ignoreErrors;
+        return this;
+    }
+
+    @JsonProperty("infostruct")
+    public Long getInfostruct() {
+        return infostruct;
+    }
+
+    @JsonProperty("infostruct")
+    public void setInfostruct(Long infostruct) {
+        this.infostruct = infostruct;
+    }
+
+    public GetObjects2Params withInfostruct(Long infostruct) {
+        this.infostruct = infostruct;
         return this;
     }
 
@@ -150,7 +170,7 @@ public class GetObjects2Params {
 
     @Override
     public String toString() {
-        return ((((((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", noData=")+ noData)+", skipExternalSystemUpdates=")+ skipExternalSystemUpdates)+", batchExternalSystemUpdates=")+ batchExternalSystemUpdates)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", infostruct=")+ infostruct)+", noData=")+ noData)+", skipExternalSystemUpdates=")+ skipExternalSystemUpdates)+", batchExternalSystemUpdates=")+ batchExternalSystemUpdates)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

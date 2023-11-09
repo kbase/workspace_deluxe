@@ -4,9 +4,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.now;
@@ -21,9 +23,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.junit.Test;
@@ -40,15 +44,19 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
+import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeProvider.TypeFetchException;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.ValidatedTypedObject;
@@ -62,12 +70,14 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -162,6 +172,17 @@ public class WorkspaceUnitTest {
 	}
 	
 	@Test
+	public void setWorkspaceMetadataFailNullMeta() throws Exception {
+		try {
+			initMocks().ws.setWorkspaceMetadata(
+					new WorkspaceUser("u"), new WorkspaceIdentifier(1), null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("meta"));
+		}
+	}
+	
+	@Test
 	public void setWorkspaceDescriptionNull() throws Exception {
 		setWorkspaceDescription(null, null);
 	}
@@ -208,7 +229,8 @@ public class WorkspaceUnitTest {
 		final TestMocks mocks = initMocks();
 		
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ws", false, false);
-		when(mocks.db.resolveWorkspace(new WorkspaceIdentifier("ws"))).thenReturn(rwsi);
+		when(mocks.db.resolveWorkspaces(set(new WorkspaceIdentifier("ws")))).thenReturn(
+				ImmutableMap.of(new WorkspaceIdentifier("ws"), rwsi));
 		
 		final long id = mocks.ws.setWorkspaceDescription(
 				null, new WorkspaceIdentifier("ws"), "foo", true);
@@ -223,7 +245,8 @@ public class WorkspaceUnitTest {
 		final TestMocks mocks = initMocks();
 		
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ws", false, false);
-		when(mocks.db.resolveWorkspace(new WorkspaceIdentifier("ws"))).thenReturn(rwsi);
+		when(mocks.db.resolveWorkspaces(set(new WorkspaceIdentifier("ws")))).thenReturn(
+				ImmutableMap.of(new WorkspaceIdentifier("ws"), rwsi));
 		
 		when(mocks.db.getWorkspaceDescription(rwsi)).thenReturn("my desc");
 		
@@ -243,7 +266,8 @@ public class WorkspaceUnitTest {
 		final TestMocks mocks = initMocks();
 		
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ws", true, false);
-		when(mocks.db.resolveWorkspace(new WorkspaceIdentifier("ws"))).thenReturn(rwsi);
+		when(mocks.db.resolveWorkspaces(set(new WorkspaceIdentifier("ws")))).thenReturn(
+				ImmutableMap.of(new WorkspaceIdentifier("ws"), rwsi));
 		
 		setWorkspaceDescriptionFail(mocks.ws, new WorkspaceIdentifier("ws"), true,
 				new WorkspaceAuthorizationException(
@@ -378,8 +402,17 @@ public class WorkspaceUnitTest {
 		data.put(
 				new ObjectIDResolvedWS(rwsi, 1),
 				WorkspaceObjectData.getBuilder(
-						new ObjectInformation(
-								1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null),
+						ObjectInformation.getBuilder()
+								.withObjectID(1)
+								.withObjectName("foo")
+								.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+								.withSavedDate(now)
+								.withVersion(1)
+								.withSavedBy(u)
+								.withWorkspace(rwsi)
+								.withChecksum("chcksm")
+								.withSize(12)
+								.build(),
 						p)
 				);
 		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -422,8 +455,17 @@ public class WorkspaceUnitTest {
 		data.put(
 				new ObjectIDResolvedWS(rwsi, 1),
 				WorkspaceObjectData.getBuilder(
-						new ObjectInformation(
-								1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null),
+						ObjectInformation.getBuilder()
+							.withObjectID(1)
+							.withObjectName("foo")
+							.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+							.withSavedDate(now)
+							.withVersion(1)
+							.withSavedBy(u)
+							.withWorkspace(rwsi)
+							.withChecksum("chcksm")
+							.withSize(12)
+							.build(),
 						p)
 				);
 		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -439,8 +481,17 @@ public class WorkspaceUnitTest {
 		assertThat("incorrect count", got.size(), is(1));
 		final WorkspaceObjectData wod = got.get(0);
 		// no overridden equals method for WOD as expected
-		assertThat("incorrect info", wod.getObjectInfo(), is(new ObjectInformation(
-				1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null)));
+		assertThat("incorrect info", wod.getObjectInfo(), is(ObjectInformation.getBuilder()
+				.withObjectID(1)
+				.withObjectName("foo")
+				.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+				.withSavedDate(now)
+				.withVersion(1)
+				.withSavedBy(u)
+				.withWorkspace(rwsi)
+				.withChecksum("chcksm")
+				.withSize(12)
+				.build()));
 		assertThat("incorrect prov", wod.getProvenance(), is(p));
 		assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
 		assertThat("incorrect copy ref", wod.getCopyReference(), is(Optional.empty()));
@@ -475,8 +526,18 @@ public class WorkspaceUnitTest {
 				.collect(Collectors.toMap(
 						i -> new ObjectIDResolvedWS(rwsi, i),
 						i -> WorkspaceObjectData.getBuilder(
-								new ObjectInformation(
-										i, "foo" + i, "type", now, 1, u, rwsi, "chcksm", 12, null),
+									ObjectInformation.getBuilder()
+									.withObjectID(i)
+									.withObjectName("foo" + i)
+									.withType(new AbsoluteTypeDefId(
+											new TypeDefName("Foo.Bar"), 2, 1))
+									.withSavedDate(now)
+									.withVersion(1)
+									.withSavedBy(u)
+									.withWorkspace(rwsi)
+									.withChecksum("chcksm")
+									.withSize(12)
+									.build(),
 								p)));
 		
 		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -490,8 +551,18 @@ public class WorkspaceUnitTest {
 		for (int i = 0; i < 1000; i++) {
 			// no overridden equals method for WOD as expected
 			final WorkspaceObjectData wod = got.get(i);
-			assertThat("incorrect info", wod.getObjectInfo(), is(new ObjectInformation(
-					i + 1, "foo" + (i + 1), "type", now, 1, u, rwsi, "chcksm", 12, null)));
+			assertThat("incorrect info", wod.getObjectInfo(), is(
+					ObjectInformation.getBuilder()
+						.withObjectID(i + 1)
+						.withObjectName("foo" + (i + 1))
+						.withType(new AbsoluteTypeDefId(new TypeDefName("Foo.Bar"), 2, 1))
+						.withSavedDate(now)
+						.withVersion(1)
+						.withSavedBy(u)
+						.withWorkspace(rwsi)
+						.withChecksum("chcksm")
+						.withSize(12)
+						.build()));
 			assertThat("incorrect prov", wod.getProvenance(), is(p));
 			assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
 			assertThat("incorrect copy ref", wod.getCopyReference(), is(Optional.empty()));
@@ -693,6 +764,130 @@ public class WorkspaceUnitTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
 			return got;
+		}
+	}
+	
+	@Test
+	public void setAdminObjectMetadataNoop() throws Exception {
+		final TestMocks mocks = initMocks();
+		final Map<ObjectIdentifier, ResolvedObjectID> res = mocks.ws.setAdminObjectMetadata(
+				Collections.emptyMap());
+		
+		assertThat("incorrect result", res, is(Collections.emptyMap()));
+		verify(mocks.db, never()).setAdminObjectMeta(any());
+		verify(mocks.db, never()).resolveWorkspaces(any(), anyBoolean());
+	}
+	
+	@Test
+	public void setAdminObjectMetadata() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier(6);
+		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(6, "foo", false, false);
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("myws");
+		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(8, "bar", false, false);
+		final MetadataUpdate mu1 = new MetadataUpdate(null, Arrays.asList("thing"));
+		final MetadataUpdate mu2 = new MetadataUpdate(null, Arrays.asList("fhang"));
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder("6/4").build();
+		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi1, 4);
+		final ResolvedObjectID rroi1 = new ResolvedObjectID(rwsi1, 4, 8, "stuff", false);
+		final ObjectIdentifier oi2 = ObjectIdentifier.getBuilder("myws/obj/3").build();
+		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi2, "obj", 3);
+		final ResolvedObjectID rroi2 = new ResolvedObjectID(rwsi2, 89, 3, "obj", false);
+		
+		when(mocks.db.resolveWorkspaces(set(wsi1, wsi2), false)).thenReturn(ImmutableMap.of(
+				wsi1, rwsi1, wsi2, rwsi2));
+		when(mocks.db.setAdminObjectMeta(ImmutableMap.of(roi1, mu1, roi2, mu2))).thenReturn(
+				ImmutableMap.of(roi1, rroi1, roi2, rroi2));
+		
+		final Map<ObjectIdentifier, ResolvedObjectID> res = mocks.ws.setAdminObjectMetadata(
+				ImmutableMap.of(oi1, mu1, oi2, mu2));
+		
+		assertThat("incorrect result", res, is(ImmutableMap.of(oi1, rroi1, oi2, rroi2)));
+	}
+	
+	@Test
+	public void setAdminObjectMetadataFailBadInput() throws Exception {
+		final TestMocks mocks = initMocks();
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder("6/4").build();
+		final MetadataUpdate mu = new MetadataUpdate(null, Arrays.asList("foo"));
+		
+		setAdminObjectMetadataFail(mocks.ws, null, new NullPointerException("update"));
+		
+		final Map<ObjectIdentifier, MetadataUpdate> huge = IntStream.range(1, 1002)
+				.mapToObj(i -> Integer.valueOf(i))
+				.collect(Collectors.toMap(
+						i -> ObjectIdentifier.getBuilderFromRefPath("1/" + i).build(),
+						i -> new MetadataUpdate(null, Arrays.asList("f"))));
+		setAdminObjectMetadataFail(mocks.ws, huge, new IllegalArgumentException(
+				"No more than 1000 updates can be applied at once"));
+		
+		final Map<ObjectIdentifier, MetadataUpdate> nulls = new HashMap<>();
+		nulls.put(null, new MetadataUpdate(null, null));
+		setAdminObjectMetadataFail(mocks.ws, nulls, new NullPointerException(
+				"null found in update keys"));
+		
+		nulls.clear();
+		nulls.put(oi, null);
+		setAdminObjectMetadataFail(mocks.ws, nulls, new IllegalArgumentException(
+				"metadata updates cannot be null or updateless"));
+		
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(oi, new MetadataUpdate(null, null)),
+				new IllegalArgumentException("metadata updates cannot be null or updateless"));
+		
+		final ObjectIdentifier rp = ObjectIdentifier.getBuilderFromRefPath("6/4;7/5").build();
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(rp, mu), new IllegalArgumentException(
+				"Object lookups and reference paths are not supported"));
+		
+		final ObjectIdentifier lu = ObjectIdentifier.getBuilder("6/4")
+				.withLookupRequired(true).build();
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(lu, mu), new IllegalArgumentException(
+				"Object lookups and reference paths are not supported"));
+	}
+	
+	@Test
+	public void setAdminObjectMetadataFailOnResolveWorkspaces() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier(6);
+		final MetadataUpdate mu1 = new MetadataUpdate(null, Arrays.asList("thing"));
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder("6/4").build();
+		
+		when(mocks.db.resolveWorkspaces(set(wsi1), false)).thenThrow(
+				new NoSuchWorkspaceException("oh dang", wsi1));
+		
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(oi1, mu1),
+				new InaccessibleObjectException("Object 4 cannot be accessed: oh dang", oi1));
+	}
+	
+	@Test
+	public void setAdminObjectMetadataFailLockedWorkspace() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier(6);
+		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(6, "foo", true, false);
+		final MetadataUpdate mu1 = new MetadataUpdate(null, Arrays.asList("thing"));
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder("6/4").build();
+		
+		when(mocks.db.resolveWorkspaces(set(wsi1), false)).thenReturn(ImmutableMap.of(
+				wsi1, rwsi1));
+		
+		setAdminObjectMetadataFail(mocks.ws, ImmutableMap.of(oi1, mu1),
+				new InaccessibleObjectException(
+						"Object 4 cannot be accessed: The workspace with id 6, name foo, "
+						+ "is locked and may not be modified",
+						oi1));
+	}
+	
+	private void setAdminObjectMetadataFail(
+			final Workspace ws,
+			final Map<ObjectIdentifier, MetadataUpdate> update,
+			final Exception expected) {
+		try {
+			ws.setAdminObjectMetadata(update);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
 }

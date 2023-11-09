@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.workspace.database.Reference;
-import us.kbase.workspace.database.refsearch.ReferenceProviderException;
 
 /** Provides information necessary for searching the reference graph. For a set of references, 
  * provides the references adjacent (incoming or outgoing, depending on the search direction) to

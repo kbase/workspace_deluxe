@@ -9,7 +9,7 @@ URL = https://kbase.us/services/ws/
 TARGET ?= /kb/deployment
 
 GITCOMMIT := $(shell git rev-parse --short HEAD)
-#TODO use --points-at when git 1.7.10 available 
+#TODO use --points-at when git 1.7.10 available
 TAGS := $(shell git tag --contains $(GITCOMMIT))
 
 DEPLOY_RUNTIME ?= /kb/runtime
@@ -32,7 +32,7 @@ build-libs:
 	$(ANT) compile
 
 build-docs:
-	-rm -r docs 
+	-rm -r docs
 	$(ANT) javadoc
 	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE)_perl.html
 	rm -f pod2htm?.tmp
@@ -40,7 +40,7 @@ build-docs:
 	cp $(SERVICE).spec docs/.
 	cp docshtml/* docs/.
 
-docker_deps: build-libs build-docs 
+docker_deps: build-libs build-docs
 	$(ANT) buildwar
 	# cp server_scripts/glassfish_administer_service.py deployment/bin
 	# chmod 755 deployment/bin/glassfish_administer_service.py
@@ -48,9 +48,6 @@ docker_deps: build-libs build-docs
 	cp dist/$(WAR) deployment/services/workspace/
 
 compile: compile-typespec compile-typespec-java compile-html
-
-compile-java-client:
-	$(ANT) compile_client
 
 compile-html:
 	kb-sdk compile --html --out docshtml $(SERVICE).spec
@@ -73,7 +70,7 @@ test: test-service
 
 test-service:
 	$(ANT) test
-	
+
 test-quick:
 	$(ANT) test_quick
 
@@ -115,16 +112,16 @@ deploy-upstart:
 	echo "# shell> groupadd kbase" >> /etc/init/$(SERVICE).conf
 	echo "# shell> useradd -r -g $(SERVICE_USER) $(SERVICE_USER)" >> /etc/init/$(SERVICE).conf
 	echo "#" >> /etc/init/$(SERVICE).conf
-	echo "start on runlevel [23] and started shock" >> /etc/init/$(SERVICE).conf 
-	echo "stop on runlevel [!23]" >> /etc/init/$(SERVICE).conf 
-	echo "pre-start exec chown -R $(SERVICE_USER) $(TARGET)/services/$(SERVICE)" >> /etc/init/$(SERVICE).conf 
-	echo "exec su kbase -c '$(TARGET)/services/$(SERVICE)/start_service'" >> /etc/init/$(SERVICE).conf 
+	echo "start on runlevel [23] and started shock" >> /etc/init/$(SERVICE).conf
+	echo "stop on runlevel [!23]" >> /etc/init/$(SERVICE).conf
+	echo "pre-start exec chown -R $(SERVICE_USER) $(TARGET)/services/$(SERVICE)" >> /etc/init/$(SERVICE).conf
+	echo "exec su kbase -c '$(TARGET)/services/$(SERVICE)/start_service'" >> /etc/init/$(SERVICE).conf
 
 undeploy:
 	-rm -rf $(SERVICE_DIR)
 	-rm -rfv $(TARGET)/lib/Bio/KBase/$(SERVICE)
 	-rm -rfv $(TARGET)/lib/biokbase/$(SERVICE)
-	-rm -rfv $(TARGET)/lib/javascript/$(SERVICE) 
+	-rm -rfv $(TARGET)/lib/javascript/$(SERVICE)
 	-rm -rfv $(TARGET)/lib/$(CLIENT_JAR)
 
 clean:

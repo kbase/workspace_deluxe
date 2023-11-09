@@ -15,15 +15,14 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: SetGlobalPermissionsParams</p>
  * <pre>
  * Input parameters for the "set_global_permission" function.
- *         One, and only one, of the following is required:
- *         ws_id id - the numerical ID of the workspace.
- *         ws_name workspace - the name of the workspace.
- *         
- *         Required arguments:
- *         permission new_permission - the permission to assign to all users,
- *                 either 'n' or 'r'. 'r' means that all users will be able to read
- *                 the workspace; otherwise users must have specific permission to
- *                 access the workspace.
+ *                 One, and only one, of the following is required:
+ *                 ws_id id - the numerical ID of the workspace.
+ *                 ws_name workspace - the name of the workspace.
+ *                 Required arguments:
+ *                 permission new_permission - the permission to assign to all users,
+ *                         either 'n' or 'r'. 'r' means that all users will be able to read
+ *                         the workspace; otherwise users must have specific permission to
+ *                         access the workspace.
  * </pre>
  * 
  */

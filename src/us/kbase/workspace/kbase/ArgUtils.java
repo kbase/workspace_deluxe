@@ -1,5 +1,6 @@
 package us.kbase.workspace.kbase;
 
+import static java.util.Objects.requireNonNull;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_NONE;
 import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
@@ -15,7 +16,6 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,6 +40,7 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
+import us.kbase.workspace.ObjectInfo;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Reference;
@@ -52,20 +53,20 @@ import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 
 public class ArgUtils {
-	
+
 	// TODO JAVADOC
 	// TODO TEST unit tests
-	
+
 	private static Logger getLogger() {
 		return LoggerFactory.getLogger(ArgUtils.class);
 	}
-	
+
 	private final static DateTimeFormatter DATE_PARSER = DateTimeFormatter
 			.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S][XXX][XX]"); // saucy datetimes here
-	
+
 	private final static DateTimeFormatter DATE_FORMATTER = DateTimeFormatter
 			.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(ZoneOffset.UTC);
-	
+
 	/** Given a string or epoch millisecond timestamp, return an {@link Instant} created from
 	 * the timestamp. Providing both timestamps is an error.
 	 * @param timestamp a string typestamp in ISO8601 format, using the Z timezone designator.
@@ -98,12 +99,12 @@ public class ArgUtils {
 		}
 		return null;
 	}
-	
+
 	public static Provenance processProvenance(
 			final WorkspaceUser user,
 			final Instant time,
 			final List<us.kbase.workspace.ProvenanceAction> actions) {
-		
+
 		final Provenance.Builder p = Provenance.getBuilder(user, time);
 		if (actions == null) {
 			return p.build();
@@ -146,7 +147,7 @@ public class ArgUtils {
 		}
 		return p.build();
 	}
-	
+
 	private static List<SubAction> processSubActions(
 			List<us.kbase.workspace.SubAction> subactions) {
 		final List<SubAction> ret = new LinkedList<SubAction>();
@@ -173,7 +174,7 @@ public class ArgUtils {
 				throw new IllegalArgumentException(String.format("Sub action #%s: %s",
 						si.nextIndex(), e.getLocalizedMessage()), e);
 			}
-			
+
 		}
 		return ret;
 	}
@@ -213,19 +214,14 @@ public class ArgUtils {
 		return ret;
 	}
 
-	// TODO CODE remove this eventually when everything uses Instants
-	private static String formatDate(final Date date) {
-		return formatDate(date.toInstant());
-	}
-	
 	private static String formatDate(final Instant date) {
 		return DATE_FORMATTER.format(date);
 	}
-	
+
 	private static String formatDate(final Optional<Instant> date) {
 		return date.map(d -> DATE_FORMATTER.format(d)).orElse(null);
 	}
-	
+
 	private static List<Object> translateMethodParametersToObject(
 			final List<UObject> methodParams) {
 		if (methodParams == null) {
@@ -237,13 +233,13 @@ public class ArgUtils {
 		}
 		return params;
 	}
-	
+
 
 	private static List<UObject> translateMethodParametersToUObject(
 			final List<Object> methodParams) {
 		return methodParams.stream().map(o -> new UObject(o)).collect(Collectors.toList());
 	}
-	
+
 	public static List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>
 			wsInfoToTuple (final List<WorkspaceInformation> info) {
 		final List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> ret =
@@ -263,12 +259,12 @@ public class ArgUtils {
 				.withE3(info.getOwner().getUser())
 				.withE4(formatDate(info.getModDate()))
 				.withE5(info.getMaximumObjectID())
-				.withE6(translatePermission(info.getUserPermission())) 
+				.withE6(translatePermission(info.getUserPermission()))
 				.withE7(translatePermission(info.isGloballyReadable()))
 				.withE8(info.getLockState())
 				.withE9(info.getUserMeta().getMetadata());
 	}
-	
+
 	public static List<Tuple7<String, String, String, Long, String, String, Long>> wsInfoToMetaTuple(
 			List<WorkspaceInformation> info) {
 		final List<Tuple7<String, String, String, Long, String, String, Long>> ret =
@@ -279,7 +275,7 @@ public class ArgUtils {
 		}
 		return ret;
 	}
-	
+
 	public static Tuple7<String, String, String, Long, String, String, Long>
 				wsInfoToMetaTuple(final WorkspaceInformation info) {
 		return new Tuple7<String, String, String, Long, String, String, Long>()
@@ -291,40 +287,43 @@ public class ArgUtils {
 				.withE5(translatePermission(info.getUserPermission()))
 				.withE6(translatePermission(info.isGloballyReadable()));
 	}
-	
+
 	public static Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>
 			objInfoToTuple(
 					final ObjectInformation info,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 		final List<ObjectInformation> m = new ArrayList<ObjectInformation>();
 		m.add(info);
-		return objInfoToTuple(m, logObjects).get(0);
+		return objInfoToTuple(m, logObjects, nullForEmptyMeta).get(0);
 	}
 
 	public static List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>
 			translateObjectInfoList(
 					final List<Set<ObjectInformation>> lsoi,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 		final List<List<Tuple11<Long, String, String, String, Long, String,
-				Long, String, String, Long, Map<String, String>>>> ret = 
+				Long, String, String, Long, Map<String, String>>>> ret =
 				new LinkedList<List<Tuple11<Long,String,String,String,Long,String,Long,String,String,Long,Map<String,String>>>>();
 		for (Set<ObjectInformation> soi: lsoi) {
 			ret.add(objInfoToTuple(new LinkedList<ObjectInformation>(soi),
-					logObjects));
+					logObjects, nullForEmptyMeta));
 		}
 		return ret;
 	}
-	
+
 	public static List<Tuple11<Long, String, String, String, Long, String,
 			Long, String, String, Long, Map<String, String>>>
 			objInfoToTuple(
 					final List<ObjectInformation> info,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 
 		//oh the humanity
 		final List<Tuple11<Long, String, String, String, Long, String,
-			Long, String, String, Long, Map<String, String>>> ret = 
+			Long, String, String, Long, Map<String, String>>> ret =
 			new ArrayList<Tuple11<Long, String, String, String, Long,
 			String, Long, String, String, Long, Map<String, String>>>();
 		for (ObjectInformation m: info) {
@@ -348,35 +347,70 @@ public class ArgUtils {
 						.withE8(m.getWorkspaceName())
 						.withE9(m.getCheckSum())
 						.withE10(m.getSize())
-						.withE11(m.getUserMetaData() == null ? null :
-							m.getUserMetaData().getMetadata()));
+						.withE11(m.getUserMetaDataMap(nullForEmptyMeta)));
 			}
 		}
 		return ret;
 	}
 	
-	
+	private static ObjectInfo objInfoToClass(
+			final ObjectInformation oi,
+			final boolean nullForEmptyMeta) {
+		requireNonNull(oi, "oi");
+		getLogger().info("Object {}/{}/{} {}", oi.getWorkspaceId(),
+				oi.getObjectId(), oi.getVersion(),
+				oi.getTypeString());
+		return new ObjectInfo()
+				.withObjid(oi.getObjectId())
+				.withName(oi.getObjectName())
+				.withType(oi.getTypeString())
+				.withSaveDate(formatDate(oi.getSavedDate()))
+				.withVersion(Long.valueOf(oi.getVersion()))
+				.withSavedBy(oi.getSavedBy().getUser())
+				.withWsid(oi.getWorkspaceId())
+				.withWorkspace(oi.getWorkspaceName())
+				.withChsum(oi.getCheckSum())
+				.withSize(oi.getSize())
+				.withMeta(oi.getUserMetaDataMap(nullForEmptyMeta))
+				.withAdminmeta(oi.getAdminUserMetaDataMap(nullForEmptyMeta))
+				.withPath(toObjectPath(oi.getReferencePath()));
+	}
+
+	/** Translate a list of object information internal class instances to their KB-SDK equivalent.
+	 * @param ois the object informations.
+	 * @param nullForEmptyMeta if meta data is missing, return null rather than an empty map.
+	 * @return the translated object informations.
+	 */
+	public static List<ObjectInfo> objInfoToClass(
+			final List<ObjectInformation> ois,
+			final boolean nullForEmptyMeta) {
+		return ois.stream().map(o -> objInfoToClass(o, nullForEmptyMeta))
+				.collect(Collectors.toList());
+	}
+
 	public static Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>
 			objInfoToMetaTuple(
 					final ObjectInformation info,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 		final List<ObjectInformation> m = new ArrayList<ObjectInformation>();
 		m.add(info);
-		return objInfoToMetaTuple(m, logObjects).get(0);
+		return objInfoToMetaTuple(m, logObjects, nullForEmptyMeta).get(0);
 	}
-	
+
 	public static List<Tuple12<String, String, String, Long, String, String, String,
 			String, String, String, Map<String, String>, Long>>
 			objInfoToMetaTuple(
 					final List<ObjectInformation> info,
-					final boolean logObjects) {
+					final boolean logObjects,
+					final boolean nullForEmptyMeta) {
 		//oh the humanity
 		final List<Tuple12<String, String, String, Long, String, String, String,
-		String, String, String, Map<String, String>, Long>> ret = 
+		String, String, String, Map<String, String>, Long>> ret =
 		new ArrayList<Tuple12<String, String, String, Long, String, String,
 		String, String, String, String, Map<String, String>, Long>>();
-		
+
 		for (ObjectInformation m: info) {
 			if (logObjects) {
 				getLogger().info("Object {}/{}/{} {}", m.getWorkspaceId(),
@@ -394,13 +428,12 @@ public class ArgUtils {
 					.withE8(m.getWorkspaceName())
 					.withE9("")//ref is deprecated
 					.withE10(m.getCheckSum())
-					.withE11(m.getUserMetaData() == null ? null : 
-						m.getUserMetaData().getMetadata())
+					.withE11(m.getUserMetaDataMap(nullForEmptyMeta))
 					.withE12(m.getObjectId()));
 		}
 		return ret;
 	}
-	
+
 	/** Translate object data returned from the workspace to JSONRPC API object data.
 	 * @param objects the objects to convert.
 	 * @param permHandler any permissions handlers to invoke based on the contents of the object.
@@ -410,14 +443,14 @@ public class ArgUtils {
 	 * speed up the updates, but the drawback is that if the external update fails for any object,
 	 * all the objects that required updates for that system will be marked as having a failed
 	 * update. Has no effect if the permissions handler is not present.
-	 * @param logObjects if true, log the object ref and type.
+	 * @param objectInfoAsClass return the object information as a Class rather than a Tuple.
 	 * @return the translated objects.
 	 */
 	public static List<ObjectData> translateObjectData(
-			final List<WorkspaceObjectData> objects, 
+			final List<WorkspaceObjectData> objects,
 			final Optional<IdReferencePermissionHandlerSet> permHandler,
 			final boolean batchExternalUpdates,
-			final boolean logObjects) {
+			final boolean objectInfoAsClass) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		Map<WorkspaceObjectData, PermError> errs = null;
 		if (batchExternalUpdates) {
@@ -439,10 +472,8 @@ public class ArgUtils {
 				throw new RuntimeException(
 						"An unexpected error occurred: " + e.getLocalizedMessage(), e);
 			}
-			ret.add(new ObjectData()
+			final ObjectData od = new ObjectData()
 					.withData(data)
-					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
-					.withPath(toObjectPath(o.getObjectInfo().getReferencePath()))
 					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withOrigWsid(o.getProvenance().getWorkspaceID().orElse(null))
@@ -454,11 +485,18 @@ public class ArgUtils {
 					.withCopySourceInaccessible(o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
 					.withHandleError(errs.get(o).error)
-					.withHandleStacktrace(errs.get(o).stackTrace));
+					.withHandleStacktrace(errs.get(o).stackTrace);
+			if (objectInfoAsClass) {
+				od.withInfostruct(objInfoToClass(o.getObjectInfo(), false));
+			} else {
+				od.withInfo(objInfoToTuple(o.getObjectInfo(), true, false))
+						.withPath(toObjectPath(o.getObjectInfo().getReferencePath()));
+			}
+			ret.add(od);
 		}
 		return ret;
 	}
-	
+
 	private static Map<String, List<String>> toRawExternalIDs(
 			final Map<IdReferenceType, List<String>> extractedIds) {
 		return extractedIds.keySet().stream().collect(Collectors.toMap(
@@ -477,7 +515,7 @@ public class ArgUtils {
 		}
 		return ret;
 	}
-	
+
 	private static List<String> toObjectPath(final List<Reference> referencePath) {
 		final List<String> ret = new LinkedList<>();
 		for (final Reference r: referencePath) {
@@ -497,7 +535,7 @@ public class ArgUtils {
 			final PermError error = makeExternalIDsReadable(
 					Arrays.asList(o), Optional.of(permHandler)).get(o);
 			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
-					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
+					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects, false))
 					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
 					.withOrigWsid(o.getProvenance().getWorkspaceID().orElse(null))
@@ -513,9 +551,9 @@ public class ArgUtils {
 		}
 		return ret;
 	}
-	
+
 	private static class PermError {
-		
+
 		public String error;
 		public String stackTrace;
 
@@ -527,19 +565,19 @@ public class ArgUtils {
 	}
 
 	private static final PermError NULL_ERR = new PermError(null, null);
-	
+
 	private static Map<WorkspaceObjectData, PermError> makeExternalIDsReadable(
 			final List<WorkspaceObjectData> objects,
 			final Optional<IdReferencePermissionHandlerSet> permhandler) {
 		/* External services are generally going to fail quickly if setting an ACL fails,
-		 * since there's almost certainly something very wrong - this is all admin stuff and 
+		 * since there's almost certainly something very wrong - this is all admin stuff and
 		 * so regular failures shouldn't be an issue. As such, we just assign any errors
 		 * to all objects that were part of the call, as it's not clear which objects were
 		 * processed and which failed.
 		 * The alternative is to have all external services return exactly which IDs failed and
 		 * which succeeded, which means failing slowly and trying all IDs, which in most cases
 		 * is just going to waste time, because, again, there's something likely very wrong.
-		 * 
+		 *
 		 * One exception is that nodes for handles can be deleted by the owner, unlike samples
 		 * or bytestream nodes. However, in KBase this should never happen so we don't consider
 		 * it here.
@@ -610,7 +648,7 @@ public class ArgUtils {
 		}
 		return pas;
 	}
-	
+
 	private static List<us.kbase.workspace.SubAction> translateSubActions(
 			List<SubAction> subActions) {
 		final List<us.kbase.workspace.SubAction> ret = new LinkedList<>();
@@ -648,14 +686,14 @@ public class ArgUtils {
 	public static boolean longToBoolean(final Long b) {
 		return longToBoolean(b, false);
 	}
-	
+
 	public static boolean longToBoolean(final Long b, final boolean default_) {
 		if (b == null) {
 			return default_;
 		}
 		return b != 0;
 	}
-	
+
 	public static int longToInt(
 			final Long l,
 			final String name,
@@ -669,7 +707,7 @@ public class ArgUtils {
 		}
 		return Long.valueOf(l).intValue();
 	}
-	
+
 	public static long checkLong(
 			final Long l,
 			final long default_) {
@@ -678,11 +716,11 @@ public class ArgUtils {
 		}
 		return l;
 	}
-	
+
 	public static Permission getGlobalWSPerm(final String globalRead) {
 		Permission p = Permission.NONE;
 		if (globalRead != null) {
-			if (!globalRead.equals(PERM_READ) && 
+			if (!globalRead.equals(PERM_READ) &&
 					!globalRead.equals(PERM_NONE)) {
 				throw new IllegalArgumentException(String.format(
 						"globalread must be %s or %s", PERM_NONE, PERM_READ));

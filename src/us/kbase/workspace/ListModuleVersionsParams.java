@@ -15,11 +15,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ListModuleVersionsParams</p>
  * <pre>
  * Parameters for the list_module_versions function.
- *         Required arguments:
- *         One of:
- *         modulename mod - returns all versions of the module.
- *         type_string type - returns all versions of the module associated with
- *                 the type.
+ *                 Required arguments:
+ *                 One of:
+ *                 modulename mod - returns all versions of the module.
+ *                 type_string type - returns all versions of the module associated with
+ *                         the type.
  * </pre>
  * 
  */

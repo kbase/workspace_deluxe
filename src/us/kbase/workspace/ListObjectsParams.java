@@ -21,9 +21,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 the workspaces of interest, or the results may be very large:
  *                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
  *                 list<ws_name> workspaces - the names of the workspaces of interest.
- *                 
  *                 Only one of each timestamp/epoch pair may be supplied.
- *                 
  *                 Optional arguments:
  *                 type_string type - type of the objects to be listed.  Here, omitting
  *                         version information will find any objects that match the provided

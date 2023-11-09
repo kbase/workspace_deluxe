@@ -16,11 +16,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ModuleVersions</p>
  * <pre>
  * A set of versions from a module.
- *         modulename mod - the name of the module.
- *         list<spec_version> - a set or subset of versions associated with the
- *                 module.
- *         list<spec_version> - a set or subset of released versions associated 
- *                 with the module.
+ *                 modulename mod - the name of the module.
+ *                 list<spec_version> - a set or subset of versions associated with the
+ *                         module.
+ *                 list<spec_version> - a set or subset of released versions associated
+ *                         with the module.
  * </pre>
  * 
  */

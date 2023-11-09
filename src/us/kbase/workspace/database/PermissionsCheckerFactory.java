@@ -1,6 +1,6 @@
 package us.kbase.workspace.database;
 
-import static us.kbase.workspace.database.Util.nonNull;
+import static java.util.Objects.requireNonNull;
 import static us.kbase.workspace.database.Util.noNulls;
 import static us.kbase.common.utils.StringUtils.checkString;
 
@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -39,23 +40,31 @@ public class PermissionsCheckerFactory {
 	
 	private final WorkspaceDatabase db;
 	private final WorkspaceUser user;
+	private final boolean asAdmin;
 	
-	/** Create a new factory.
-	 * @param db the workspace database that will be queried for permissions.
-	 * @param user the user for whom permissions will be checked, or null for an anonymous user.
-	 */
-	public PermissionsCheckerFactory(final WorkspaceDatabase db, final WorkspaceUser user) {
-		nonNull(db, "db");
+	private PermissionsCheckerFactory(
+			final WorkspaceDatabase db,
+			final WorkspaceUser user,
+			final boolean asAdmin) {
 		this.db = db;
-		this.user = user; //TODO CODE make an AnonymousUser class or something, or use Optional
+		this.user = user;
+		this.asAdmin = asAdmin;
 	}
 	
-	/** Returns the user associated with this permissions checker factory, or null for an anonymous
-	 * user.
+	/** Returns the user associated with this permissions checker factory or an empty optional
+	 * for an anonymous user.
 	 * @return the user.
 	 */
-	public WorkspaceUser getUser() {
-		return user;
+	public Optional<WorkspaceUser> getUser() {
+		return Optional.ofNullable(user);
+	}
+	
+	/** Returns whether the checker is running as an admin, which skips permission checks (but
+	 * not deletion, locked, etc. checks).
+	 * @return true if permissions checks will be skipped.
+	 */
+	public boolean isAsAdmin() {
+		return asAdmin;
 	}
 	
 	private abstract class AbstractPermissionsChecker<T> {
@@ -63,7 +72,7 @@ public class PermissionsCheckerFactory {
 		String operation;
 		
 		private AbstractPermissionsChecker(final Permission perm) {
-			nonNull(perm, "perm");
+			requireNonNull(perm, "perm");
 			this.perm = perm;
 			this.operation = ops.get(perm);
 		}
@@ -91,7 +100,8 @@ public class PermissionsCheckerFactory {
 	
 	/** Get a permissions checker for multiple workspaces.
 	 * @param workspaces the workspaces for which permissions will be checked.
-	 * @param perm the required permission.
+	 * @param perm the required permission. Even with the checker in admin mode, it's important
+	 * to set the permission correctly so that the locked workspace check functions properly.
 	 * @return a new permissions checker.
 	 */
 	public WorkspacePermissionsChecker getWorkspaceChecker(
@@ -113,7 +123,7 @@ public class PermissionsCheckerFactory {
 				final List<WorkspaceIdentifier> workspaces,
 				final Permission perm) {
 			super(perm);
-			nonNull(workspaces, "workspaces");
+			requireNonNull(workspaces, "workspaces");
 			if (workspaces.isEmpty()) {
 				throw new IllegalArgumentException("No workspace identifiers provided");
 			}
@@ -143,10 +153,17 @@ public class PermissionsCheckerFactory {
 					CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 			final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 					db.resolveWorkspaces(new HashSet<>(workspaces));
-			final PermissionSet perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
+			final PermissionSet perms;
+			if (asAdmin) {
+				perms = null;
+			} else {
+				perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
+			}
 			for (final Entry<WorkspaceIdentifier, ResolvedWorkspaceID> e: rwsis.entrySet()) {
-				comparePermission(user, perm, perms.getPermission(e.getValue()),
-						e.getKey(), operation);
+				if (!asAdmin) {
+					comparePermission(user, perm, perms.getPermission(e.getValue()),
+							e.getKey(), operation);
+				}
 				checkLocked(perm, e.getValue());
 			}
 			return rwsis;
@@ -155,7 +172,8 @@ public class PermissionsCheckerFactory {
 	
 	/** Get a permissions checker for a single workspace.
 	 * @param workspace the workspace for which permissions will be checked.
-	 * @param perm the required permission.
+	 * @param perm the required permission. Even with the checker in admin mode, it's important
+	 * to set the permission correctly so that the locked workspace check functions properly.
 	 * @return a new permissions checker.
 	 */
 	public SingleWorkspacePermissionsChecker getWorkspaceChecker(
@@ -178,7 +196,7 @@ public class PermissionsCheckerFactory {
 				final WorkspaceIdentifier workspace,
 				final Permission perm) {
 			super(perm);
-			nonNull(workspace, "Workspace identifier cannot be null");
+			requireNonNull(workspace, "Workspace identifier cannot be null");
 			checker = getWorkspaceChecker(Arrays.asList(workspace), perm);
 			wsi = workspace;
 		}
@@ -214,7 +232,8 @@ public class PermissionsCheckerFactory {
 	
 	/** Get a permissions checker for multiple objects.
 	 * @param objects the objects for which permissions will be checked.
-	 * @param perm the required permission.
+	 * @param perm the required permission. Even with the checker in admin mode, it's important
+	 * to set the permission correctly so that the locked workspace check functions properly.
 	 * @return a new permissions checker.
 	 */
 	public ObjectPermissionsChecker getObjectChecker(
@@ -272,7 +291,7 @@ public class PermissionsCheckerFactory {
 				final Collection<ObjectIdentifier> objects,
 				final Permission perm) {
 			super(perm);
-			nonNull(objects, "objects");
+			requireNonNull(objects, "objects");
 			if (objects.isEmpty()) {
 				throw new IllegalArgumentException("No object identifiers provided");
 			}
@@ -316,21 +335,28 @@ public class PermissionsCheckerFactory {
 			if (suppressErrors && !includeDeletedWorkspaces) {
 				removeDeletedWorkspaces(rwsis);
 			}
-			final PermissionSet perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
+			final PermissionSet perms;
+			if (asAdmin) {
+				perms = null;
+			} else {
+				perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
+			}
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> ret = new HashMap<>();
 			for (final ObjectIdentifier o: objects) {
 				if (!rwsis.containsKey(o.getWorkspaceIdentifier())) {
 					continue; //missing workspace
 				}
 				final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
-				try {
-					comparePermission(user, perm, perms.getPermission(r), o, operation);
-				} catch (WorkspaceAuthorizationException wae) {
-					if (suppressErrors) {
-						continue;
-					} else {
-						// contrary to ECLEmma's output, this path is in fact tested
-						throwInaccessibleObjectException(o, wae);
+				if (!asAdmin) {
+					try {
+						comparePermission(user, perm, perms.getPermission(r), o, operation);
+					} catch (WorkspaceAuthorizationException wae) {
+						if (suppressErrors) {
+							continue;
+						} else {
+							// contrary to ECLEmma's output, this path is in fact tested
+							throwInaccessibleObjectException(o, wae);
+						}
 					}
 				}
 				try {
@@ -346,7 +372,8 @@ public class PermissionsCheckerFactory {
 	
 	/** Get a permissions checker for a single object.
 	 * @param object the object for which permissions will be checked.
-	 * @param perm the required permission.
+	 * @param perm the required permission. Even with the checker in admin mode, it's important
+	 * to set the permission correctly so that the locked workspace check functions properly.
 	 * @return a new permissions checker.
 	 */
 	public SingleObjectPermissionsChecker getObjectChecker(
@@ -369,7 +396,7 @@ public class PermissionsCheckerFactory {
 				final ObjectIdentifier object,
 				final Permission perm) {
 			super(perm);
-			nonNull(object, "Object identifier cannot be null");
+			requireNonNull(object, "Object identifier cannot be null");
 			checker = getObjectChecker(Arrays.asList(object), perm);
 			this.object = object;
 		}
@@ -500,5 +527,54 @@ public class PermissionsCheckerFactory {
 			throws InaccessibleObjectException {
 		throw new InaccessibleObjectException(String.format("Object %s cannot be accessed: %s",
 				o.getIdentifierString(), wae.getLocalizedMessage()), o, wae);
+	}
+	
+	/** Get a builder for a {@link PermissionsCheckerFactory}.
+	 * @param db the workspace database that will be queried for permissions.
+	 * @return the builder.
+	 */
+	public static Builder getBuilder(final WorkspaceDatabase db) {
+		return new Builder(db);
+	}
+	
+	/**
+	 * A builder for a {@link PermissionsCheckerFactory}.
+	 */
+	public static class Builder {
+		
+		private final WorkspaceDatabase db;
+		private WorkspaceUser user = null;
+		private boolean asAdmin = false;
+		
+		private Builder(final WorkspaceDatabase db) {
+			this.db = requireNonNull(db, "db");
+		}
+		
+		/** Add the user for whom permissions will be checked, or null for an anonymous user.
+		 * @param user the user.
+		 * @return this builder.
+		 */
+		public Builder withUser(final WorkspaceUser user) {
+			this.user = user;
+			return this;
+		}
+		
+		/** Run the checker in admin mode, skipping permission checks, but not existence or
+		 * locked workspace checks. It's important to still include the required permission for
+		 * the operation when running the check so the lock check works properly.
+		 * @param asAdmin true to run the checker as an admin.
+		 * @return this builder.
+		 */
+		public Builder withAsAdmin(final boolean asAdmin) {
+			this.asAdmin = asAdmin;
+			return this;
+		}
+		
+		/** Build the permissions checker.
+		 * @return the permissions checker.
+		 */
+		public PermissionsCheckerFactory build() {
+			return new PermissionsCheckerFactory(db, user, asAdmin);
+		}
 	}
 }

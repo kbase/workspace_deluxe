@@ -42,13 +42,13 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationExcept
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public class GridFSBlobStoreTest {
-	
+
 	private static GridFSBlobStore gfsb;
 	private static GridFSBucket gfs;
 	private static MongoController mongo;
-	
+
 	private static final String a32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-	
+
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		mongo = new MongoController(TestCommon.getMongoExe(),
@@ -62,16 +62,16 @@ public class GridFSBlobStoreTest {
 		final MongoDatabase db = mongoClient.getDatabase("GridFSBackendTest");
 		gfs = GridFSBuckets.create(db);
 		gfsb = new GridFSBlobStore(db);
-		
+
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
 			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
-	
+
 	@Test
 	public void failConstruct() throws Exception {
 		try {
@@ -81,7 +81,7 @@ public class GridFSBlobStoreTest {
 			assertExceptionCorrect(got, new NullPointerException("db"));
 		}
 	}
-	
+
 	@Test
 	public void badInput() throws Exception {
 		try {
@@ -90,7 +90,7 @@ public class GridFSBlobStoreTest {
 			assertThat("correct excepction message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));
 		}
-		
+
 		try {
 			gfsb.saveBlob(null, new StringRestreamable("foo"), true);
 		} catch (NullPointerException npe) {
@@ -98,7 +98,7 @@ public class GridFSBlobStoreTest {
 					is("Arguments cannot be null"));
 		}
 	}
-	
+
 	@Test
 	public void sortMarker() throws Exception {
 		// Tests various ways the sort marker might be represented.
@@ -113,7 +113,7 @@ public class GridFSBlobStoreTest {
 				new GridFSUploadOptions().metadata(new Document("sorted", false)), false,
 				new GridFSUploadOptions().metadata(new Document("sorted", true)), true
 				);
-		
+
 		final String s = "pootypoot";
 		final MD5 md5 = new MD5(a32);
 		for (final Entry<GridFSUploadOptions, Boolean> tcase: testCases.entrySet()) {
@@ -122,7 +122,7 @@ public class GridFSBlobStoreTest {
 					md5.getMD5(),
 					new ByteArrayInputStream(s.getBytes("UTF-8")),
 					tcase.getKey());
-			
+
 			final ByteArrayFileCache d = gfsb.getBlob(md5, new ByteArrayFileCacheManager());
 			assertThat("data returned marked as unsorted", d.isSorted(), is(tcase.getValue()));
 			final String returned = IOUtils.toString(d.getJSON());
@@ -130,11 +130,11 @@ public class GridFSBlobStoreTest {
 			gfsb.removeBlob(md5);
 		}
 	}
-	
+
 	private static class StringRestreamable implements Restreamable {
 
 		private final String data;
-		
+
 		public StringRestreamable(final String data) {
 			this.data = data;
 		}
@@ -147,7 +147,7 @@ public class GridFSBlobStoreTest {
 			return -1; //unused for GFS
 		}
 	}
-	
+
 	@Test
 	public void saveAndGetBlob() throws Exception {
 		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
@@ -159,40 +159,40 @@ public class GridFSBlobStoreTest {
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
 		gfsb.saveBlob(md1, new StringRestreamable(data), true); //should be able to save the same thing twice with no error
-		
+
 		gfsb.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing
 		assertThat("sorted still true", gfsb.getBlob(md1copy, new ByteArrayFileCacheManager())
 					.isSorted(), is(true));
-		
+
 		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
 		String data2 = "this is also a blob yo";
 		gfsb.saveBlob(md2, new StringRestreamable(data2), false);
 		d = gfsb.getBlob(md2, new ByteArrayFileCacheManager());
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
-		
+
 		gfsb.removeBlob(md1);
 		gfsb.removeBlob(md2);
 	}
-	
+
 	private class FailOnCloseInputStream extends InputStream {
-		
+
 		private final InputStream wrapped;
-		
+
 		public FailOnCloseInputStream(final InputStream wrapped) {
 			this.wrapped = wrapped;
 		}
-		
+
 		@Override
 		public int read() throws IOException {
 			return wrapped.read();
 		}
-		
+
 		@Override
 		public void close() throws IOException {
 			throw new IOException("oh drat.");
 		}
 	}
-	
+
 	@Test
 	public void saveFailIOOnClose() throws Exception {
 		// throwing a IOError on reading from a stream makes gridfs throw
@@ -200,7 +200,7 @@ public class GridFSBlobStoreTest {
 		final Restreamable rs = mock(Restreamable.class);
 		when(rs.getInputStream()).thenReturn(new FailOnCloseInputStream(
 				new ByteArrayInputStream("a".getBytes())));
-		
+
 		try {
 			gfsb.saveBlob(new MD5(a32), rs, true);
 		} catch (Exception got) {
@@ -208,7 +208,7 @@ public class GridFSBlobStoreTest {
 					"Couldn't connect to the GridFS backend: oh drat."));
 		}
 	}
-	
+
 	@Test
 	public void getNonExistantBlob() throws Exception {
 		try {
@@ -220,12 +220,12 @@ public class GridFSBlobStoreTest {
 			assertThat("incorrect md5", nsbe.getMD5(), is(new MD5(a32)));
 		}
 	}
-	
+
 	@Test
 	public void removeNonExistantBlob() throws Exception {
 		gfsb.removeBlob(new MD5(a32)); //should silently not remove anything
 	}
-	
+
 	@Test
 	public void status() throws Exception {
 		List<DependencyStatus> deps = gfsb.status();

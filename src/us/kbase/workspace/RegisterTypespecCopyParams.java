@@ -15,14 +15,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: RegisterTypespecCopyParams</p>
  * <pre>
  * Parameters for the register_typespec_copy function.
- *         Required arguments:
- *         string external_workspace_url - the URL of the  workspace server from
- *                 which to copy a typespec.
- *         modulename mod - the name of the module in the workspace server
- *         
- *         Optional arguments:
- *         spec_version version - the version of the module in the workspace
- *                 server
+ *                 Required arguments:
+ *                 string external_workspace_url - the URL of the  workspace server from
+ *                         which to copy a typespec.
+ *                 modulename mod - the name of the module in the workspace server
+ *                 Optional arguments:
+ *                 spec_version version - the version of the module in the workspace
+ *                         server
  * </pre>
  * 
  */

@@ -15,19 +15,17 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: get_objectmeta_params</p>
  * <pre>
  * Input parameters for the "get_objectmeta" function.
- *         Required arguments:
- *         ws_name workspace - name of the workspace containing the object for
- *                  which metadata is to be retrieved
- *         obj_name id - name of the object for which metadata is to be retrieved
- *         
- *         Optional arguments:
- *         int instance - Version of the object for which metadata is to be
- *                  retrieved, enabling retrieval of any previous version of an object
- *         string auth - the authentication token of the KBase account requesting
- *                 access. Overrides the client provided authorization credentials if
- *                 they exist.
- *                 
- *         @deprecated Workspace.ObjectIdentity
+ *                 Required arguments:
+ *                 ws_name workspace - name of the workspace containing the object for
+ *                          which metadata is to be retrieved
+ *                 obj_name id - name of the object for which metadata is to be retrieved
+ *                 Optional arguments:
+ *                 int instance - Version of the object for which metadata is to be
+ *                          retrieved, enabling retrieval of any previous version of an object
+ *                 string auth - the authentication token of the KBase account requesting
+ *                         access. Overrides the client provided authorization credentials if
+ *                         they exist.
+ *                 @deprecated Workspace.ObjectIdentity
  * </pre>
  * 
  */

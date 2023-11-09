@@ -17,9 +17,10 @@ import us.kbase.common.service.Tuple11;
  * <p>Original spec-file type: GetObjectInfo3Results</p>
  * <pre>
  * Output from the get_object_info3 function.
- *         list<object_info> infos - the object_info data for each object.
- *         list<list<obj_ref> paths - the path to the object through the object reference graph for
- *                 each object. All the references in the path are absolute.
+ *                 list<object_info> infos - the object_info data for each object.
+ *                 list<list<obj_ref> paths - the path to the object through the object reference graph for
+ *                         each object. All the references in the path are absolute.
+ *                 list<ObjectInfo> infostructs - the ObjectInfo data for each object.
  * </pre>
  * 
  */
@@ -27,7 +28,8 @@ import us.kbase.common.service.Tuple11;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "infos",
-    "paths"
+    "paths",
+    "infostructs"
 })
 public class GetObjectInfo3Results {
 
@@ -35,6 +37,8 @@ public class GetObjectInfo3Results {
     private List<Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> infos;
     @JsonProperty("paths")
     private List<List<String>> paths;
+    @JsonProperty("infostructs")
+    private List<ObjectInfo> infostructs;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("infos")
@@ -67,6 +71,21 @@ public class GetObjectInfo3Results {
         return this;
     }
 
+    @JsonProperty("infostructs")
+    public List<ObjectInfo> getInfostructs() {
+        return infostructs;
+    }
+
+    @JsonProperty("infostructs")
+    public void setInfostructs(List<ObjectInfo> infostructs) {
+        this.infostructs = infostructs;
+    }
+
+    public GetObjectInfo3Results withInfostructs(List<ObjectInfo> infostructs) {
+        this.infostructs = infostructs;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -79,7 +98,7 @@ public class GetObjectInfo3Results {
 
     @Override
     public java.lang.String toString() {
-        return ((((((("GetObjectInfo3Results"+" [infos=")+ infos)+", paths=")+ paths)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((("GetObjectInfo3Results"+" [infos=")+ infos)+", paths=")+ paths)+", infostructs=")+ infostructs)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

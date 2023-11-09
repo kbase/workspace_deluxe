@@ -16,8 +16,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: GetNamesByPrefixResults</p>
  * <pre>
  * Results object for the get_names_by_prefix function.
- *         list<list<obj_name>> names - the names matching the provided prefix,
- *                 listed in order of the input workspaces.
+ *                 list<list<obj_name>> names - the names matching the provided prefix,
+ *                         listed in order of the input workspaces.
  * </pre>
  * 
  */

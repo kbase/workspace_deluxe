@@ -16,30 +16,29 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: RegisterTypespecParams</p>
  * <pre>
  * Parameters for the register_typespec function.
- *         Required arguments:
- *         One of:
- *         typespec spec - the new typespec to register.
- *         modulename mod - the module to recompile with updated options (see below).
- *         
- *         Optional arguments:
- *         boolean dryrun - Return, but do not save, the results of compiling the 
- *                 spec. Default true. Set to false for making permanent changes.
- *         list<typename> new_types - types in the spec to make available in the
- *                 workspace service. When compiling a spec for the first time, if
- *                 this argument is empty no types will be made available. Previously
- *                 available types remain so upon recompilation of a spec or
- *                 compilation of a new spec.
- *         list<typename> remove_types - no longer make these types available in
- *                 the workspace service for the new version of the spec. This does
- *                 not remove versions of types previously compiled.
- *         mapping<modulename, spec_version> dependencies - By default, the
- *                 latest released versions of spec dependencies will be included when
- *                 compiling a spec. Specific versions can be specified here.
- *         spec_version prev_ver - the id of the previous version of the typespec.
- *                 An error will be thrown if this is set and prev_ver is not the
- *                 most recent version of the typespec. This prevents overwriting of
- *                 changes made since retrieving a spec and compiling an edited spec.
- *                 This argument is ignored if a modulename is passed.
+ *                 Required arguments:
+ *                 One of:
+ *                 typespec spec - the new typespec to register.
+ *                 modulename mod - the module to recompile with updated options (see below).
+ *                 Optional arguments:
+ *                 boolean dryrun - Return, but do not save, the results of compiling the
+ *                         spec. Default true. Set to false for making permanent changes.
+ *                 list<typename> new_types - types in the spec to make available in the
+ *                         workspace service. When compiling a spec for the first time, if
+ *                         this argument is empty no types will be made available. Previously
+ *                         available types remain so upon recompilation of a spec or
+ *                         compilation of a new spec.
+ *                 list<typename> remove_types - no longer make these types available in
+ *                         the workspace service for the new version of the spec. This does
+ *                         not remove versions of types previously compiled.
+ *                 mapping<modulename, spec_version> dependencies - By default, the
+ *                         latest released versions of spec dependencies will be included when
+ *                         compiling a spec. Specific versions can be specified here.
+ *                 spec_version prev_ver - the id of the previous version of the typespec.
+ *                         An error will be thrown if this is set and prev_ver is not the
+ *                         most recent version of the typespec. This prevents overwriting of
+ *                         changes made since retrieving a spec and compiling an edited spec.
+ *                         This argument is ignored if a modulename is passed.
  * </pre>
  * 
  */

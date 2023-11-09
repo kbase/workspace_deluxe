@@ -16,24 +16,23 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: CloneWorkspaceParams</p>
  * <pre>
  * Input parameters for the "clone_workspace" function.
- *         Note that deleted objects are not cloned, although hidden objects are
- *         and remain hidden in the new workspace.
- *         Required arguments:
- *         WorkspaceIdentity wsi - the workspace to be cloned.
- *         ws_name workspace - name of the workspace to be cloned into. This must
- *                 be a non-existant workspace name.
- *         
- *         Optional arguments:
- *         permission globalread - 'r' to set the new workspace globally readable,
- *                 default 'n'.
- *         string description - A free-text description of the new workspace, 1000
- *                 characters max. Longer strings will be mercilessly and brutally
- *                 truncated.
- *         usermeta meta - arbitrary user-supplied metadata for the workspace.
- *         list<ObjectIdentity> exclude - exclude the specified objects from the
- *                 cloned workspace. Either an object ID or a object name must be
- *                 specified in each ObjectIdentity - any supplied reference strings,
- *                 workspace names or IDs, and versions are ignored.
+ *                 Note that deleted objects are not cloned, although hidden objects are
+ *                 and remain hidden in the new workspace.
+ *                 Required arguments:
+ *                 WorkspaceIdentity wsi - the workspace to be cloned.
+ *                 ws_name workspace - name of the workspace to be cloned into. This must
+ *                         be a non-existant workspace name.
+ *                 Optional arguments:
+ *                 permission globalread - 'r' to set the new workspace globally readable,
+ *                         default 'n'.
+ *                 string description - A free-text description of the new workspace, 1000
+ *                         characters max. Longer strings will be mercilessly and brutally
+ *                         truncated.
+ *                 usermeta meta - arbitrary user-supplied metadata for the workspace.
+ *                 list<ObjectIdentity> exclude - exclude the specified objects from the
+ *                         cloned workspace. Either an object ID or a object name must be
+ *                         specified in each ObjectIdentity - any supplied reference strings,
+ *                         workspace names or IDs, and versions are ignored.
  * </pre>
  * 
  */

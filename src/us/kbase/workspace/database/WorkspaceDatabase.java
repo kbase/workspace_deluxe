@@ -90,24 +90,31 @@ public interface WorkspaceDatabase {
 	 * duplicate key is supplied.
 	 * 
 	 * @param wsid the workspace for which metadata will be altered.
-	 * @param meta the metadata to add to the workspace.
-	 * @return the workspace modification time.
+	 * @param meta the metadata update to apply to the workspace.
+	 * @return the workspace modification time if the metadata was altered, or an empty optional
+	 * if the changes had no practical effect.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 * @throws IllegalArgumentException if no metadata is supplied or the 
 	 * updated metadata exceeds the allowed size.
 	 */
-	Instant setWorkspaceMeta(ResolvedWorkspaceID wsid, WorkspaceUserMetadata meta)
+	Optional<Instant> setWorkspaceMeta(ResolvedWorkspaceID wsid, MetadataUpdate meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	/** Remove a metadata key from a workspace.
-	 * @param wsid the workspace for which metadata will be altered.
-	 * @param key the key to remove from the metadata.
-	 * @return the workspace modification time.
+	/** Sets administrative metadata on one or more objects, overwriting existing keys if
+	 * duplicate keys are supplied.
+	 * @param update object identifiers mapped to the metadata update for each object.
+	 * @return a mapping of the input objects to the resolved objects.
+	 * @throws NoSuchObjectException if any of the objects don't exist.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 * @throws IllegalArgumentException if no metadata is supplied or the 
+	 * updated metadata exceeds the allowed size.
 	 */
-	Instant removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
-			throws WorkspaceCommunicationException;
+	Map<ObjectIDResolvedWS, ResolvedObjectID> setAdminObjectMeta(
+			Map<ObjectIDResolvedWS, MetadataUpdate> update)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException;
 	
 	/** Clone a workspace.
 	 * @param user the user cloning the workspace

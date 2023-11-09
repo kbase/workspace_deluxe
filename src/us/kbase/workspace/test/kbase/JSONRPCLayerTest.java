@@ -42,6 +42,7 @@ import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.workspace.AlterAdminObjectMetadataParams;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
@@ -65,6 +66,7 @@ import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectMetadataUpdate;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.ProvenanceAction;
@@ -94,12 +96,12 @@ import com.google.common.collect.ImmutableMap;
  * {@link us.kbase.workspace.test.workspaces.WorkspaceTest} handles that. This means
  * that only one backend (the simplest gridFS backend) is tested here, while WorkspaceTest
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
- * 
+ *
  * Many of these tests are far too long and should be rewritten.
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
-	
-	private static final String VER = "0.14.1";
+
+	private static final String VER = "0.14.2";
 
 	@Test
 	public void ver() throws Exception {
@@ -556,7 +558,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withData(new UObject("foo"))
 				.withName("bar")
 				.withType(SAFE_TYPE);
-		
+
 		failSaveObjects(list(safe, new ObjectSaveData().withName("myname").withObjid(1L)),
 				"Object #2: Must provide one and only one of object name (was: myname) or id "
 				+ "(was: 1)");
@@ -609,7 +611,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						.withObjid(1L)),
 				"Object #4, 1: Type version string 1.2.3 could not be parsed to a version");
 	}
-	
+
 	private void failSaveObjects(final List<ObjectSaveData> objects, final String exception)
 			throws Exception {
 		try {
@@ -621,7 +623,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					is(exception));
 		}
 	}
-	
+
 	@Test
 	public void saveObjectFailNull() throws Exception {
 		final SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("foo")
@@ -817,7 +819,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 								.withName("foobarbaz")
 								.withProvenance(list(pa))));
 		failSaveObjects(sop, "Object #1, foobarbaz: Provenance action #1: " + err);
-		
+
 		pa.withTime(null).withExternalData(list(new ExternalDataUnit()
 				.withResourceReleaseDate("2013-04-26T25:52:06-0800")));
 		failSaveObjects(sop, "Object #1, foobarbaz: Provenance action #1: External data unit #1: "
@@ -871,7 +873,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ObjectIdentity id = new ObjectIdentity().withWsid(wsid).withObjid(objid);
 		checkProvenance(USER1, id, prov, refmap, timemap);
 	}
-	
+
 	@Test
 	public void saveProvenanceFail() throws Exception {
 		// Test a subset of cases that can cause a save failure because of provenance input
@@ -882,7 +884,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withData(new UObject(Collections.emptyMap()))
 				.withType(SAFE_TYPE1);
 		final ProvenanceAction safep = new ProvenanceAction().withInputWsObjects(list("1/1/1"));
-		
+
 		final ObjectSaveData target = new ObjectSaveData()
 				.withData(new UObject(Collections.emptyMap()))
 				.withType(SAFE_TYPE1);
@@ -892,14 +894,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failSaveObjects(list(safe, safe, target.withProvenance(list(safep, pa)).withObjid(4L)),
 				"Object #3, 4: Provenance action #2: Invalid workspace object provenenance "
 				+ "reference at position 2: refpath cannot be null or the empty string");
-		
+
 		// empty string in provenance
 		pa.withInputWsObjects(list("1/1/1", "2/2/2", "  \t   \n "));
 		failSaveObjects(list(target.withProvenance(list(pa)).withObjid(null).withName("foo")),
 				"Object #1, foo: Provenance action #1: Invalid workspace object provenenance "
 				+ "reference at position 3: Illegal number of separators '/' in object reference"
 				+ " '  \t   \n '");
-		
+
 		// Illegal URL in external data unit
 		final ProvenanceAction pa2 = new ProvenanceAction().withExternalData(list(
 				new ExternalDataUnit().withDataId("d"),
@@ -911,7 +913,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withName("thinger")),
 				"Object #2, thinger: Provenance action #3: External data unit #4: Illegal data"
 				+ " url 'snailmail://1cyclotronroad.berkeley.ca': unknown protocol: snailmail");
-		
+
 		// Empty sub action
 		final ProvenanceAction pa3 = new ProvenanceAction().withSubactions(list(
 				new SubAction().withCommit("c"),
@@ -962,18 +964,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new WorkspaceIdentity().withWorkspace("saveget")).getE1();
 
 		//save some objects to get
-		Map<String, Object> data = new HashMap<String, Object>();
-		Map<String, Object> data2 = new HashMap<String, Object>();
-		Map<String, String> meta = new HashMap<String, String>();
-		Map<String, Object> moredata = new HashMap<String, Object>();
-		moredata.put("foo", "bar");
-		data.put("fubar", moredata);
-		data2.put("fubar2", moredata);
-		meta.put("metastuff", "meta");
-		Map<String, String> meta2 = new HashMap<String, String>();
-		meta2.put("meta2", "my hovercraft is full of eels");
-		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
-		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("saveget")
+		final Map<String, Object> moredata = ImmutableMap.of("foo", "bar");
+		final Map<String, Object> data = ImmutableMap.of("fubar", moredata);
+		final Map<String, Object> data2 = ImmutableMap.of("fubar2", moredata);
+		final Map<String, String> meta = ImmutableMap.of("metastuff", "meta");
+		final Map<String, String> meta2 = ImmutableMap.of("meta2", "my hovercraft is full of eels");
+		final Map<String, String> mtmeta = Collections.emptyMap();
+
+		final List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		final SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("saveget")
 				.withObjects(objects);
 
 		try {
@@ -1043,7 +1042,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.add(new ObjectIdentity().withWsid(wsid).withName("auto2").withVer(1L));
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(1L));
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 1, USER1,
-				wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
+				wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta, mtmeta, data);
 		loi.clear();
 		// w/o versions
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
@@ -1061,7 +1060,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(2L));
 
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 2, USER1,
-				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, mtmeta, data2);
 
 		failGetObjects(new ArrayList<ObjectIdentity>(), "No object identifiers provided");
 
@@ -1271,7 +1270,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						"for bytestream IDs and so objects containing bytestream IDs cannot be " +
 						"processed. at /s", id, id), 1, "n"));
 	}
-	
+
 	// TODO TEST should test that getting objects with samples fail, but that's a pain to set up
 	@Test
 	public void saveObjectsFailNoSampleProcessor() throws Exception {
@@ -2057,7 +2056,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("copy ref is correct", objp.getCopied(), is(ref));
 		assertThat("copy vis is correct", objp.getCopySourceInaccessible(), is(copyInvisible));
 	}
-	
+
 	private void checkObjectCopyAsAdmin(
 			final WorkspaceClient cli,
 			final ObjectIdentity nocopy,
@@ -2075,7 +2074,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.asClassInstance(GetObjects2Results.class).getData().get(0);
 		checkCopyRef(objp, ref, copyInvisible);
 		assertThat("got unrequested data", objp.getData(), is(nullValue()));
-		
+
 		gop.withNoData(0L);
 		final ObjectData objp2 = CLIENT2.administer(new UObject(admincmd))
 				.asClassInstance(GetObjects2Results.class).getData().get(0);
@@ -2634,7 +2633,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withNewPermission("a").withUsers(Arrays.asList(USER1)));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjsGlobal")
 				.withGlobalread("r"));
-		
+
 		List<String> allws = Arrays.asList("listObjs1", "listObjs2", "listObjsread",
 				"listObjswrite", "listObjsadmin", "listObjsGlobal");
 
@@ -2751,7 +2750,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"Workspace name foo:bar:listObjs1 may only contain one : delimiter");
 		failListObjects(Arrays.asList("listObjs1fake"), Arrays.asList(info2.getE1()), anotherType, null, null, 1L, 1L, 1L, 1L,
 				"No workspace with name listObjs1fake exists");
-		
+
 		// test with illegal numbers of workspaces
 		final String err = "At least one and no more than 10000 workspaces must be specified";
 		failListObjects(null, null, null, null, null, 1L, 1L, 1L, 1L, err);
@@ -2765,7 +2764,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ws.remove(ws.size() - 1);
 		longs.add(7000L);
 		failListObjects(ws, longs, null, null, null, 1L, 1L, 1L, 1L, err);
-		
+
 		meta.put("this should", "force a fail");
 		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, null, meta, 1L, 1L, 1L, 1L,
 				"Only one metadata spec allowed");
@@ -2939,7 +2938,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			}
 		}
 	}
-	
+
 	private class TstObjInfo {
 		private long wsid;
 		private long objid;
@@ -2956,7 +2955,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			return "TstObjInfo [wsid=" + wsid + ", objid=" + objid + ", ver=" + ver + "]";
 		}
 	}
-	
+
 	@Test
 	public void listObjectsWithStartAfter() throws Exception {
 		// This only tests that the start after parameter is passed correctly to the backend.
@@ -2966,23 +2965,23 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		final UObject d = new UObject(new HashMap<String, String>());
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws1));
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws2));
-		
+
 		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
 		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));
 		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o2"));
 		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o3"));
 		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o3"));  // v2
 		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));  // v2
-		
+
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws1).withObjects(objs));
-		
+
 		objs.clear();
 		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws2).withObjects(objs));
-		
+
 		final ListObjectsParams lop = new ListObjectsParams().withIds(Arrays.asList(1L, 2L))
 				.withShowAllVersions(1L);
-		
+
 		final List<TstObjInfo> expected = Arrays.asList(
 				new TstObjInfo(1, 1, 2),
 				new TstObjInfo(1, 1, 1),
@@ -2991,7 +2990,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new TstObjInfo(1, 3, 1),
 				new TstObjInfo(2, 1, 1)
 				);
-		
+
 		checkStartafter(lop.withStartafter(null), expected);
 		checkStartafter(lop.withStartafter("   \t    "), expected);
 		checkStartafter(lop.withStartafter("0"), expected);
@@ -3010,7 +3009,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkStartafter(lop.withStartafter("1/3/2"), expected.subList(4, 6));
 		checkStartafter(lop.withStartafter("1/3/1"), expected.subList(5, 6));
 	}
-	
+
 	@Test
 	public void listObjectsWithStartafterFail() throws Exception {
 		// test a non-exhaustive set of error conditions.
@@ -3527,6 +3526,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareInfo(info.getInfos(), exp);
 		assertThat("incorrect paths", info.getPaths(), is(paths));
 	}
+	
+	@Test
+	public void getAdminRole() throws Exception {
+		assertThat("incorrect admin role", CLIENT_AA_ADMIN_NONE.getAdminRole().getAdminrole(),
+				is("none"));
+		assertThat("incorrect admin role", CLIENT_AA_ADMIN_READ.getAdminRole().getAdminrole(),
+				is("read"));
+		assertThat("incorrect admin role", CLIENT_AA_ADMIN_FULL.getAdminRole().getAdminrole(),
+				is("full"));
+	}
 
 	@Test
 	public void adminGetSetConfig() throws Exception {
@@ -3536,7 +3545,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.asClassInstance(Object.class);
 		assertThat("incorrect config", ret, is(ImmutableMap.of(
 				"config", ImmutableMap.of("backend-file-retrieval-scaling", 1))));
-		
+
 		final Map<String, Object> command = ImmutableMap.of(
 				"command", "setConfig",
 				"params", ImmutableMap.of("set", ImmutableMap.of(
@@ -3548,7 +3557,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.asClassInstance(Object.class);
 		assertThat("incorrect config", ret2, is(ImmutableMap.of(
 				"config", ImmutableMap.of("backend-file-retrieval-scaling", 4))));
-		
+
 		final Map<String, Object> badcommand = ImmutableMap.of(
 				"command", "setConfig",
 				"params", ImmutableMap.of("set", ImmutableMap.of(
@@ -3561,7 +3570,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("incorrect config", ret3, is(ImmutableMap.of(
 				"config", ImmutableMap.of("backend-file-retrieval-scaling", 4))));
 	}
-	
+
 	@Test
 	public void adminAddRemoveList() throws Exception {
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
@@ -3618,7 +3627,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		params.put("command", "createWorkspace");
 		params.put("user", "user3");
 		params.put("params", new CreateWorkspaceParams().withWorkspace("ws"));
-		CLIENT_AA_ADMIN_FULL.administer(new UObject(params)); 
+		CLIENT_AA_ADMIN_FULL.administer(new UObject(params));
 
 		// has read only role
 		failAdmin(CLIENT_AA_ADMIN_READ, params,
@@ -4128,7 +4137,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	public void adminListObjectsFailOnWorkspaceCounts() throws Exception {
 		adminListObjectsFail(null, null);
 		adminListObjectsFail(Collections.emptyList(), Collections.emptyList());
-		
+
 		final List<String> ws = IntStream.range(1, 5002).mapToObj(i -> "a" + i)
 				.collect(Collectors.toList());
 		final List<Long> longs = LongStream.range(1, 5001).mapToObj(i -> i)
@@ -4138,7 +4147,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		longs.add(7000L);
 		adminListObjectsFail(ws, longs);
 	}
-	
+
 	private void adminListObjectsFail(final List<String> ws, final List<Long> ids)
 			throws Exception {
 		try {
@@ -4266,6 +4275,137 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				is("my desc"));
 	}
 
+	@Test
+	public void alterAdminObjectMetadata() throws Exception {
+		final Map<String, Object> data = ImmutableMap.of("foo", "bar");
+		final UObject udata = new UObject(data); 
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("objadminmeta"));
+		
+		final ImmutableMap<String, String> meta1 = ImmutableMap.of("1", "2");
+		final ImmutableMap<String, String> meta2 = ImmutableMap.of("3", "4");
+		final ImmutableMap<String, String> meta3 = ImmutableMap.of("5", "6");
+		final ImmutableMap<String, String> meta4 = ImmutableMap.of("7", "8");
+		CLIENT1.saveObjects(new SaveObjectsParams()
+				.withId(1L)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withType(SAFE_TYPE).withName("one").withData(udata)
+								.withMeta(meta1),
+						new ObjectSaveData().withType(SAFE_TYPE).withName("two").withData(udata)
+								.withMeta(meta2),
+						new ObjectSaveData().withType(SAFE_TYPE).withName("two").withData(udata)
+								.withMeta(meta3),
+						new ObjectSaveData().withType(SAFE_TYPE).withName("three").withData(udata)
+								.withMeta(meta4)
+				))
+		);
+		final ObjectIdentity oi1 = new ObjectIdentity().withRef("1/1/1");
+		final ObjectIdentity oi2_1 = new ObjectIdentity().withRef("1/2/1");
+		final ObjectIdentity oi2_2 = new ObjectIdentity().withRef("1/2/2");
+		final ObjectIdentity oi3 = new ObjectIdentity().withRef("1/3/1");
+		
+		CLIENT2.alterAdminObjectMetadata(new AlterAdminObjectMetadataParams()
+				.withUpdates(Arrays.asList(
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withRef("1/1"))
+								.withNew(ImmutableMap.of("a", "b", "c", "d")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity()
+										.withWorkspace("objadminmeta")
+										.withName("two")
+										.withVer(1L)
+								)
+								.withNew(ImmutableMap.of("e", "f", "h", "pointed stick")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withWsid(1L).withObjid(2L))
+								.withNew(ImmutableMap.of("i", "j", "k", "iter var"))
+				))
+		);
+		checkSavedObjects(list(oi1), 1L, "one", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta1,
+				ImmutableMap.of("a", "b", "c", "d"), data);
+		checkSavedObjects(list(oi2_1), 2L, "two", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta2,
+				ImmutableMap.of("e", "f", "h", "pointed stick"), data);
+		checkSavedObjects(list(oi2_2), 2L, "two", SAFE_TYPE, 2, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta3,
+				ImmutableMap.of("i", "j", "k", "iter var"), data);
+		checkSavedObjects(list(oi3), 3L, "three", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta4, MT_META, data);
+		
+		// test remove
+		CLIENT2.alterAdminObjectMetadata(new AlterAdminObjectMetadataParams()
+				.withUpdates(Arrays.asList(
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withRef("1/1"))
+								.withNew(ImmutableMap.of("x", "y"))
+								.withRemove(Arrays.asList("c")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity()
+										.withWorkspace("objadminmeta")
+										.withName("two")
+										.withVer(1L)
+								)
+								.withNew(ImmutableMap.of("e", "fresh fruit")),
+						new ObjectMetadataUpdate()
+								.withOi(new ObjectIdentity().withWsid(1L).withObjid(2L))
+								.withRemove(Arrays.asList("i", "k"))
+				))
+		);
+		checkSavedObjects(list(oi1), 1L, "one", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta1,
+				ImmutableMap.of("a", "b", "x", "y"), data);
+		checkSavedObjects(list(oi2_1), 2L, "two", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta2,
+				ImmutableMap.of("e", "fresh fruit", "h", "pointed stick"), data);
+		checkSavedObjects(list(oi2_2), 2L, "two", SAFE_TYPE, 2, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta3, MT_META, data);
+		checkSavedObjects(list(oi3), 3L, "three", SAFE_TYPE, 1, USER1, 1L, "objadminmeta",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13L, meta4, MT_META, data);
+	}
+	
+	
+	@Test
+	public void alterAdminObjectMetaFailPerms() throws Exception {
+		final String err = "Full workspace serivce administrator permissions are required to "
+				+ "alter object metadata";
+		// standard admin handler
+		alterAdminObjectMetaFail(CLIENT1, new AlterAdminObjectMetadataParams(),
+				new ServerException(err, 1, "name"));
+		// auth service admin handler
+		alterAdminObjectMetaFail(CLIENT_AA_ADMIN_NONE, new AlterAdminObjectMetadataParams(),
+				new ServerException(err, 1, "name"));
+		alterAdminObjectMetaFail(CLIENT_AA_ADMIN_READ, new AlterAdminObjectMetadataParams(),
+				new ServerException(err, 1, "name"));
+	}
+	
+	@Test
+	public void alterAdminObjectMetaFail() throws Exception {
+		// test a couple examples of failing calls; unit tests cover everything so no need to get
+		// too thorough
+		final AlterAdminObjectMetadataParams params = new AlterAdminObjectMetadataParams()
+				.withUpdates(Arrays.asList(new ObjectMetadataUpdate()
+						.withOi(new ObjectIdentity().withRef("3/1"))
+				));
+		alterAdminObjectMetaFail( CLIENT2, params, new ServerException(
+				"Error processing update index 0: A metadata update is required", 1, "name"));
+		
+		params.getUpdates().get(0).withRemove(Arrays.asList("foo"));
+		alterAdminObjectMetaFail(CLIENT2, params, new ServerException(
+				"Object 1 cannot be accessed: No workspace with id 3 exists", 1, "name"));
+	}
+	
+	private void alterAdminObjectMetaFail(
+			final WorkspaceClient client,
+			final AlterAdminObjectMetadataParams update,
+			final Exception expected) {
+		try {
+			client.alterAdminObjectMetadata(update);
+			fail("expected exception");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, expected);
+		}
+	}
 
 	@Test
 	public void getAllWorkspaceOwners() throws Exception {

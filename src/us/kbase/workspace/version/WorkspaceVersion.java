@@ -6,6 +6,6 @@ public class WorkspaceVersion {
 	private WorkspaceVersion() {};
 	
 	/** The version. */
-	public static final String VERSION = "0.14.1";
+	public static final String VERSION = "0.14.2";
 
 }

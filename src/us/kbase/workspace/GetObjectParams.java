@@ -16,7 +16,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * Input parameters for the "get_object" function. Provided for backwards
  * compatibility.
- *         
  * Required arguments:
  * ws_name workspace - Name of the workspace containing the object to be
  *         retrieved

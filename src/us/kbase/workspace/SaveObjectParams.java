@@ -17,7 +17,6 @@ import us.kbase.common.service.UObject;
  * <pre>
  * Input parameters for the "save_object" function. Provided for backwards
  * compatibility.
- *         
  * Required arguments:
  * type_string type - type of the object to be saved
  * ws_name workspace - name of the workspace where the object is to be

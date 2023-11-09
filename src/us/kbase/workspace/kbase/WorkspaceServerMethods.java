@@ -1,5 +1,6 @@
 package us.kbase.workspace.kbase;
 
+import static java.util.Objects.requireNonNull;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.checkLong;
 import static us.kbase.workspace.kbase.ArgUtils.chooseInstant;
@@ -10,6 +11,7 @@ import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
+import static us.kbase.workspace.kbase.ArgUtils.objInfoToClass;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
@@ -29,6 +31,9 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
@@ -42,6 +47,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet;
+import us.kbase.workspace.AlterAdminObjectMetadataParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
@@ -53,6 +59,7 @@ import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectMetadataUpdate;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
@@ -61,11 +68,13 @@ import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.MetadataUpdate;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.RefLimit;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.UserWorkspaceIDs;
 import us.kbase.workspace.database.Workspace;
@@ -103,6 +112,10 @@ public class WorkspaceServerMethods {
 		this.ws = ws;
 		this.idFacBuilder = idFacBuilder;
 		this.auth = auth;
+	}
+	
+	private static Logger getLogger() {
+		return LoggerFactory.getLogger(WorkspaceServerMethods.class);
 	}
 	
 	/** Get the core workspace instance underlying this server -> core translation layer.
@@ -387,7 +400,7 @@ public class WorkspaceServerMethods {
 		params.setObjects(null); 
 		final IdReferenceHandlerSetFactory fac = idFacBuilder.getFactory(token);
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
-		return objInfoToTuple(meta, true);
+		return objInfoToTuple(meta, true, false);
 	}
 	
 	/** Get object information.
@@ -413,12 +426,21 @@ public class WorkspaceServerMethods {
 				ReferenceSearchMaximumSizeExceededException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final List<ObjectIdentifier> loi = processObjectSpecifications(params.getObjects());
-		final List<ObjectInformation> infos = ws.getObjectInformation(user, loi,
-				longToBoolean(params.getIncludeMetadata()),
+		final boolean includeMeta = longToBoolean(params.getIncludeMetadata());
+		final List<ObjectInformation> infos = ws.getObjectInformation(
+				user, 
+				loi,
+				includeMeta,
 				longToBoolean(params.getIgnoreErrors()),
 				asAdmin);
-		return new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true))
-				.withPaths(toObjectPaths(infos));
+		if (longToBoolean(params.getInfostruct(), false)) {
+			return new GetObjectInfo3Results()
+					.withInfostructs(objInfoToClass(infos, !includeMeta));
+		} else {
+			return new GetObjectInfo3Results().withInfos(
+					objInfoToTuple(infos, true, !includeMeta))
+					.withPaths(toObjectPaths(infos));
+		}
 	}
 	
 	/** Get objects.
@@ -462,7 +484,7 @@ public class WorkspaceServerMethods {
 				user,
 				longToBoolean(params.getSkipExternalSystemUpdates(), false),
 				longToBoolean(params.getBatchExternalSystemUpdates(), false),
-				true)); // log objects
+				longToBoolean(params.getInfostruct(), false)));
 	}
 
 	private IdReferencePermissionHandlerSet getPermissionsHandler(final WorkspaceUser user) {
@@ -477,9 +499,8 @@ public class WorkspaceServerMethods {
 	
 	public List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
-			final WorkspaceUser user,
-			final boolean logObjects) {
-		return translateObjectData(objects, user, false, false, logObjects);
+			final WorkspaceUser user) {
+		return translateObjectData(objects, user, false, false, false);
 	}
 	
 	private List<ObjectData> translateObjectData(
@@ -487,11 +508,11 @@ public class WorkspaceServerMethods {
 			final WorkspaceUser user,
 			final boolean skipExternalSystemUpdates,
 			final boolean batchExternalSystemUpdates,
-			final boolean logObjects) {
+			final boolean objectInfoAsClass) {
 		final Optional<IdReferencePermissionHandlerSet> handlers = skipExternalSystemUpdates ? 
 				Optional.empty() : Optional.of(getPermissionsHandler(user));
 		return ArgUtils.translateObjectData(
-				objects, handlers, batchExternalSystemUpdates, logObjects);
+				objects, handlers, batchExternalSystemUpdates, objectInfoAsClass);
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -592,6 +613,7 @@ public class WorkspaceServerMethods {
 				"Cannot specify both timestamp and epoch for after parameter");
 		final Instant before = chooseInstant(params.getBefore(), params.getBeforeEpoch(),
 				"Cannot specify both timestamp and epoch for before parameter");
+		final boolean includeMeta = longToBoolean(params.getIncludeMetadata());
 		final ListObjectsParameters lop = ListObjectsParameters.getBuilder(wsis)
 				.withUser(user)
 				.withAsAdmin(asAdmin)
@@ -608,11 +630,11 @@ public class WorkspaceServerMethods {
 				.withShowDeleted(longToBoolean(params.getShowDeleted()))
 				.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
 				.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
-				.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
+				.withIncludeMetaData(includeMeta)
 				.withLimit(longToInt(params.getLimit(), "Limit", -1))
 				.build();
 		
-		return objInfoToTuple(ws.listObjects(lop), false);
+		return objInfoToTuple(ws.listObjects(lop), false, !includeMeta);
 	}
 
 	/** Get all versions of an object.
@@ -634,6 +656,62 @@ public class WorkspaceServerMethods {
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException, NoSuchObjectException {
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		return objInfoToTuple(ws.getObjectHistory(user, oi, asAdmin), true);
+		return objInfoToTuple(ws.getObjectHistory(user, oi, asAdmin), true, false);
+	}
+
+	/** Set administrative metadata on an object. This method is reserved for full workspace
+	 * administrators only and should not be exposed in a public API.
+	 * @param params the method parameters.
+	 * @throws NoSuchObjectException if one of the objects doesn't exist.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 * @throws WorkspaceCommunicationException if a communication error occurs contacting the
+	 * database.
+	 * @throws InaccessibleObjectException if one of the objects is inaccessible.
+	 */
+	public void setAdminObjectMetadata(final AlterAdminObjectMetadataParams params)
+			// TODO CODE corrupt & comm exceptions should be unchecked, there's no recovery
+			//			 and it's not the user's fault
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+				CorruptWorkspaceDBException, NoSuchObjectException {
+		checkAddlArgs(
+				requireNonNull(params, "params").getAdditionalProperties(), params.getClass());
+		if (params.getUpdates() == null || params.getUpdates().isEmpty()) {
+			throw new IllegalArgumentException("updates list cannot be empty");
+		}
+		final Map<ObjectIdentifier, MetadataUpdate> update = new HashMap<>();
+		final Map<ObjectIdentity, ObjectIdentifier> oimap = new HashMap<>(); 
+		final ListIterator<ObjectMetadataUpdate> iter = params.getUpdates().listIterator();
+		while (iter.hasNext()) {
+			try {
+				final ObjectMetadataUpdate u = requireNonNull(iter.next(),
+						ObjectMetadataUpdate.class.getSimpleName() + " cannot be null");
+				checkAddlArgs(u.getAdditionalProperties(), ObjectMetadataUpdate.class);
+				final MetadataUpdate mu = new MetadataUpdate(
+						new WorkspaceUserMetadata(u.getNew()), u.getRemove());
+				if (!mu.hasUpdate()) {
+					throw new IllegalArgumentException("A metadata update is required");
+				}
+				final ObjectIdentifier oi = processObjectIdentifier(u.getOi());
+				oimap.put(u.getOi(), oi);
+				update.put(oi, mu);
+			} catch (NullPointerException | IllegalArgumentException | MetadataException e) {
+				// TODO CODE user caused exceptions should be checked & have custom classes
+				//           in preparation for adding error codes. Will need to do this if
+				//           methods are converted to a REST-like API so 400s and 500s can be
+				//           distinguished
+				throw new IllegalArgumentException(String.format(
+						"Error processing update index %s: %s",
+						iter.previousIndex(), e.getMessage()), e);
+			}
+		}
+		final Map<ObjectIdentifier, ResolvedObjectID> objs = ws.setAdminObjectMetadata(update);
+		for (final ObjectMetadataUpdate u: params.getUpdates()) {
+			final ResolvedObjectID r = objs.get(oimap.get(u.getOi()));
+			getLogger().info("Object {}/{}/{}",
+					r.getWorkspaceIdentifier().getID(),
+					r.getId(),
+					r.getVersion()
+			);
+		}
 	}
 }

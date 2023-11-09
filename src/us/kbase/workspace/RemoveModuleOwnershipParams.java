@@ -15,10 +15,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: RemoveModuleOwnershipParams</p>
  * <pre>
  * Parameters for the remove_module_ownership function.
- * Required arguments:
- * modulename mod - the module to modify.
- * username old_owner - the user to remove from the module's list of
- *         owners.
+ *                 Required arguments:
+ *                 modulename mod - the module to modify.
+ *                 username old_owner - the user to remove from the module's list of
+ *                         owners.
  * </pre>
  * 
  */

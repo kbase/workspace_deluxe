@@ -30,7 +30,7 @@ The Workspace Service (WSS) is primarily a language independent remote storage
 and retrieval system for KBase typed objects (TO) defined with the KBase
 Interface Description Language (KIDL). It has the following primary features:
 - Immutable storage of TOs with
-        - user defined metadata 
+        - user defined metadata
         - data provenance
 - Versioning of TOs
 - Referencing from TO to TO
@@ -646,13 +646,13 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 Lock a workspace, preventing further changes.
 
-        WARNING: Locking a workspace is permanent. A workspace, once locked,
-        cannot be unlocked.
-        
-        The only changes allowed for a locked workspace are changing user
-        based permissions or making a private workspace globally readable,
-        thus permanently publishing the workspace. A locked, globally readable
-        workspace cannot be made private.
+                WARNING: Locking a workspace is permanent. A workspace, once locked,
+                cannot be unlocked.
+
+                The only changes allowed for a locked workspace are changing user
+                based permissions or making a private workspace globally readable,
+                thus permanently publishing the workspace. A locked, globally readable
+                workspace cannot be made private.
 
 =back
 
@@ -769,7 +769,7 @@ permission is a string
 =item Description
 
 Retrieves the metadata associated with the specified workspace.
-Provided for backwards compatibility. 
+Provided for backwards compatibility.
 @deprecated Workspace.get_workspace_info
 
 =back
@@ -2304,6 +2304,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2332,6 +2333,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2396,6 +2411,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2424,6 +2440,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2541,6 +2571,7 @@ $results is a Workspace.GetObjects2Results
 GetObjects2Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 	ignoreErrors has a value which is a Workspace.boolean
+	infostruct has a value which is a Workspace.boolean
 	no_data has a value which is a Workspace.boolean
 	skip_external_system_updates has a value which is a Workspace.boolean
 	batch_external_system_updates has a value which is a Workspace.boolean
@@ -2581,6 +2612,7 @@ GetObjects2Results is a reference to a hash where the following keys are defined
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2609,6 +2641,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2658,6 +2704,7 @@ $results is a Workspace.GetObjects2Results
 GetObjects2Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 	ignoreErrors has a value which is a Workspace.boolean
+	infostruct has a value which is a Workspace.boolean
 	no_data has a value which is a Workspace.boolean
 	skip_external_system_updates has a value which is a Workspace.boolean
 	batch_external_system_updates has a value which is a Workspace.boolean
@@ -2698,6 +2745,7 @@ GetObjects2Results is a reference to a hash where the following keys are defined
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2726,6 +2774,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2857,6 +2919,7 @@ boolean is an int
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2885,6 +2948,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -2953,6 +3030,7 @@ boolean is an int
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -2981,6 +3059,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -3521,6 +3613,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -3549,6 +3642,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -3614,6 +3721,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	infostruct has a value which is a Workspace.ObjectInfo
 	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
@@ -3642,6 +3750,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
 	epoch has a value which is a Workspace.epoch
@@ -3689,22 +3811,22 @@ extracted_id is a string
 
 DEPRECATED
 
-        Get objects by references from other objects.
+                Get objects by references from other objects.
 
-        NOTE: In the vast majority of cases, this method is not necessary and
-        get_objects should be used instead. 
-        
-        get_referenced_objects guarantees that a user that has access to an
-        object can always see a) objects that are referenced inside the object
-        and b) objects that are referenced in the object's provenance. This
-        ensures that the user has visibility into the entire provenance of the
-        object and the object's object dependencies (e.g. references).
-        
-        The user must have at least read access to the first object in each
-        reference chain, but need not have access to any further objects in
-        the chain, and those objects may be deleted.
-        
-        @deprecated Workspace.get_objects2
+                NOTE: In the vast majority of cases, this method is not necessary and
+                get_objects should be used instead.
+
+                get_referenced_objects guarantees that a user that has access to an
+                object can always see a) objects that are referenced inside the object
+                and b) objects that are referenced in the object's provenance. This
+                ensures that the user has visibility into the entire provenance of the
+                object and the object's object dependencies (e.g. references).
+
+                The user must have at least read access to the first object in each
+                reference chain, but need not have access to any further objects in
+                the chain, and those objects may be deleted.
+
+                @deprecated Workspace.get_objects2
 
 =back
 
@@ -4922,6 +5044,7 @@ $params is a Workspace.GetObjectInfo3Params
 $results is a Workspace.GetObjectInfo3Results
 GetObjectInfo3Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+	infostruct has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	ignoreErrors has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
@@ -4959,6 +5082,7 @@ object_path is a string
 GetObjectInfo3Results is a reference to a hash where the following keys are defined:
 	infos has a value which is a reference to a list where each element is a Workspace.object_info
 	paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+	infostructs has a value which is a reference to a list where each element is a Workspace.ObjectInfo
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -4975,6 +5099,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 
 </pre>
 
@@ -4986,6 +5124,7 @@ $params is a Workspace.GetObjectInfo3Params
 $results is a Workspace.GetObjectInfo3Results
 GetObjectInfo3Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+	infostruct has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	ignoreErrors has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
@@ -5023,6 +5162,7 @@ object_path is a string
 GetObjectInfo3Results is a reference to a hash where the following keys are defined:
 	infos has a value which is a reference to a list where each element is a Workspace.object_info
 	paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+	infostructs has a value which is a reference to a list where each element is a Workspace.ObjectInfo
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -5039,6 +5179,20 @@ type_string is a string
 timestamp is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectInfo is a reference to a hash where the following keys are defined:
+	objid has a value which is a Workspace.obj_id
+	name has a value which is a Workspace.obj_name
+	type has a value which is a Workspace.type_string
+	save_date has a value which is a Workspace.timestamp
+	version has a value which is an int
+	saved_by has a value which is a Workspace.username
+	wsid has a value which is a Workspace.ws_id
+	workspace has a value which is a Workspace.ws_name
+	chsum has a value which is a string
+	size has a value which is an int
+	meta has a value which is a Workspace.usermeta
+	adminmeta has a value which is a Workspace.usermeta
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 
 
 =end text
@@ -5607,8 +5761,8 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 Revert an object.
 
-        The object specified in the ObjectIdentity is reverted to the version
-        specified in the ObjectIdentity.
+                The object specified in the ObjectIdentity is reverted to the version
+                specified in the ObjectIdentity.
 
 =back
 
@@ -6624,17 +6778,17 @@ type_string is a string
 
 Release a module for general use of its types.
 
-Releases the most recent version of a module. Releasing a module does
-two things to the module's types:
-1) If a type's major version is 0, it is changed to 1. A major
-        version of 0 implies that the type is in development and may have
-        backwards incompatible changes from minor version to minor version.
-        Once a type is released, backwards incompatible changes always
-        cause a major version increment.
-2) This version of the type becomes the default version, and if a 
-        specific version is not supplied in a function call, this version
-        will be used. This means that newer, unreleased versions of the
-        type may be skipped.
+                Releases the most recent version of a module. Releasing a module does
+                two things to the module's types:
+                1) If a type's major version is 0, it is changed to 1. A major
+                        version of 0 implies that the type is in development and may have
+                        backwards incompatible changes from minor version to minor version.
+                        Once a type is released, backwards incompatible changes always
+                        cause a major version increment.
+                2) This version of the type becomes the default version, and if a
+                        specific version is not supplied in a function call, this version
+                        will be used. This means that newer, unreleased versions of the
+                        type may be skipped.
 
 =back
 
@@ -7992,6 +8146,200 @@ version.
  
 
 
+=head2 get_admin_role
+
+  $results = $obj->get_admin_role()
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$results is a Workspace.GetAdminRoleResults
+GetAdminRoleResults is a reference to a hash where the following keys are defined:
+	adminrole has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$results is a Workspace.GetAdminRoleResults
+GetAdminRoleResults is a reference to a hash where the following keys are defined:
+	adminrole has a value which is a string
+
+
+=end text
+
+=item Description
+
+Get the administrative role for the current user.
+
+=back
+
+=cut
+
+ sub get_admin_role
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 0)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_admin_role (received $n, expecting 0)");
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_admin_role",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'get_admin_role',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_admin_role",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_admin_role',
+				       );
+    }
+}
+ 
+
+
+=head2 alter_admin_object_metadata
+
+  $obj->alter_admin_object_metadata($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.AlterAdminObjectMetadataParams
+AlterAdminObjectMetadataParams is a reference to a hash where the following keys are defined:
+	updates has a value which is a reference to a list where each element is a Workspace.ObjectMetadataUpdate
+ObjectMetadataUpdate is a reference to a hash where the following keys are defined:
+	oi has a value which is a Workspace.ObjectIdentity
+	new has a value which is a Workspace.usermeta
+	remove has a value which is a reference to a list where each element is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.AlterAdminObjectMetadataParams
+AlterAdminObjectMetadataParams is a reference to a hash where the following keys are defined:
+	updates has a value which is a reference to a list where each element is a Workspace.ObjectMetadataUpdate
+ObjectMetadataUpdate is a reference to a hash where the following keys are defined:
+	oi has a value which is a Workspace.ObjectIdentity
+	new has a value which is a Workspace.usermeta
+	remove has a value which is a reference to a list where each element is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+
+=end text
+
+=item Description
+
+Update admin metadata for an object. The user must have full workspace service
+administration privileges.
+
+=back
+
+=cut
+
+ sub alter_admin_object_metadata
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function alter_admin_object_metadata (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to alter_admin_object_metadata:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'alter_admin_object_metadata');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.alter_admin_object_metadata",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'alter_admin_object_metadata',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return;
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method alter_admin_object_metadata",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'alter_admin_object_metadata',
+				       );
+    }
+}
+ 
+
+
 =head2 administer
 
   $response = $obj->administer($command)
@@ -8268,10 +8616,10 @@ a string
 
 Represents the permissions a user or users have to a workspace:
 
-        'a' - administrator. All operations allowed.
-        'w' - read/write.
-        'r' - read.
-        'n' - no permissions.
+                'a' - administrator. All operations allowed.
+                'w' - read/write.
+                'r' - read.
+                'n' - no permissions.
 
 
 =item Definition
@@ -8617,8 +8965,8 @@ id has a value which is a Workspace.ws_id
 
 Meta data associated with a workspace. Provided for backwards
 compatibility. To be replaced by workspace_info.
-        
-ws_name id - name of the workspace 
+
+ws_name id - name of the workspace
 username owner - name of the user who owns (who created) this workspace
 timestamp moddate - date when the workspace was last modified
 int objects - the approximate number of objects currently stored in
@@ -8678,19 +9026,19 @@ a reference to a list containing 7 items:
 
 Information about a workspace.
 
-        ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace.
-        username owner - name of the user who owns (e.g. created) this workspace.
-        timestamp moddate - date when the workspace was last modified.
-        int max_objid - the maximum object ID appearing in this workspace.
-                Since cloning a workspace preserves object IDs, this number may be
-                greater than the number of objects in a newly cloned workspace.
-        permission user_permission - permissions for the authenticated user of
-                this workspace.
-        permission globalread - whether this workspace is globally readable.
-        lock_status lockstat - the status of the workspace lock.
-        usermeta metadata - arbitrary user-supplied metadata about
-                the workspace.
+                ws_id id - the numerical ID of the workspace.
+                ws_name workspace - name of the workspace.
+                username owner - name of the user who owns (e.g. created) this workspace.
+                timestamp moddate - date when the workspace was last modified.
+                int max_objid - the maximum object ID appearing in this workspace.
+                        Since cloning a workspace preserves object IDs, this number may be
+                        greater than the number of objects in a newly cloned workspace.
+                permission user_permission - permissions for the authenticated user of
+                        this workspace.
+                permission globalread - whether this workspace is globally readable.
+                lock_status lockstat - the status of the workspace lock.
+                usermeta metadata - arbitrary user-supplied metadata about
+                        the workspace.
 
 
 =item Definition
@@ -8839,14 +9187,14 @@ an int
 
 A string that uniquely identifies an object in the workspace service.
 
-        The format is [ws_name or id]/[obj_name or id]/[obj_ver].
-        For example, MyFirstWorkspace/MyFirstObject/3 would identify the third version
-        of an object called MyFirstObject in the workspace called
-        MyFirstWorkspace. 42/Panic/1 would identify the first version of
-        the object name Panic in workspace with id 42. Towel/1/6 would
-        identify the 6th version of the object with id 1 in the Towel
-        workspace.If the version number is omitted, the latest version of
-        the object is assumed.
+                The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+                For example, MyFirstWorkspace/MyFirstObject/3 would identify the third version
+                of an object called MyFirstObject in the workspace called
+                MyFirstWorkspace. 42/Panic/1 would identify the first version of
+                the object name Panic in workspace with id 42. Towel/1/6 would
+                identify the 6th version of the object with id 1 in the Towel
+                workspace.If the version number is omitted, the latest version of
+                the object is assumed.
 
 
 =item Definition
@@ -8879,18 +9227,18 @@ a string
 
 An object identifier.
 
-Select an object by either:
-        One, and only one, of the numerical id or name of the workspace.
-                ws_id wsid - the numerical ID of the workspace.
-                ws_name workspace - the name of the workspace.
-        AND 
-        One, and only one, of the numerical id or name of the object.
-                obj_id objid- the numerical ID of the object.
-                obj_name name - name of the object.
-        OPTIONALLY
-                obj_ver ver - the version of the object.
-OR an object reference string:
-        obj_ref ref - an object reference string.
+                Select an object by either:
+                        One, and only one, of the numerical id or name of the workspace.
+                                ws_id wsid - the numerical ID of the workspace.
+                                ws_name workspace - the name of the workspace.
+                        AND
+                        One, and only one, of the numerical id or name of the object.
+                                obj_id objid- the numerical ID of the object.
+                                obj_name name - name of the object.
+                        OPTIONALLY
+                                obj_ver ver - the version of the object.
+                OR an object reference string:
+                        obj_ref ref - an object reference string.
 
 
 =item Definition
@@ -8937,9 +9285,9 @@ ref has a value which is a Workspace.obj_ref
 
 A chain of objects with references to one another.
 
-        An object reference chain consists of a list of objects where the nth
-        object possesses a reference, either in the object itself or in the
-        object provenance, to the n+1th object.
+                An object reference chain consists of a list of objects where the nth
+                object possesses a reference, either in the object itself or in the
+                object provenance, to the n+1th object.
 
 
 =item Definition
@@ -8972,16 +9320,16 @@ a reference to a list where each element is a Workspace.ObjectIdentity
 
 A chain of objects with references to one another as a string.
 
-        A single string that is semantically identical to ref_chain above.
-        Represents a path from one workspace object to another through an
-        arbitrarily number of intermediate objects where each object has a
-        dependency or provenance reference to the next object. Each entry is
-        an obj_ref as defined earlier. Entries are separated by semicolons.
-        Whitespace is ignored.
-        
-        Examples:
-        3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2
-        aworkspace/6
+                A single string that is semantically identical to ref_chain above.
+                Represents a path from one workspace object to another through an
+                arbitrarily number of intermediate objects where each object has a
+                dependency or provenance reference to the next object. Each entry is
+                an obj_ref as defined earlier. Entries are separated by semicolons.
+                Whitespace is ignored.
+
+                Examples:
+                3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2
+                aworkspace/6
 
 
 =item Definition
@@ -9012,7 +9360,7 @@ a string
 
 =item Description
 
-A path into an object. 
+A path into an object.
 Identify a sub portion of an object by providing the path, delimited by
 a slash (/), to that portion of the object. Thus the path may not have
 slashes in the structure or mapping keys. Examples:
@@ -9023,7 +9371,7 @@ slashes in the structure or mapping keys. Examples:
         list mapped by the bar key in the map foo.
 /foo/asterisk/baz - specifies the baz field of all the objects in the
         values of the foo mapping. Swap 'asterisk' for * in the path.
-In case you need to use '/' or '~' in path items use JSON Pointer 
+In case you need to use '/' or '~' in path items use JSON Pointer
         notation defined here: http://tools.ietf.org/html/rfc6901
 
 
@@ -9057,30 +9405,30 @@ a string
 
 DEPRECATED
 
-        An object subset identifier.
-        
-        Select a subset of an object by:
-        EITHER
-                One, and only one, of the numerical id or name of the workspace.
-                        ws_id wsid - the numerical ID of the workspace.
-                        ws_name workspace - name of the workspace.
-                AND 
-                One, and only one, of the numerical id or name of the object.
-                        obj_id objid- the numerical ID of the object.
-                        obj_name name - name of the object.
-                OPTIONALLY
-                        obj_ver ver - the version of the object.
-        OR an object reference string:
-                obj_ref ref - an object reference string.
-        AND a subset specification:
-                list<object_path> included - the portions of the object to include
-                        in the object subset.
-        boolean strict_maps - if true, throw an exception if the subset
-                specification traverses a non-existant map key (default false)
-        boolean strict_arrays - if true, throw an exception if the subset
-                specification exceeds the size of an array (default true)
-                
-        @deprecated Workspace.ObjectSpecification
+                An object subset identifier.
+
+                Select a subset of an object by:
+                EITHER
+                        One, and only one, of the numerical id or name of the workspace.
+                                ws_id wsid - the numerical ID of the workspace.
+                                ws_name workspace - name of the workspace.
+                        AND
+                        One, and only one, of the numerical id or name of the object.
+                                obj_id objid- the numerical ID of the object.
+                                obj_name name - name of the object.
+                        OPTIONALLY
+                                obj_ver ver - the version of the object.
+                OR an object reference string:
+                        obj_ref ref - an object reference string.
+                AND a subset specification:
+                        list<object_path> included - the portions of the object to include
+                                in the object subset.
+                boolean strict_maps - if true, throw an exception if the subset
+                        specification traverses a non-existant map key (default false)
+                boolean strict_arrays - if true, throw an exception if the subset
+                        specification exceeds the size of an array (default true)
+
+                @deprecated Workspace.ObjectSpecification
 
 
 =item Definition
@@ -9190,7 +9538,7 @@ boolean find_refence_path - This is the last, slowest, and most expensive resort
         succeeds, the object will be returned as normal. Note that the search
         will automatically fail after a certain (but much larger than necessary
         for the vast majority of cases) number of objects are traversed.
-        
+
 
 OBJECT SUBSETS:
 
@@ -9275,7 +9623,7 @@ strict_arrays has a value which is a Workspace.boolean
 
 Meta data associated with an object stored in a workspace. Provided for
 backwards compatibility.
-        
+
 obj_name id - name of the object.
 type_string type - type of the object.
 timestamp moddate - date when the object was saved
@@ -9351,18 +9699,18 @@ a reference to a list containing 12 items:
 
 Information about an object, including user provided metadata.
 
-        obj_id objid - the numerical id of the object.
-        obj_name name - the name of the object.
-        type_string type - the type of the object.
-        timestamp save_date - the save date of the object.
-        obj_ver ver - the version of the object.
-        username saved_by - the user that saved or copied the object.
-        ws_id wsid - the workspace containing the object.
-        ws_name workspace - the workspace containing the object.
-        string chsum - the md5 checksum of the object.
-        int size - the size of the object in bytes.
-        usermeta meta - arbitrary user-supplied metadata about
-                the object.
+                obj_id objid - the numerical id of the object.
+                obj_name name - the name of the object.
+                type_string type - the type of the object.
+                timestamp save_date - the save date of the object.
+                obj_ver ver - the version of the object.
+                username saved_by - the user that saved or copied the object.
+                ws_id wsid - the workspace containing the object.
+                ws_name workspace - the workspace containing the object.
+                string chsum - the md5 checksum of the object.
+                int size - the size of the object in bytes.
+                usermeta meta - arbitrary user-supplied metadata about
+                        the object.
 
 
 =item Definition
@@ -9401,6 +9749,82 @@ a reference to a list containing 11 items:
 8: (chsum) a string
 9: (size) an int
 10: (meta) a Workspace.usermeta
+
+
+=end text
+
+=back
+
+
+
+=head2 ObjectInfo
+
+=over 4
+
+
+
+=item Description
+
+Information about an object as a struct rather than a tuple.
+This allows adding fields in a backward compatible way in the future.
+Includes more fields than object_info.
+
+obj_id objid - the numerical id of the object.
+obj_name name - the name of the object.
+type_string type - the type of the object.
+timestamp save_date - the save date of the object.
+obj_ver ver - the version of the object.
+username saved_by - the user that saved or copied the object.
+ws_id wsid - the workspace containing the object.
+ws_name workspace - the workspace containing the object.
+string chsum - the md5 checksum of the object.
+int size - the size of the object in bytes.
+usermeta meta - arbitrary user-supplied metadata about the object.
+usermeta adminmeta - service administrator metadata set on an object. Unlike most
+        other object fields, admin metadata is mutable.
+list<obj_ref> path - the path to the object.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+objid has a value which is a Workspace.obj_id
+name has a value which is a Workspace.obj_name
+type has a value which is a Workspace.type_string
+save_date has a value which is a Workspace.timestamp
+version has a value which is an int
+saved_by has a value which is a Workspace.username
+wsid has a value which is a Workspace.ws_id
+workspace has a value which is a Workspace.ws_name
+chsum has a value which is a string
+size has a value which is an int
+meta has a value which is a Workspace.usermeta
+adminmeta has a value which is a Workspace.usermeta
+path has a value which is a reference to a list where each element is a Workspace.obj_ref
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+objid has a value which is a Workspace.obj_id
+name has a value which is a Workspace.obj_name
+type has a value which is a Workspace.type_string
+save_date has a value which is a Workspace.timestamp
+version has a value which is an int
+saved_by has a value which is a Workspace.username
+wsid has a value which is a Workspace.ws_id
+workspace has a value which is a Workspace.ws_name
+chsum has a value which is a string
+size has a value which is an int
+meta has a value which is a Workspace.usermeta
+adminmeta has a value which is a Workspace.usermeta
+path has a value which is a reference to a list where each element is a Workspace.obj_ref
 
 
 =end text
@@ -9487,28 +9911,28 @@ description has a value which is a string
 
 Information about a subaction that is invoked by a provenance action.
 
-        A provenance action (PA) may invoke subactions (SA), e.g. calling a
-        separate piece of code, a service, or a script. In most cases these
-        calls are the same from PA to PA and so do not need to be listed in
-        the provenance since providing information about the PA alone provides
-        reproducibility.
-        
-        In some cases, however, SAs may change over time, such that invoking
-        the same PA with the same parameters may produce different results.
-        For example, if a PA calls a remote server, that server may be updated
-        between a PA invoked on day T and another PA invoked on day T+1.
-        
-        The SubAction structure allows for specifying information about SAs
-        that may dynamically change from PA invocation to PA invocation.
-        
-        All fields are optional but at least one field must be present.
-        
-        string name - the name of the SA.
-        string ver - the version of SA.
-        string code_url - a url pointing to the SA's codebase.
-        string commit - a version control commit ID for the SA.
-        string endpoint_url - a url pointing to the access point for the SA -
-                a server url, for instance.
+                A provenance action (PA) may invoke subactions (SA), e.g. calling a
+                separate piece of code, a service, or a script. In most cases these
+                calls are the same from PA to PA and so do not need to be listed in
+                the provenance since providing information about the PA alone provides
+                reproducibility.
+
+                In some cases, however, SAs may change over time, such that invoking
+                the same PA with the same parameters may produce different results.
+                For example, if a PA calls a remote server, that server may be updated
+                between a PA invoked on day T and another PA invoked on day T+1.
+
+                The SubAction structure allows for specifying information about SAs
+                that may dynamically change from PA invocation to PA invocation.
+
+                All fields are optional but at least one field must be present.
+
+                string name - the name of the SA.
+                string ver - the version of SA.
+                string code_url - a url pointing to the SA's codebase.
+                string commit - a version control commit ID for the SA.
+                string endpoint_url - a url pointing to the access point for the SA -
+                        a server url, for instance.
 
 
 =item Definition
@@ -9553,67 +9977,67 @@ endpoint_url has a value which is a string
 
 A provenance action.
 
-        A provenance action (PA) is an action taken while transforming one data
-        object to another. There may be several PAs taken in series. A PA is
-        typically running a script, running an api command, etc. All of the
-        following fields are optional, but more information provided equates to
-        better data provenance.
-        
-        If a provenance action has no fields defined at all, it is silently dropped from
-        the list.
-        
-        resolved_ws_objects should never be set by the user; it is set by the
-        workspace service when returning data.
-        
-        On input, only one of the time or epoch may be supplied. Both are
-        supplied on output.
-        
-        The maximum size of the entire provenance object, including all actions,
-        is 1MB.
-        
-        timestamp time - the time the action was started
-        epoch epoch - the time the action was started.
-        string caller - the name or id of the invoker of this provenance
-                action. In most cases, this will be the same for all PAs.
-        string service - the name of the service that performed this action.
-        string service_ver - the version of the service that performed this action.
-        string method - the method of the service that performed this action.
-        list<UnspecifiedObject> method_params - the parameters of the method
-                that performed this action. If an object in the parameters is a
-                workspace object, also put the object reference in the
-                input_ws_object list.
-        string script - the name of the script that performed this action.
-        string script_ver - the version of the script that performed this action.
-        string script_command_line - the command line provided to the script
-                that performed this action. If workspace objects were provided in
-                the command line, also put the object reference in the
-                input_ws_object list.
-        list<ref_string> input_ws_objects - the workspace objects that
-                were used as input to this action; typically these will also be
-                present as parts of the method_params or the script_command_line
-                arguments. A reference path into the object graph may be supplied.
-        list<obj_ref> resolved_ws_objects - the workspace objects ids from 
-                input_ws_objects resolved to permanent workspace object references
-                by the workspace service.
-        list<string> intermediate_incoming - if the previous action produced 
-                output that 1) was not stored in a referrable way, and 2) is
-                used as input for this action, provide it with an arbitrary and
-                unique ID here, in the order of the input arguments to this action.
-                These IDs can be used in the method_params argument.
-        list<string> intermediate_outgoing - if this action produced output
-                that 1) was not stored in a referrable way, and 2) is
-                used as input for the next action, provide it with an arbitrary and
-                unique ID here, in the order of the output values from this action.
-                These IDs can be used in the intermediate_incoming argument in the
-                next action.
-        list<ExternalDataUnit> external_data - data external to the workspace
-                that was either imported to the workspace or used to create a
-                workspace object.
-        list<SubAction> subactions - the subactions taken as a part of this
-                action.
-        mapping<string, string> custom - user definable custom provenance
-                fields and their values.
-        string description - a free text description of this action.
+                A provenance action (PA) is an action taken while transforming one data
+                object to another. There may be several PAs taken in series. A PA is
+                typically running a script, running an api command, etc. All of the
+                following fields are optional, but more information provided equates to
+                better data provenance.
+
+                If a provenance action has no fields defined at all, it is silently dropped from
+                the list.
+
+                resolved_ws_objects should never be set by the user; it is set by the
+                workspace service when returning data.
+
+                On input, only one of the time or epoch may be supplied. Both are
+                supplied on output.
+
+                The maximum size of the entire provenance object, including all actions,
+                is 1MB.
+
+                timestamp time - the time the action was started
+                epoch epoch - the time the action was started.
+                string caller - the name or id of the invoker of this provenance
+                        action. In most cases, this will be the same for all PAs.
+                string service - the name of the service that performed this action.
+                string service_ver - the version of the service that performed this action.
+                string method - the method of the service that performed this action.
+                list<UnspecifiedObject> method_params - the parameters of the method
+                        that performed this action. If an object in the parameters is a
+                        workspace object, also put the object reference in the
+                        input_ws_object list.
+                string script - the name of the script that performed this action.
+                string script_ver - the version of the script that performed this action.
+                string script_command_line - the command line provided to the script
+                        that performed this action. If workspace objects were provided in
+                        the command line, also put the object reference in the
+                        input_ws_object list.
+                list<ref_string> input_ws_objects - the workspace objects that
+                        were used as input to this action; typically these will also be
+                        present as parts of the method_params or the script_command_line
+                        arguments. A reference path into the object graph may be supplied.
+                list<obj_ref> resolved_ws_objects - the workspace objects ids from
+                        input_ws_objects resolved to permanent workspace object references
+                        by the workspace service.
+                list<string> intermediate_incoming - if the previous action produced
+                        output that 1) was not stored in a referrable way, and 2) is
+                        used as input for this action, provide it with an arbitrary and
+                        unique ID here, in the order of the input arguments to this action.
+                        These IDs can be used in the method_params argument.
+                list<string> intermediate_outgoing - if this action produced output
+                        that 1) was not stored in a referrable way, and 2) is
+                        used as input for the next action, provide it with an arbitrary and
+                        unique ID here, in the order of the output values from this action.
+                        These IDs can be used in the intermediate_incoming argument in the
+                        next action.
+                list<ExternalDataUnit> external_data - data external to the workspace
+                        that was either imported to the workspace or used to create a
+                        workspace object.
+                list<SubAction> subactions - the subactions taken as a part of this
+                        action.
+                mapping<string, string> custom - user definable custom provenance
+                        fields and their values.
+                string description - a free text description of this action.
 
 
 =item Definition
@@ -9684,16 +10108,16 @@ description has a value which is a string
 
 Input parameters for the "create_workspace" function.
 
-        Required arguments:
-        ws_name workspace - name of the workspace to be created.
-        
-        Optional arguments:
-        permission globalread - 'r' to set the new workspace globally readable,
-                default 'n'.
-        string description - A free-text description of the new workspace, 1000
-                characters max. Longer strings will be mercilessly and brutally
-                truncated.
-        usermeta meta - arbitrary user-supplied metadata for the workspace.
+                Required arguments:
+                ws_name workspace - name of the workspace to be created.
+
+                Optional arguments:
+                permission globalread - 'r' to set the new workspace globally readable,
+                        default 'n'.
+                string description - A free-text description of the new workspace, 1000
+                        characters max. Longer strings will be mercilessly and brutally
+                        truncated.
+                usermeta meta - arbitrary user-supplied metadata for the workspace.
 
 
 =item Definition
@@ -9736,14 +10160,14 @@ meta has a value which is a Workspace.usermeta
 
 Input parameters for the "alter_workspace_metadata" function.
 
-Required arguments:
-WorkspaceIdentity wsi - the workspace to be altered
+                Required arguments:
+                WorkspaceIdentity wsi - the workspace to be altered
 
-One or both of the following arguments are required:
-usermeta new - metadata to assign to the workspace. Duplicate keys will
-        be overwritten.
-list<string> remove - these keys will be removed from the workspace
-        metadata key/value pairs.
+                One or both of the following arguments are required:
+                usermeta new - metadata to assign to the workspace. Duplicate keys will
+                        be overwritten.
+                list<string> remove - these keys will be removed from the workspace
+                        metadata key/value pairs.
 
 
 =item Definition
@@ -9784,25 +10208,25 @@ remove has a value which is a reference to a list where each element is a string
 
 Input parameters for the "clone_workspace" function.
 
-        Note that deleted objects are not cloned, although hidden objects are
-        and remain hidden in the new workspace.
+                Note that deleted objects are not cloned, although hidden objects are
+                and remain hidden in the new workspace.
 
-        Required arguments:
-        WorkspaceIdentity wsi - the workspace to be cloned.
-        ws_name workspace - name of the workspace to be cloned into. This must
-                be a non-existant workspace name.
-        
-        Optional arguments:
-        permission globalread - 'r' to set the new workspace globally readable,
-                default 'n'.
-        string description - A free-text description of the new workspace, 1000
-                characters max. Longer strings will be mercilessly and brutally
-                truncated.
-        usermeta meta - arbitrary user-supplied metadata for the workspace.
-        list<ObjectIdentity> exclude - exclude the specified objects from the
-                cloned workspace. Either an object ID or a object name must be
-                specified in each ObjectIdentity - any supplied reference strings,
-                workspace names or IDs, and versions are ignored.
+                Required arguments:
+                WorkspaceIdentity wsi - the workspace to be cloned.
+                ws_name workspace - name of the workspace to be cloned into. This must
+                        be a non-existant workspace name.
+
+                Optional arguments:
+                permission globalread - 'r' to set the new workspace globally readable,
+                        default 'n'.
+                string description - A free-text description of the new workspace, 1000
+                        characters max. Longer strings will be mercilessly and brutally
+                        truncated.
+                usermeta meta - arbitrary user-supplied metadata for the workspace.
+                list<ObjectIdentity> exclude - exclude the specified objects from the
+                        cloned workspace. Either an object ID or a object name must be
+                        specified in each ObjectIdentity - any supplied reference strings,
+                        workspace names or IDs, and versions are ignored.
 
 
 =item Definition
@@ -9849,19 +10273,19 @@ exclude has a value which is a reference to a list where each element is a Works
 
 DEPRECATED
 
-        Input parameters for the "get_workspacemeta" function. Provided for
-        backwards compatibility.
+                Input parameters for the "get_workspacemeta" function. Provided for
+                backwards compatibility.
 
-        One, and only one of:
-        ws_name workspace - name of the workspace.
-        ws_id id - the numerical ID of the workspace.
-                
-        Optional arguments:
-        string auth - the authentication token of the KBase account accessing
-                the workspace. Overrides the client provided authorization
-                credentials if they exist.
-        
-        @deprecated Workspace.WorkspaceIdentity
+                One, and only one of:
+                ws_name workspace - name of the workspace.
+                ws_id id - the numerical ID of the workspace.
+
+                Optional arguments:
+                string auth - the authentication token of the KBase account accessing
+                        the workspace. Overrides the client provided authorization
+                        credentials if they exist.
+
+                @deprecated Workspace.WorkspaceIdentity
 
 
 =item Definition
@@ -9902,13 +10326,13 @@ auth has a value which is a string
 
 Input parameters for the "set_permissions" function.
 
-        One, and only one, of the following is required:
-        ws_id id - the numerical ID of the workspace.
-        ws_name workspace - the name of the workspace.
-        
-        Required arguments:
-        permission new_permission - the permission to assign to the users.
-        list<username> users - the users whose permissions will be altered.
+                One, and only one, of the following is required:
+                ws_id id - the numerical ID of the workspace.
+                ws_name workspace - the name of the workspace.
+
+                Required arguments:
+                permission new_permission - the permission to assign to the users.
+                list<username> users - the users whose permissions will be altered.
 
 
 =item Definition
@@ -9951,15 +10375,15 @@ users has a value which is a reference to a list where each element is a Workspa
 
 Input parameters for the "set_global_permission" function.
 
-        One, and only one, of the following is required:
-        ws_id id - the numerical ID of the workspace.
-        ws_name workspace - the name of the workspace.
-        
-        Required arguments:
-        permission new_permission - the permission to assign to all users,
-                either 'n' or 'r'. 'r' means that all users will be able to read
-                the workspace; otherwise users must have specific permission to
-                access the workspace.
+                One, and only one, of the following is required:
+                ws_id id - the numerical ID of the workspace.
+                ws_name workspace - the name of the workspace.
+
+                Required arguments:
+                permission new_permission - the permission to assign to all users,
+                        either 'n' or 'r'. 'r' means that all users will be able to read
+                        the workspace; otherwise users must have specific permission to
+                        access the workspace.
 
 
 =item Definition
@@ -10000,14 +10424,14 @@ new_permission has a value which is a Workspace.permission
 
 Input parameters for the "set_workspace_description" function.
 
-        One, and only one, of the following is required:
-        ws_id id - the numerical ID of the workspace.
-        ws_name workspace - the name of the workspace.
-        
-        Optional arguments:
-        string description - A free-text description of the workspace, 1000
-                characters max. Longer strings will be mercilessly and brutally
-                truncated. If omitted, the description is set to null.
+                One, and only one, of the following is required:
+                ws_id id - the numerical ID of the workspace.
+                ws_name workspace - the name of the workspace.
+
+                Optional arguments:
+                string description - A free-text description of the workspace, 1000
+                        characters max. Longer strings will be mercilessly and brutally
+                        truncated. If omitted, the description is set to null.
 
 
 =item Definition
@@ -10121,7 +10545,7 @@ perms has a value which is a reference to a list where each element is a referen
 
 Input parameters for the "save_object" function. Provided for backwards
 compatibility.
-        
+
 Required arguments:
 type_string type - type of the object to be saved
 ws_name workspace - name of the workspace where the object is to be
@@ -10187,24 +10611,24 @@ auth has a value which is a string
 
 An object and associated data required for saving.
 
-        Required arguments:
-        type_string type - the type of the object. Omit the version information
-                to use the latest version.
-        UnspecifiedObject data - the object data.
-        One, and only one, of:
-                obj_name name - the name of the object.
-                obj_id objid - the id of the object to save over.
-        
-        
-        Optional arguments:
-        usermeta meta - arbitrary user-supplied metadata for the object,
-                not to exceed 16kb; if the object type specifies automatic
-                metadata extraction with the 'meta ws' annotation, and your
-                metadata name conflicts, then your metadata will be silently
-                overwritten.
-        list<ProvenanceAction> provenance - provenance data for the object.
-        boolean hidden - true if this object should not be listed when listing
-                workspace objects.
+                Required arguments:
+                type_string type - the type of the object. Omit the version information
+                        to use the latest version.
+                UnspecifiedObject data - the object data.
+                One, and only one, of:
+                        obj_name name - the name of the object.
+                        obj_id objid - the id of the object to save over.
+
+
+                Optional arguments:
+                usermeta meta - arbitrary user-supplied metadata for the object,
+                        not to exceed 16kb; if the object type specifies automatic
+                        metadata extraction with the 'meta ws' annotation, and your
+                        metadata name conflicts, then your metadata will be silently
+                        overwritten.
+                list<ProvenanceAction> provenance - provenance data for the object.
+                boolean hidden - true if this object should not be listed when listing
+                        workspace objects.
 
 
 =item Definition
@@ -10253,12 +10677,12 @@ hidden has a value which is a Workspace.boolean
 
 Input parameters for the "save_objects" function.
 
-        One, and only one, of the following is required:
-        ws_id id - the numerical ID of the workspace.
-        ws_name workspace - the name of the workspace.
-        
-        Required arguments:
-        list<ObjectSaveData> objects - the objects to save.
+                One, and only one, of the following is required:
+                ws_id id - the numerical ID of the workspace.
+                ws_name workspace - the name of the workspace.
+
+                Required arguments:
+                list<ObjectSaveData> objects - the objects to save.
 
 
 =item Definition
@@ -10299,7 +10723,7 @@ objects has a value which is a reference to a list where each element is a Works
 
 Input parameters for the "get_object" function. Provided for backwards
 compatibility.
-        
+
 Required arguments:
 ws_name workspace - Name of the workspace containing the object to be
         retrieved
@@ -10355,10 +10779,10 @@ auth has a value which is a string
 
 Output generated by the "get_object" function. Provided for backwards
 compatibility.
-        
+
 UnspecifiedObject data - The object's data.
 object_metadata metadata - Metadata for object retrieved/
-        
+
 @deprecated Workspaces.ObjectData
 
 
@@ -10398,35 +10822,35 @@ metadata has a value which is a Workspace.object_metadata
 
 DEPRECATED
 
-        The provenance and supplemental info for an object.
+                The provenance and supplemental info for an object.
 
-        object_info info - information about the object.
-        list<ProvenanceAction> provenance - the object's provenance.
-        username creator - the user that first saved the object to the
-                workspace.
-        ws_id orig_wsid - the id of the workspace in which this object was
-                        originally saved. Missing for objects saved prior to version
-                        0.4.1.
-        timestamp created - the date the object was first saved to the
-                workspace.
-        epoch epoch - the date the object was first saved to the
-                workspace.
-        list<obj_ref> - the references contained within the object.
-        obj_ref copied - the reference of the source object if this object is
-                a copy and the copy source exists and is accessible.
-                null otherwise.
-        boolean copy_source_inaccessible - true if the object was copied from
-                another object, but that object is no longer accessible to the
-                user. False otherwise.
-        mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
-                from the object.
-        string handle_error - if an error occurs while setting ACLs on
-                embedded external IDs, it will be reported here. If not for historical reasons the
-                parameter would be called "external_id_error".
-        string handle_stacktrace - the stacktrace for handle_error. As above, the parameter
-                should be called "external_id_stacktrace".
-        
-        @deprecated
+                object_info info - information about the object.
+                list<ProvenanceAction> provenance - the object's provenance.
+                username creator - the user that first saved the object to the
+                        workspace.
+                ws_id orig_wsid - the id of the workspace in which this object was
+                                originally saved. Missing for objects saved prior to version
+                                0.4.1.
+                timestamp created - the date the object was first saved to the
+                        workspace.
+                epoch epoch - the date the object was first saved to the
+                        workspace.
+                list<obj_ref> - the references contained within the object.
+                obj_ref copied - the reference of the source object if this object is
+                        a copy and the copy source exists and is accessible.
+                        null otherwise.
+                boolean copy_source_inaccessible - true if the object was copied from
+                        another object, but that object is no longer accessible to the
+                        user. False otherwise.
+                mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
+                        from the object.
+                string handle_error - if an error occurs while setting ACLs on
+                        embedded external IDs, it will be reported here. If not for historical reasons the
+                        parameter would be called "external_id_error".
+                string handle_stacktrace - the stacktrace for handle_error. As above, the parameter
+                        should be called "external_id_stacktrace".
+
+                @deprecated
 
 
 =item Definition
@@ -10485,33 +10909,34 @@ handle_stacktrace has a value which is a string
 
 The data and supplemental info for an object.
 
-        UnspecifiedObject data - the object's data or subset data.
-        object_info info - information about the object.
-        list<obj_ref> path - the path to the object through the object reference graph. All the
-                references in the path are absolute.
-        list<ProvenanceAction> provenance - the object's provenance.
-        username creator - the user that first saved the object to the workspace.
-        ws_id orig_wsid - the id of the workspace in which this object was
-                        originally saved. Missing for objects saved prior to version
-                        0.4.1.
-        timestamp created - the date the object was first saved to the
-                workspace.
-        epoch epoch - the date the object was first saved to the
-                workspace.
-        list<obj_ref> refs - the references contained within the object.
-        obj_ref copied - the reference of the source object if this object is
-                a copy and the copy source exists and is accessible.
-                null otherwise.
-        boolean copy_source_inaccessible - true if the object was copied from
-                another object, but that object is no longer accessible to the
-                user. False otherwise.
-        mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
-                from the object.
-        string handle_error - if an error occurs while setting ACLs on
-                embedded external IDs, it will be reported here. If not for historical reasons the
-                parameter would be called "external_id_error".
-        string handle_stacktrace - the stacktrace for handle_error. As above, the parameter
-                should be called "external_id_stacktrace".
+                UnspecifiedObject data - the object's data or subset data.
+                object_info info - information about the object.
+                ObjectInfo infostruct - information about the object as a structure rather than a tuple.
+                list<obj_ref> path - the path to the object through the object reference graph. All the
+                        references in the path are absolute.
+                list<ProvenanceAction> provenance - the object's provenance.
+                username creator - the user that first saved the object to the workspace.
+                ws_id orig_wsid - the id of the workspace in which this object was
+                                originally saved. Missing for objects saved prior to version
+                                0.4.1.
+                timestamp created - the date the object was first saved to the
+                        workspace.
+                epoch epoch - the date the object was first saved to the
+                        workspace.
+                list<obj_ref> refs - the references contained within the object.
+                obj_ref copied - the reference of the source object if this object is
+                        a copy and the copy source exists and is accessible.
+                        null otherwise.
+                boolean copy_source_inaccessible - true if the object was copied from
+                        another object, but that object is no longer accessible to the
+                        user. False otherwise.
+                mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
+                        from the object.
+                string handle_error - if an error occurs while setting ACLs on
+                        embedded external IDs, it will be reported here. If not for historical reasons the
+                        parameter would be called "external_id_error".
+                string handle_stacktrace - the stacktrace for handle_error. As above, the parameter
+                        should be called "external_id_stacktrace".
 
 
 =item Definition
@@ -10522,6 +10947,7 @@ The data and supplemental info for an object.
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info
+infostruct has a value which is a Workspace.ObjectInfo
 path has a value which is a reference to a list where each element is a Workspace.obj_ref
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
@@ -10544,6 +10970,7 @@ handle_stacktrace has a value which is a string
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info
+infostruct has a value which is a Workspace.ObjectInfo
 path has a value which is a reference to a list where each element is a Workspace.obj_ref
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
@@ -10574,27 +11001,30 @@ handle_stacktrace has a value which is a string
 
 Input parameters for the get_objects2 function.
 
-        Required parameters:
-        list<ObjectSpecification> objects - the list of object specifications
-                for the objects to return (via reference chain and as a subset if
-                specified).
-                
-        Optional parameters:
-        boolean ignoreErrors - Don't throw an exception if an object cannot
-                be accessed; return null for that object's information instead.
-                Default false.
-        boolean no_data - return the provenance, references, and
-                object_info for this object without the object data. Default false.
-        boolean skip_external_system_updates - if the objects contain any external IDs, don't
-                contact external systems to perform any updates for those IDs (often ACL updates,
-                e.g. for handle / blobstore / sample IDs). In some cases this can speed up fetching the
-                data. Default false.
-        boolean batch_external_system_updates - if the objects contain any external IDs,
-                send all external system updates in a batch to each external system when possible
-                rather than object by object. This can potentially speed up the updates, but the
-                drawback is that if the external update fails for any object, all the objects that
-                required updates for that system will be marked as having a failed update.
-                Has no effect if skip_external_system_updates is true. Default false.
+                Required parameters:
+                list<ObjectSpecification> objects - the list of object specifications
+                        for the objects to return (via reference chain and as a subset if
+                        specified).
+
+                Optional parameters:
+                boolean ignoreErrors - Don't throw an exception if an object cannot
+                        be accessed; return null for that object's information instead.
+                        Default false.
+                boolean infostruct - return the object information as a structure rather than a tuple.
+                        Default false. If true, ObjectData.path will be null as it is provided in
+                        the ObjectInfo data.
+                boolean no_data - return the provenance, references, and
+                        object_info for this object without the object data. Default false.
+                boolean skip_external_system_updates - if the objects contain any external IDs, don't
+                        contact external systems to perform any updates for those IDs (often ACL updates,
+                        e.g. for handle / blobstore / sample IDs). In some cases this can speed up fetching the
+                        data. Default false.
+                boolean batch_external_system_updates - if the objects contain any external IDs,
+                        send all external system updates in a batch to each external system when possible
+                        rather than object by object. This can potentially speed up the updates, but the
+                        drawback is that if the external update fails for any object, all the objects that
+                        required updates for that system will be marked as having a failed update.
+                        Has no effect if skip_external_system_updates is true. Default false.
 
 
 =item Definition
@@ -10605,6 +11035,7 @@ Input parameters for the get_objects2 function.
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 ignoreErrors has a value which is a Workspace.boolean
+infostruct has a value which is a Workspace.boolean
 no_data has a value which is a Workspace.boolean
 skip_external_system_updates has a value which is a Workspace.boolean
 batch_external_system_updates has a value which is a Workspace.boolean
@@ -10618,6 +11049,7 @@ batch_external_system_updates has a value which is a Workspace.boolean
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 ignoreErrors has a value which is a Workspace.boolean
+infostruct has a value which is a Workspace.boolean
 no_data has a value which is a Workspace.boolean
 skip_external_system_updates has a value which is a Workspace.boolean
 batch_external_system_updates has a value which is a Workspace.boolean
@@ -10639,7 +11071,7 @@ batch_external_system_updates has a value which is a Workspace.boolean
 
 Results from the get_objects2 function.
 
-        list<ObjectData> data - the returned objects.
+                list<ObjectData> data - the returned objects.
 
 
 =item Definition
@@ -10904,7 +11336,7 @@ boolean showDeletedObject - show objects that have been deleted
 string auth - the authentication token of the KBase account requesting
         access. Overrides the client provided authorization credentials if
         they exist.
-        
+
 @deprecated Workspace.ListObjectsParams
 
 
@@ -10953,9 +11385,9 @@ Parameters for the 'list_objects' function.
                 the workspaces of interest, or the results may be very large:
                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
                 list<ws_name> workspaces - the names of the workspaces of interest.
-                
+
                 Only one of each timestamp/epoch pair may be supplied.
-                
+
                 Optional arguments:
                 type_string type - type of the objects to be listed.  Here, omitting
                         version information will find any objects that match the provided
@@ -11080,19 +11512,19 @@ limit has a value which is an int
 
 Input parameters for the "get_objectmeta" function.
 
-        Required arguments:
-        ws_name workspace - name of the workspace containing the object for
-                 which metadata is to be retrieved
-        obj_name id - name of the object for which metadata is to be retrieved
-        
-        Optional arguments:
-        int instance - Version of the object for which metadata is to be
-                 retrieved, enabling retrieval of any previous version of an object
-        string auth - the authentication token of the KBase account requesting
-                access. Overrides the client provided authorization credentials if
-                they exist.
-                
-        @deprecated Workspace.ObjectIdentity
+                Required arguments:
+                ws_name workspace - name of the workspace containing the object for
+                         which metadata is to be retrieved
+                obj_name id - name of the object for which metadata is to be retrieved
+
+                Optional arguments:
+                int instance - Version of the object for which metadata is to be
+                         retrieved, enabling retrieval of any previous version of an object
+                string auth - the authentication token of the KBase account requesting
+                        access. Overrides the client provided authorization credentials if
+                        they exist.
+
+                @deprecated Workspace.ObjectIdentity
 
 
 =item Definition
@@ -11135,19 +11567,19 @@ auth has a value which is a string
 
 Input parameters for the "get_object_info_new" function.
 
-        Required arguments:
-        list<ObjectSpecification> objects - the objects for which the
-                information should be fetched. Subsetting related parameters are
-                ignored.
-        
-        Optional arguments:
-        boolean includeMetadata - include the object metadata in the returned
-                information. Default false.
-        boolean ignoreErrors - Don't throw an exception if an object cannot
-                be accessed; return null for that object's information instead.
-                Default false.
-                
-        @deprecated Workspace.GetObjectInfo3Params
+                Required arguments:
+                list<ObjectSpecification> objects - the objects for which the
+                        information should be fetched. Subsetting related parameters are
+                        ignored.
+
+                Optional arguments:
+                boolean includeMetadata - include the object metadata in the returned
+                        information. Default false.
+                boolean ignoreErrors - Don't throw an exception if an object cannot
+                        be accessed; return null for that object's information instead.
+                        Default false.
+
+                @deprecated Workspace.GetObjectInfo3Params
 
 
 =item Definition
@@ -11188,17 +11620,19 @@ ignoreErrors has a value which is a Workspace.boolean
 
 Input parameters for the "get_object_info3" function.
 
-        Required arguments:
-        list<ObjectSpecification> objects - the objects for which the
-                information should be fetched. Subsetting related parameters are
-                ignored.
-        
-        Optional arguments:
-        boolean includeMetadata - include the object metadata in the returned
-                information. Default false.
-        boolean ignoreErrors - Don't throw an exception if an object cannot
-                be accessed; return null for that object's information and path instead.
-                Default false.
+                Required arguments:
+                list<ObjectSpecification> objects - the objects for which the
+                        information should be fetched. Subsetting related parameters are
+                        ignored.
+
+                Optional arguments:
+                boolean infostruct - return information about the object as a structure rather than a tuple.
+                        Default false. If true, infos and paths will be null.
+                boolean includeMetadata - include the user and admin metadata in the returned
+                        information. Default false.
+                boolean ignoreErrors - Don't throw an exception if an object cannot
+                        be accessed; return null for that object's information and path instead.
+                        Default false.
 
 
 =item Definition
@@ -11208,6 +11642,7 @@ Input parameters for the "get_object_info3" function.
 <pre>
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+infostruct has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 ignoreErrors has a value which is a Workspace.boolean
 
@@ -11219,6 +11654,7 @@ ignoreErrors has a value which is a Workspace.boolean
 
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+infostruct has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 ignoreErrors has a value which is a Workspace.boolean
 
@@ -11239,9 +11675,10 @@ ignoreErrors has a value which is a Workspace.boolean
 
 Output from the get_object_info3 function.
 
-        list<object_info> infos - the object_info data for each object.
-        list<list<obj_ref> paths - the path to the object through the object reference graph for
-                each object. All the references in the path are absolute.
+                list<object_info> infos - the object_info data for each object.
+                list<list<obj_ref> paths - the path to the object through the object reference graph for
+                        each object. All the references in the path are absolute.
+                list<ObjectInfo> infostructs - the ObjectInfo data for each object.
 
 
 =item Definition
@@ -11252,6 +11689,7 @@ Output from the get_object_info3 function.
 a reference to a hash where the following keys are defined:
 infos has a value which is a reference to a list where each element is a Workspace.object_info
 paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+infostructs has a value which is a reference to a list where each element is a Workspace.ObjectInfo
 
 </pre>
 
@@ -11262,6 +11700,7 @@ paths has a value which is a reference to a list where each element is a referen
 a reference to a hash where the following keys are defined:
 infos has a value which is a reference to a list where each element is a Workspace.object_info
 paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+infostructs has a value which is a reference to a list where each element is a Workspace.ObjectInfo
 
 
 =end text
@@ -11280,9 +11719,9 @@ paths has a value which is a reference to a list where each element is a referen
 
 Input parameters for the 'rename_workspace' function.
 
-Required arguments:
-WorkspaceIdentity wsi - the workspace to rename.
-ws_name new_name - the new name for the workspace.
+                Required arguments:
+                WorkspaceIdentity wsi - the workspace to rename.
+                ws_name new_name - the new name for the workspace.
 
 
 =item Definition
@@ -11321,9 +11760,9 @@ new_name has a value which is a Workspace.ws_name
 
 Input parameters for the 'rename_object' function.
 
-Required arguments:
-ObjectIdentity obj - the object to rename.
-obj_name new_name - the new name for the object.
+                Required arguments:
+                ObjectIdentity obj - the object to rename.
+                obj_name new_name - the new name for the object.
 
 
 =item Definition
@@ -11360,18 +11799,18 @@ new_name has a value which is a Workspace.obj_name
 
 =item Description
 
-Input parameters for the 'copy_object' function. 
+Input parameters for the 'copy_object' function.
 
-        If the 'from' ObjectIdentity includes no version and the object is
-        copied to a new name, the entire version history of the object is
-        copied. In all other cases only the version specified, or the latest
-        version if no version is specified, is copied.
-        
-        The version from the 'to' ObjectIdentity is always ignored.
-        
-        Required arguments:
-        ObjectIdentity from - the object to copy.
-        ObjectIdentity to - where to copy the object.
+                If the 'from' ObjectIdentity includes no version and the object is
+                copied to a new name, the entire version history of the object is
+                copied. In all other cases only the version specified, or the latest
+                version if no version is specified, is copied.
+
+                The version from the 'to' ObjectIdentity is always ignored.
+
+                Required arguments:
+                ObjectIdentity from - the object to copy.
+                ObjectIdentity to - where to copy the object.
 
 
 =item Definition
@@ -11410,13 +11849,13 @@ to has a value which is a Workspace.ObjectIdentity
 
 Input parameters for the get_names_by_prefix function.
 
-        Required arguments:
-        list<WorkspaceIdentity> workspaces - the workspaces to search.
-        string prefix - the prefix of the object names to return.
-        
-        Optional arguments:
-        boolean includeHidden - include names of hidden objects in the results.
-                Default false.
+                Required arguments:
+                list<WorkspaceIdentity> workspaces - the workspaces to search.
+                string prefix - the prefix of the object names to return.
+
+                Optional arguments:
+                boolean includeHidden - include names of hidden objects in the results.
+                        Default false.
 
 
 =item Definition
@@ -11457,8 +11896,8 @@ includeHidden has a value which is a Workspace.boolean
 
 Results object for the get_names_by_prefix function.
 
-        list<list<obj_name>> names - the names matching the provided prefix,
-                listed in order of the input workspaces.
+                list<list<obj_name>> names - the names matching the provided prefix,
+                        listed in order of the input workspaces.
 
 
 =item Definition
@@ -11587,7 +12026,7 @@ a string
 
 =item Description
 
-A version of a type. 
+A version of a type.
 Specifies the version of the type  in a single string in the format
 [major].[minor]:
 
@@ -11739,30 +12178,30 @@ a string
 
 Parameters for the register_typespec function.
 
-        Required arguments:
-        One of:
-        typespec spec - the new typespec to register.
-        modulename mod - the module to recompile with updated options (see below).
-        
-        Optional arguments:
-        boolean dryrun - Return, but do not save, the results of compiling the 
-                spec. Default true. Set to false for making permanent changes.
-        list<typename> new_types - types in the spec to make available in the
-                workspace service. When compiling a spec for the first time, if
-                this argument is empty no types will be made available. Previously
-                available types remain so upon recompilation of a spec or
-                compilation of a new spec.
-        list<typename> remove_types - no longer make these types available in
-                the workspace service for the new version of the spec. This does
-                not remove versions of types previously compiled.
-        mapping<modulename, spec_version> dependencies - By default, the
-                latest released versions of spec dependencies will be included when
-                compiling a spec. Specific versions can be specified here.
-        spec_version prev_ver - the id of the previous version of the typespec.
-                An error will be thrown if this is set and prev_ver is not the
-                most recent version of the typespec. This prevents overwriting of
-                changes made since retrieving a spec and compiling an edited spec.
-                This argument is ignored if a modulename is passed.
+                Required arguments:
+                One of:
+                typespec spec - the new typespec to register.
+                modulename mod - the module to recompile with updated options (see below).
+
+                Optional arguments:
+                boolean dryrun - Return, but do not save, the results of compiling the
+                        spec. Default true. Set to false for making permanent changes.
+                list<typename> new_types - types in the spec to make available in the
+                        workspace service. When compiling a spec for the first time, if
+                        this argument is empty no types will be made available. Previously
+                        available types remain so upon recompilation of a spec or
+                        compilation of a new spec.
+                list<typename> remove_types - no longer make these types available in
+                        the workspace service for the new version of the spec. This does
+                        not remove versions of types previously compiled.
+                mapping<modulename, spec_version> dependencies - By default, the
+                        latest released versions of spec dependencies will be included when
+                        compiling a spec. Specific versions can be specified here.
+                spec_version prev_ver - the id of the previous version of the typespec.
+                        An error will be thrown if this is set and prev_ver is not the
+                        most recent version of the typespec. This prevents overwriting of
+                        changes made since retrieving a spec and compiling an edited spec.
+                        This argument is ignored if a modulename is passed.
 
 
 =item Definition
@@ -11811,14 +12250,14 @@ prev_ver has a value which is a Workspace.spec_version
 
 Parameters for the register_typespec_copy function.
 
-        Required arguments:
-        string external_workspace_url - the URL of the  workspace server from
-                which to copy a typespec.
-        modulename mod - the name of the module in the workspace server
-        
-        Optional arguments:
-        spec_version version - the version of the module in the workspace
-                server
+                Required arguments:
+                string external_workspace_url - the URL of the  workspace server from
+                        which to copy a typespec.
+                modulename mod - the name of the module in the workspace server
+
+                Optional arguments:
+                spec_version version - the version of the module in the workspace
+                        server
 
 
 =item Definition
@@ -11859,8 +12298,8 @@ version has a value which is a Workspace.spec_version
 
 Parameters for the list_modules() function.
 
-        Optional arguments:
-        username owner - only list modules owned by this user.
+                Optional arguments:
+                username owner - only list modules owned by this user.
 
 
 =item Definition
@@ -11897,11 +12336,11 @@ owner has a value which is a Workspace.username
 
 Parameters for the list_module_versions function.
 
-        Required arguments:
-        One of:
-        modulename mod - returns all versions of the module.
-        type_string type - returns all versions of the module associated with
-                the type.
+                Required arguments:
+                One of:
+                modulename mod - returns all versions of the module.
+                type_string type - returns all versions of the module associated with
+                        the type.
 
 
 =item Definition
@@ -11940,11 +12379,11 @@ type has a value which is a Workspace.type_string
 
 A set of versions from a module.
 
-        modulename mod - the name of the module.
-        list<spec_version> - a set or subset of versions associated with the
-                module.
-        list<spec_version> - a set or subset of released versions associated 
-                with the module.
+                modulename mod - the name of the module.
+                list<spec_version> - a set or subset of versions associated with the
+                        module.
+                list<spec_version> - a set or subset of released versions associated
+                        with the module.
 
 
 =item Definition
@@ -11985,12 +12424,12 @@ released_vers has a value which is a reference to a list where each element is a
 
 Parameters for the get_module_info function.
 
-        Required arguments:
-        modulename mod - the name of the module to retrieve.
-        
-        Optional arguments:
-        spec_version ver - the version of the module to retrieve. Defaults to
-                the latest version.
+                Required arguments:
+                modulename mod - the name of the module to retrieve.
+
+                Optional arguments:
+                spec_version ver - the version of the module to retrieve. Defaults to
+                        the latest version.
 
 
 =item Definition
@@ -12029,18 +12468,18 @@ ver has a value which is a Workspace.spec_version
 
 Information about a module.
 
-        list<username> owners - the owners of the module.
-        spec_version ver - the version of the module.
-        typespec spec - the typespec.
-        string description - the description of the module from the typespec.
-        mapping<type_string, jsonschema> types - the types associated with this
-                module and their JSON schema.
-        mapping<modulename, spec_version> included_spec_version - names of 
-                included modules associated with their versions.
-        string chsum - the md5 checksum of the object.
-        list<func_string> functions - list of names of functions registered in spec.
-        boolean is_released - shows if this version of module was released (and
-                hence can be seen by others).
+                list<username> owners - the owners of the module.
+                spec_version ver - the version of the module.
+                typespec spec - the typespec.
+                string description - the description of the module from the typespec.
+                mapping<type_string, jsonschema> types - the types associated with this
+                        module and their JSON schema.
+                mapping<modulename, spec_version> included_spec_version - names of
+                        included modules associated with their versions.
+                string chsum - the md5 checksum of the object.
+                list<func_string> functions - list of names of functions registered in spec.
+                boolean is_released - shows if this version of module was released (and
+                        hence can be seen by others).
 
 
 =item Definition
@@ -12093,25 +12532,25 @@ is_released has a value which is a Workspace.boolean
 
 Information about a type
 
-        type_string type_def - resolved type definition id.
-        string description - the description of the type from spec file.
-        string spec_def - reconstruction of type definition from spec file.
-        jsonschema json_schema - JSON schema of this type.
-        string parsing_structure - json document describing parsing structure of type 
-                in spec file including involved sub-types.
-        list<spec_version> module_vers - versions of spec-files containing
-                given type version.
-        list<spec_version> released_module_vers - versions of released spec-files 
-                containing given type version.
-        list<type_string> type_vers - all versions of type with given type name.
-        list<type_string> released_type_vers - all released versions of type with 
-                given type name.
-        list<func_string> using_func_defs - list of functions (with versions)
-                referring to this type version.
-        list<type_string> using_type_defs - list of types (with versions)
-                referring to this type version.
-        list<type_string> used_type_defs - list of types (with versions) 
-                referred from this type version.
+                type_string type_def - resolved type definition id.
+                string description - the description of the type from spec file.
+                string spec_def - reconstruction of type definition from spec file.
+                jsonschema json_schema - JSON schema of this type.
+                string parsing_structure - json document describing parsing structure of type
+                        in spec file including involved sub-types.
+                list<spec_version> module_vers - versions of spec-files containing
+                        given type version.
+                list<spec_version> released_module_vers - versions of released spec-files
+                        containing given type version.
+                list<type_string> type_vers - all versions of type with given type name.
+                list<type_string> released_type_vers - all released versions of type with
+                        given type name.
+                list<func_string> using_func_defs - list of functions (with versions)
+                        referring to this type version.
+                list<type_string> using_type_defs - list of types (with versions)
+                        referring to this type version.
+                list<type_string> used_type_defs - list of types (with versions)
+                        referred from this type version.
 
 
 =item Definition
@@ -12222,14 +12661,14 @@ used_type_defs has a value which is a reference to a list where each element is 
 
 Parameters for the grant_module_ownership function.
 
-Required arguments:
-modulename mod - the module to modify.
-username new_owner - the user to add to the module's list of
-        owners.
+                Required arguments:
+                modulename mod - the module to modify.
+                username new_owner - the user to add to the module's list of
+                        owners.
 
-Optional arguments:
-boolean with_grant_option - true to allow the user to add owners
-        to the module.
+                Optional arguments:
+                boolean with_grant_option - true to allow the user to add owners
+                        to the module.
 
 
 =item Definition
@@ -12270,10 +12709,10 @@ with_grant_option has a value which is a Workspace.boolean
 
 Parameters for the remove_module_ownership function.
 
-Required arguments:
-modulename mod - the module to modify.
-username old_owner - the user to remove from the module's list of
-        owners.
+                Required arguments:
+                modulename mod - the module to modify.
+                username old_owner - the user to remove from the module's list of
+                        owners.
 
 
 =item Definition
@@ -12312,9 +12751,9 @@ old_owner has a value which is a Workspace.username
 
 Parameters for list_all_types function.
 
-Optional arguments:
-boolean with_empty_modules - include empty module names, optional flag,
-        default value is false.
+                Optional arguments:
+                boolean with_empty_modules - include empty module names, optional flag,
+                        default value is false.
 
 
 =item Definition
@@ -12333,6 +12772,130 @@ with_empty_modules has a value which is a Workspace.boolean
 
 a reference to a hash where the following keys are defined:
 with_empty_modules has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 GetAdminRoleResults
+
+=over 4
+
+
+
+=item Description
+
+The results of the get_admin_role call.
+
+        adminrole - the users's administration role, one of `none`, `read`, or `full`.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+adminrole has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+adminrole has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 ObjectMetadataUpdate
+
+=over 4
+
+
+
+=item Description
+
+An object metadata update specification.
+
+                Required arguments:
+                ObjectIdentity oi - the object to be altered
+
+                One or both of the following arguments are required:
+                usermeta new - metadata to assign to the workspace. Duplicate keys will
+                        be overwritten.
+                list<string> remove - these keys will be removed from the workspace
+                        metadata key/value pairs.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+oi has a value which is a Workspace.ObjectIdentity
+new has a value which is a Workspace.usermeta
+remove has a value which is a reference to a list where each element is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+oi has a value which is a Workspace.ObjectIdentity
+new has a value which is a Workspace.usermeta
+remove has a value which is a reference to a list where each element is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 AlterAdminObjectMetadataParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the alter_admin_object_metadata method.
+
+        updates - the metadata updates to apply to the objects. If the same object is specified
+                twice in the list, the update order is unspecified. At most 1000 updates are allowed
+                in one call.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+updates has a value which is a reference to a list where each element is a Workspace.ObjectMetadataUpdate
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+updates has a value which is a reference to a list where each element is a Workspace.ObjectMetadataUpdate
 
 
 =end text

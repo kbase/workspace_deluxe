@@ -16,15 +16,15 @@
   <property name="doc_server_doc_loc" location="/server_docs"/>
   <property name="tempunpack" location="unpackedjars"/>
   <property name="classes" location="classes"/>
-  <property name="client_classes" location="client_classes"/>
   <property name="jar.file" value="WorkspaceService.jar"/>
   <property name="war.file" value="WorkspaceService.war"/>
   <property name="clientjar.file" value="WorkspaceClient.jar"/>
   <property name="war.dir" value="war"/>
   <property name="test.reports.dir" location="test-reports"/>
+  <property name="jackson.version" value="2.9.9"/>
 
   <fileset dir="${jardir}" id="sourceslib">
-    <include name="kbase/common/kbase-common-0.1.0.jar"/>
+    <include name="kbase/common/kbase-common-0.1.1.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="serverlib">
@@ -39,13 +39,13 @@
   <fileset dir="${jardir}" id="clientserverlib">
     <include name="junit/junit-4.12.jar"/>
     <include name="hamcrest/hamcrest-core-1.3.jar"/>
-    <include name="kbase/common/kbase-common-0.1.0.jar"/>
+    <include name="kbase/common/kbase-common-0.1.1.jar"/>
     <!-- joda is required for kbase-common -->
     <include name="joda/joda-time-2.2.jar"/>
     <include name="kbase/auth/kbase-auth-0.4.4.jar"/>
-    <include name="jackson/jackson-annotations-2.9.9.jar"/>
-    <include name="jackson/jackson-core-2.9.9.jar"/>
-    <include name="jackson/jackson-databind-2.9.9.jar"/>
+    <include name="jackson/jackson-annotations-${jackson.version}.jar"/>
+    <include name="jackson/jackson-core-${jackson.version}.jar"/>
+    <include name="jackson/jackson-databind-${jackson.version}.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
@@ -176,33 +176,13 @@
     <mkdir dir="${test.reports.dir}/html"/>
   </target>
 
-  <target name="compile_client" description="compile only the client">
-    <mkdir dir="${client_classes}"/>
-    <javac destdir="${client_classes}" includeantruntime="false" target="1.6" source="1.6"
-      debug="true" classpathref="compile.classpath">
-      <src path="${src}"/>
-      <exclude name="AllWorkspaceTestsRunner.java"/>
-      <exclude name="us/kbase/typedobj/**"/>
-      <exclude name="us/kbase/common/**"/>
-      <exclude name="us/kbase/workspace/WorkspaceServer.java"/>
-      <exclude name="us/kbase/workspace/database/**"/>
-      <exclude name="us/kbase/workspace/docserver/**"/>
-      <exclude name="us/kbase/workspace/exceptions/**"/>
-      <exclude name="us/kbase/workspace/kbase/**"/>
-      <exclude name="us/kbase/workspace/test/**"/>
-      <exclude name="us/kbase/workspace/lib/**"/>
-    </javac>
-    <jar destfile="${dist}/client/${clientjar.file}" basedir="${client_classes}"/>
-    <delete dir="${client_classes}"/>
-  </target>
-
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
     <javac
         destdir="${classes}"
         includeantruntime="false"
-        target="1.8"
-        source="1.8"
+        target="11"
+        source="11"
         encoding="UTF-8"
         debug="true"
         classpathref="compile.classpath">
@@ -262,10 +242,10 @@
     <javadoc access="protected" author="false" classpathref="compile.classpath"
       destdir="${doc}" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
-      source="1.8" splitindex="true" use="true" version="true">
-      <link href="http://download.oracle.com/javase/8/docs/api/"/>
-      <link href="http://fasterxml.github.io/jackson-core/javadoc/2.2.0/"/>
-      <link href="http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/"/>
+      source="11" splitindex="true" use="true" version="true">
+      <link href="http://download.oracle.com/javase/11/docs/api/"/>
+      <link href="https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/${jackson.version}/"/>
+      <link href="https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/${jackson.version}/"/>
       <fileset refid="client-jdoc-files"/>
       <fileset refid="sources-jdoc-files"/>
     </javadoc>
@@ -369,4 +349,3 @@ java -cp ${dist}/${jar.file}:${lib.classpath} us.kbase.workspace.kbase.SchemaUpd
     <!--<delete dir="${test}"/>-->
   </target>
 </project>
-

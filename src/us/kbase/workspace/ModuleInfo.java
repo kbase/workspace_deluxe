@@ -16,18 +16,18 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ModuleInfo</p>
  * <pre>
  * Information about a module.
- *         list<username> owners - the owners of the module.
- *         spec_version ver - the version of the module.
- *         typespec spec - the typespec.
- *         string description - the description of the module from the typespec.
- *         mapping<type_string, jsonschema> types - the types associated with this
- *                 module and their JSON schema.
- *         mapping<modulename, spec_version> included_spec_version - names of 
- *                 included modules associated with their versions.
- *         string chsum - the md5 checksum of the object.
- *         list<func_string> functions - list of names of functions registered in spec.
- *         boolean is_released - shows if this version of module was released (and
- *                 hence can be seen by others).
+ *                 list<username> owners - the owners of the module.
+ *                 spec_version ver - the version of the module.
+ *                 typespec spec - the typespec.
+ *                 string description - the description of the module from the typespec.
+ *                 mapping<type_string, jsonschema> types - the types associated with this
+ *                         module and their JSON schema.
+ *                 mapping<modulename, spec_version> included_spec_version - names of
+ *                         included modules associated with their versions.
+ *                 string chsum - the md5 checksum of the object.
+ *                 list<func_string> functions - list of names of functions registered in spec.
+ *                 boolean is_released - shows if this version of module was released (and
+ *                         hence can be seen by others).
  * </pre>
  * 
  */
