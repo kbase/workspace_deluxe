@@ -56,6 +56,12 @@ jobs:
             minio: '2019-05-23T00-29-34Z'
             wired_tiger: 'false'
             ant_test: 'test_quick_coverage'
+          # Mongo7 setup
+          - java: '11'
+            mongo: 'mongodb-linux-x86_64-ubuntu2204-7.0.4'
+            minio: '2019-05-23T00-29-34Z'
+            wired_tiger: 'false'
+            ant_test: 'test_quick_coverage'
     steps:
       - uses: actions/checkout@v3
 
