@@ -22,11 +22,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.MongoException;
 import com.mongodb.ServerAddress;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
@@ -411,16 +411,18 @@ public class InitWorkspaceServer {
 	public static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
 			throws WorkspaceInitException {
 		//TODO ZLATER MONGO handle shards & replica sets
-		final MongoClientOptions opts = MongoClientOptions.builder()
-				.retryWrites(c.getMongoRetryWrites()).build();
+		final MongoClientSettings.Builder mongoBuilder = MongoClientSettings.builder()
+				.retryWrites(c.getMongoRetryWrites())
+				.applyToClusterSettings(builder -> builder.hosts(
+						Arrays.asList(new ServerAddress(c.getMongoHost()))));
 		try {
 			if (c.getMongoUser() != null) {
 				final MongoCredential creds = MongoCredential.createCredential(
 						c.getMongoUser(), dbName, c.getMongoPassword().toCharArray());
 				// unclear if and when it's safe to clear the password
-				return new MongoClient(new ServerAddress(c.getHost()), creds, opts);
+				return MongoClients.create(mongoBuilder.credential(creds).build());
 			} else {
-				return new MongoClient(new ServerAddress(c.getHost()), opts);
+				return MongoClients.create(mongoBuilder.build());
 			}
 		} catch (MongoException e) {
 			LoggerFactory.getLogger(InitWorkspaceServer.class).error(

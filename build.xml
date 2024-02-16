@@ -24,7 +24,7 @@
   <property name="jackson.version" value="2.9.9"/>
 
   <fileset dir="${jardir}" id="sourceslib">
-    <include name="kbase/common/kbase-common-0.1.1.jar"/>
+    <include name="kbase/common/kbase-common-0.2.0.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="serverlib">
@@ -62,7 +62,10 @@
     <include name="apache_commons/commons-io-2.4.jar"/>
     <include name="apache_commons/commons-lang3-3.1.jar"/>
     <include name="picocli/picocli-4.6.1.jar"/>
-    <include name="mongo/mongo-java-driver-3.12.10.jar"/>
+    <include name="mongo/mongodb-driver-core-4.11.1.jar"/>
+    <include name="mongo/mongodb-driver-sync-4.11.1.jar"/>
+    <include name="bson/bson-record-codec-4.11.1.jar"/>
+    <include name="bson/bson-4.11.1.jar"/>
     <include name="slf4j/slf4j-api-1.7.30.jar"/>
     <include name="logback/logback-core-1.1.2.jar"/>
     <include name="logback/logback-classic-1.1.2.jar"/>

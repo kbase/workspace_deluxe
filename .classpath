@@ -85,7 +85,10 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpmime-4.5.8.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/picocli/picocli-4.6.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/mongo/mongo-java-driver-3.12.10.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/mongo/mongodb-driver-core-4.11.1.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/mongo/mongodb-driver-sync-4.11.1.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/bson/bson-record-codec-4.11.1.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/bson/bson-4.11.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/caffeinecache/caffeine-2.9.3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/slf4j/slf4j-api-1.7.30.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/annotations-2.17.214.jar"/>
@@ -105,6 +108,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/third-party-jackson-core-2.17.214.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/url-connection-client-2.17.214.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/utils-2.17.214.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.1.1.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.2.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
