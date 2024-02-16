@@ -22,7 +22,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.MongoClient;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.auth.AuthToken;
@@ -252,7 +254,7 @@ public class TypeDelegationTest {
 	@Before
 	public void clearDB() throws Exception {
 		// since we're testing types, we nuke the type database as well as the workspace db
-		try (final MongoClient mcli = new MongoClient("localhost:" + MONGO.getServerPort())) {
+		try (final MongoClient mcli = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort())) {
 			for (final String name: list(
 					DB_NAME_WS, DB_NAME_WS_TYPES, DB_NAME_WS_REMOTE, DB_NAME_WS_REMOTE_TYPES)) {
 				final MongoDatabase wsdb = mcli.getDatabase(name);
