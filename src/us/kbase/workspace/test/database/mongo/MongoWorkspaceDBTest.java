@@ -38,7 +38,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.MongoClient;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.service.UObject;
@@ -116,7 +118,7 @@ public class MongoWorkspaceDBTest {
 				MONGO.getServerPort());
 
 		@SuppressWarnings("resource")
-		final MongoClient mc = new MongoClient("localhost:" + MONGO.getServerPort());
+		final MongoClient mc = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort());
 		MONGO_DB = mc.getDatabase("test_" + MongoWorkspaceDBTest.class.getSimpleName());
 
 	}

@@ -17,7 +17,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import software.amazon.awssdk.regions.Region;
@@ -67,9 +68,8 @@ public class S3BlobStoreIntegrationTest {
 		System.out.println("Using Mongo temp dir " + mongoCon.getTempDir());
 		System.out.println("Started mongo server at localhost:" + mongoCon.getServerPort());
 
-		String mongohost = "localhost:" + mongoCon.getServerPort();
 		@SuppressWarnings("resource")
-		MongoClient mongoClient = new MongoClient(mongohost);
+		MongoClient mongoClient = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 		mongo = mongoClient.getDatabase("MinioBackendTest");
 
 		minio = new MinioController(

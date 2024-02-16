@@ -23,7 +23,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 
@@ -65,8 +66,7 @@ public class MongoStartUpTest {
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		TestCommon.stfuLoggers();
-		String mongohost = "localhost:" + mongo.getServerPort();
-		mongoClient = new MongoClient(mongohost);
+		mongoClient = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 		final MongoDatabase mdb = mongoClient.getDatabase("MongoStartUpTest");
 		db = mongoClient.getDatabase("MongoStartUpTest");
 

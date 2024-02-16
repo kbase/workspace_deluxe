@@ -23,7 +23,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -72,7 +73,7 @@ public class SchemaUpdaterTest {
 		System.out.println("Started test mongo instance at localhost:" +
 				MONGO.getServerPort());
 
-		MC = new MongoClient("localhost:" + MONGO.getServerPort());
+		MC = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort());
 		setUpTestDB();
 	}
 

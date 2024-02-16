@@ -24,7 +24,9 @@ import org.junit.Test;
 
 import com.github.zafarkhaja.semver.Version;
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.MongoClient;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
@@ -58,7 +60,7 @@ public class GridFSBlobStoreTest {
 				mongo.getTempDir());
 		TestCommon.stfuLoggers();
 		@SuppressWarnings("resource")
-		final MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
+		final MongoClient mongoClient = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 		final MongoDatabase db = mongoClient.getDatabase("GridFSBackendTest");
 		gfs = GridFSBuckets.create(db);
 		gfsb = new GridFSBlobStore(db);
