@@ -99,7 +99,8 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 @RunWith(Parameterized.class)
@@ -173,7 +174,7 @@ public class WorkspaceTester {
 
 	@Before
 	public void clearDB() throws Exception {
-		try (final MongoClient cli = new MongoClient("localhost:" + mongo.getServerPort())) {
+		try (final MongoClient cli = MongoClients.create("mongodb://localhost:" + mongo.getServerPort())) {
 			TestCommon.destroyDB(cli.getDatabase(DB_WS_NAME));
 		}
 		ws.setConfig(DynamicConfigUpdate.getDefault());
@@ -204,7 +205,7 @@ public class WorkspaceTester {
 		}
 		if (!CONFIGS.containsKey(config)) {
 			@SuppressWarnings("resource")
-			final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
+			final MongoClient mcli = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 			final MongoDatabase wsdb = mcli.getDatabase(DB_WS_NAME);
 			final MongoDatabase tdb = mcli.getDatabase(DB_TYPE_NAME);
 			TestCommon.destroyDB(wsdb);
