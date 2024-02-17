@@ -297,9 +297,18 @@ public class MongoStartUpTest {
 		method.invoke(null, wsdb);
 	}
 
-	private Set<Document> getIndexes(final MongoDatabase db, final String collection) {
+	private Set<Document> getIndexes(final MongoDatabase db, final String collectionName) {
 		final Set<Document> indexes = new HashSet<>();
-		db.getCollection(collection).listIndexes().forEach((Consumer<Document>) indexes::add);
+		for (Document index: db.getCollection(collectionName).listIndexes()) {
+			// In MongoDB 4.4, the listIndexes and the mongo shell helper method db.collection.getIndexes()
+			// no longer returns the namespace ns field in the index specification documents.
+			index.remove("ns");
+			// some versions of Mongo return ints, some longs. Convert all to longs.
+			if (index.containsKey("expireAfterSeconds")) {
+				index.put("expireAfterSeconds", ((Number) index.get("expireAfterSeconds")).longValue());
+			}
+			indexes.add(index);
+		}
 		return indexes;
 	}
 
@@ -313,18 +322,15 @@ public class MongoStartUpTest {
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("config", 1))
-						.append("name", "config_1")
-						.append("ns", "MongoStartUpTest.config"),
+						.append("name", "config_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
-						.append("ns", "MongoStartUpTest.config")
 				);
 		assertThat("incorrect indexes", getIndexes(db, "config"), is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesConfig");
 		createIndexes("indexesConfig");
-		setNamespace(expectedIndexes, "indexesConfig.config");
 		assertThat("incorrect indexes", getIndexes(wsdb, "config"), is(expectedIndexes));
 	}
 
@@ -334,18 +340,14 @@ public class MongoStartUpTest {
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("key", 1))
-						.append("name", "key_1")
-						.append("ns", "MongoStartUpTest.dyncfg"),
+						.append("name", "key_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
-						.append("ns", "MongoStartUpTest.dyncfg")
 				);
 		assertThat("incorrect indexes", getIndexes(db, "dyncfg"), is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesDynConfig");
-		createIndexes("indexesDynConfig");
-		setNamespace(expectedIndexes, "indexesDynConfig.dyncfg");
 		assertThat("incorrect indexes", getIndexes(wsdb, "dyncfg"), is(expectedIndexes));
 	}
 
