@@ -297,10 +297,10 @@ public class MongoStartUpTest {
 		method.invoke(null, wsdb);
 	}
 
-	private Set<Document> getIndexes(final MongoDatabase db, final String collectionName) {
+	private Set<Document> getAndNormalizeIndexes(final MongoDatabase db, final String collectionName) {
 		final Set<Document> indexes = new HashSet<>();
 		for (Document index: db.getCollection(collectionName).listIndexes()) {
-			// In MongoDB 4.4, the listIndexes and the mongo shell helper method db.collection.getIndexes()
+			// In MongoDB 4.4, the listIndexes and the mongo shell helper method db.collection.getAndNormalizeIndexes()
 			// no longer returns the namespace ns field in the index specification documents.
 			index.remove("ns");
 			// some versions of Mongo return ints, some longs. Convert all to longs.
@@ -310,10 +310,6 @@ public class MongoStartUpTest {
 			indexes.add(index);
 		}
 		return indexes;
-	}
-
-	private void setNamespace(final Set<Document> toBeModified, final String namespace) {
-		toBeModified.forEach(d -> d.append("ns", namespace));
 	}
 
 	@Test
@@ -327,11 +323,11 @@ public class MongoStartUpTest {
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
 				);
-		assertThat("incorrect indexes", getIndexes(db, "config"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(db, "config"), is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesConfig");
 		createIndexes("indexesConfig");
-		assertThat("incorrect indexes", getIndexes(wsdb, "config"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(wsdb, "config"), is(expectedIndexes));
 	}
 
 	@Test
@@ -345,10 +341,11 @@ public class MongoStartUpTest {
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
 				);
-		assertThat("incorrect indexes", getIndexes(db, "dyncfg"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(db, "dyncfg"), is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesDynConfig");
-		assertThat("incorrect indexes", getIndexes(wsdb, "dyncfg"), is(expectedIndexes));
+		createIndexes("indexesDynConfig");
+		assertThat("incorrect indexes", getAndNormalizeIndexes(wsdb, "dyncfg"), is(expectedIndexes));
 	}
 
 	@Test
@@ -357,34 +354,28 @@ public class MongoStartUpTest {
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("ws", 1))
-						.append("name", "ws_1")
-						.append("ns", "MongoStartUpTest.workspaces"),
+						.append("name", "ws_1"),
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("sparse", true)
 						.append("key", new Document("name", 1))
-						.append("name", "name_1")
-						.append("ns", "MongoStartUpTest.workspaces"),
+						.append("name", "name_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("owner", 1))
-						.append("name", "owner_1")
-						.append("ns", "MongoStartUpTest.workspaces"),
+						.append("name", "owner_1"),
 				new Document("v", INDEX_VER)
 						.append("sparse", true)
 						.append("key", new Document("meta", 1))
-						.append("name", "meta_1")
-						.append("ns", "MongoStartUpTest.workspaces"),
+						.append("name", "meta_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
-						.append("ns", "MongoStartUpTest.workspaces")
 				);
-		assertThat("incorrect indexes", getIndexes(db, "workspaces"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(db, "workspaces"), is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesWorkspaces");
 		createIndexes("indexesWorkspaces");
-		setNamespace(expectedIndexes, "indexesWorkspaces.workspaces");
-		assertThat("incorrect indexes", getIndexes(wsdb, "workspaces"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(wsdb, "workspaces"), is(expectedIndexes));
 	}
 
 	@Test
@@ -393,23 +384,19 @@ public class MongoStartUpTest {
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("id", 1).append("user", 1).append("perm", 1))
-						.append("name", "id_1_user_1_perm_1")
-						.append("ns", "MongoStartUpTest.workspaceACLs"),
+						.append("name", "id_1_user_1_perm_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("user", 1).append("perm", 1).append("id", 1))
-						.append("name", "user_1_perm_1_id_1")
-						.append("ns", "MongoStartUpTest.workspaceACLs"),
+						.append("name", "user_1_perm_1_id_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
-						.append("ns", "MongoStartUpTest.workspaceACLs")
 				);
-		assertThat("incorrect indexes", getIndexes(db, "workspaceACLs"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(db, "workspaceACLs"), is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesWorkspaceACLs");
 		createIndexes("indexesWorkspaceACLs");
-		setNamespace(expectedIndexes, "indexesWorkspaceACLs.workspaceACLs");
-		assertThat("incorrect indexes", getIndexes(wsdb, "workspaceACLs"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(wsdb, "workspaceACLs"), is(expectedIndexes));
 	}
 
 	@Test
@@ -418,32 +405,26 @@ public class MongoStartUpTest {
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("ws", 1).append("name", 1))
-						.append("name", "ws_1_name_1")
-						.append("ns", "MongoStartUpTest.workspaceObjects"),
+						.append("name", "ws_1_name_1"),
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("ws", 1).append("id", 1))
-						.append("name", "ws_1_id_1")
-						.append("ns", "MongoStartUpTest.workspaceObjects"),
+						.append("name", "ws_1_id_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("moddate", 1))
-						.append("name", "moddate_1")
-						.append("ns", "MongoStartUpTest.workspaceObjects"),
+						.append("name", "moddate_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("del", 1).append("refcnt", 1))
-						.append("name", "del_1_refcnt_1")
-						.append("ns", "MongoStartUpTest.workspaceObjects"),
+						.append("name", "del_1_refcnt_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
-						.append("ns", "MongoStartUpTest.workspaceObjects")
 				);
-		assertThat("incorrect indexes", getIndexes(db, "workspaceObjects"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(db, "workspaceObjects"), is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesWorkspaceObjects");
 		createIndexes("indexesWorkspaceObjects");
-		setNamespace(expectedIndexes, "indexesWorkspaceObjects.workspaceObjects");
-		assertThat("incorrect indexes", getIndexes(wsdb, "workspaceObjects"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(wsdb, "workspaceObjects"), is(expectedIndexes));
 	}
 
 	@Test
@@ -452,68 +433,55 @@ public class MongoStartUpTest {
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("ws", 1).append("id", 1).append("ver", 1))
-						.append("name", "ws_1_id_1_ver_1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "ws_1_id_1_ver_1"),
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("ws", 1).append("id", 1).append("ver", -1))
-						.append("name", "ws_1_id_1_ver_-1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "ws_1_id_1_ver_-1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("tyname", 1)
 								.append("tymaj", 1).append("tymin", 1)
 								.append("ws", 1).append("id", 1).append("ver", -1))
-						.append("name", "tyname_1_tymaj_1_tymin_1_ws_1_id_1_ver_-1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "tyname_1_tymaj_1_tymin_1_ws_1_id_1_ver_-1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("tyname", 1).append("tymaj", 1)
 								.append("ws", 1).append("id", 1).append("ver", -1))
-						.append("name", "tyname_1_tymaj_1_ws_1_id_1_ver_-1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "tyname_1_tymaj_1_ws_1_id_1_ver_-1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("tyname", 1)
 								.append("ws", 1).append("id", 1).append("ver", -1))
-						.append("name", "tyname_1_ws_1_id_1_ver_-1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "tyname_1_ws_1_id_1_ver_-1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("provenance", 1))
-						.append("name", "provenance_1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "provenance_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("savedby", 1))
-						.append("name", "savedby_1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "savedby_1"),
 				new Document("v", INDEX_VER)
 						.append("sparse", true)
 						.append("key", new Document("provrefs", 1))
-						.append("name", "provrefs_1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "provrefs_1"),
 				new Document("v", INDEX_VER)
 						.append("sparse", true)
 						.append("key", new Document("refs", 1))
-						.append("name", "refs_1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "refs_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("savedate", 1))
-						.append("name", "savedate_1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "savedate_1"),
 				new Document("v", INDEX_VER)
 						.append("sparse", true)
 						.append("key", new Document("meta", 1))
-						.append("name", "meta_1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+						.append("name", "meta_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions")
 				);
-		assertThat("incorrect indexes", getIndexes(db, "workspaceObjVersions"),
+		assertThat("incorrect indexes", getAndNormalizeIndexes(db, "workspaceObjVersions"),
 				is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesWorkspaceObjectVersions");
 		createIndexes("indexesWorkspaceObjectVersions");
-		setNamespace(expectedIndexes, "indexesWorkspaceObjectVersions.workspaceObjVersions");
-		assertThat("incorrect indexes", getIndexes(wsdb, "workspaceObjVersions"),
+		assertThat("incorrect indexes", getAndNormalizeIndexes(wsdb, "workspaceObjVersions"),
 				is(expectedIndexes));
 	}
 
@@ -523,19 +491,16 @@ public class MongoStartUpTest {
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("user", 1))
-						.append("name", "user_1")
-						.append("ns", "MongoStartUpTest.admins"),
+						.append("name", "user_1"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
-						.append("ns", "MongoStartUpTest.admins")
 				);
-		assertThat("incorrect indexes", getIndexes(db, "admins"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(db, "admins"), is(expectedIndexes));
 
 		final MongoDatabase wsdb = mongoClient.getDatabase("indexesAdmins");
 		createIndexes("indexesAdmins");
-		setNamespace(expectedIndexes, "indexesAdmins.admins");
-		assertThat("incorrect indexes", getIndexes(wsdb, "admins"), is(expectedIndexes));
+		assertThat("incorrect indexes", getAndNormalizeIndexes(wsdb, "admins"), is(expectedIndexes));
 	}
 
 }
