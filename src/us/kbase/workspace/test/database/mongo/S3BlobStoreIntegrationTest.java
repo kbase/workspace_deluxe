@@ -69,7 +69,7 @@ public class S3BlobStoreIntegrationTest {
 		System.out.println("Started mongo server at localhost:" + mongoCon.getServerPort());
 
 		@SuppressWarnings("resource")
-		MongoClient mongoClient = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
+		MongoClient mongoClient = MongoClients.create("mongodb://localhost:" + mongoCon.getServerPort());
 		mongo = mongoClient.getDatabase("MinioBackendTest");
 
 		minio = new MinioController(

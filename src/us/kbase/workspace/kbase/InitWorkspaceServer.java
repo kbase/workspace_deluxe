@@ -27,6 +27,7 @@ import com.mongodb.MongoException;
 import com.mongodb.ServerAddress;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
@@ -414,7 +415,7 @@ public class InitWorkspaceServer {
 		final MongoClientSettings.Builder mongoBuilder = MongoClientSettings.builder()
 				.retryWrites(c.getMongoRetryWrites())
 				.applyToClusterSettings(builder -> builder.hosts(
-						Arrays.asList(new ServerAddress(c.getMongoHost()))));
+						Arrays.asList(new ServerAddress(c.getHost()))));
 		try {
 			if (c.getMongoUser() != null) {
 				final MongoCredential creds = MongoCredential.createCredential(
