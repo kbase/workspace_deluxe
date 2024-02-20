@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 import static us.kbase.common.test.TestCommon.set;
+import static us.kbase.workspace.test.WorkspaceMongoIndex.getAndNormalizeIndexes;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -295,21 +296,6 @@ public class MongoStartUpTest {
 				"ensureIndexes", MongoDatabase.class);
 		method.setAccessible(true);
 		method.invoke(null, wsdb);
-	}
-
-	private Set<Document> getAndNormalizeIndexes(final MongoDatabase db, final String collectionName) {
-		final Set<Document> indexes = new HashSet<>();
-		for (Document index: db.getCollection(collectionName).listIndexes()) {
-			// In MongoDB 4.4, the listIndexes and the mongo shell helper method db.collection.getAndNormalizeIndexes()
-			// no longer returns the namespace ns field in the index specification documents.
-			index.remove("ns");
-			// some versions of Mongo return ints, some longs. Convert all to longs.
-			if (index.containsKey("expireAfterSeconds")) {
-				index.put("expireAfterSeconds", ((Number) index.get("expireAfterSeconds")).longValue());
-			}
-			indexes.add(index);
-		}
-		return indexes;
 	}
 
 	@Test
