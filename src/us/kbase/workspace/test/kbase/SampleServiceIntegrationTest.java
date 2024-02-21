@@ -125,7 +125,6 @@ public class SampleServiceIntegrationTest {
 		// set up auth
 		final String dbname = SampleServiceIntegrationTest.class.getSimpleName() + "Auth";
 		AUTH = new AuthController(
-				TestCommon.getJarsDir(),
 				"localhost:" + MONGO.getServerPort(),
 				dbname,
 				Paths.get(TestCommon.getTempDir()));

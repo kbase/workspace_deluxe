@@ -101,7 +101,6 @@ public class LoggingTest {
 		// set up auth
 		final String dbname = LoggingTest.class.getSimpleName() + "Auth";
 		authc = new AuthController(
-				TestCommon.getJarsDir(),
 				"localhost:" + mongo.getServerPort(),
 				dbname,
 				Paths.get(TestCommon.getTempDir()));

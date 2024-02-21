@@ -188,7 +188,6 @@ public class JSONRPCLayerTester {
 		// set up auth
 		final String dbname = JSONRPCLayerTester.class.getSimpleName() + "Auth";
 		authc = new AuthController(
-				TestCommon.getJarsDir(),
 				"localhost:" + mongo.getServerPort(),
 				dbname,
 				Paths.get(TestCommon.getTempDir()));

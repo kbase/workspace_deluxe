@@ -149,7 +149,6 @@ public class TypeDelegationTest {
 				mongohost, MONGO.getTempDir()));
 
 		AUTHC = new AuthController(
-				TestCommon.getJarsDir(),
 				mongohost,
 				CLS + "Auth",
 				Paths.get(TestCommon.getTempDir()));
