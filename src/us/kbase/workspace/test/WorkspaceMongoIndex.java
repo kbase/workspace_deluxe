@@ -10,8 +10,8 @@ public class WorkspaceMongoIndex {
 
     public static Set<Document> getAndNormalizeIndexes(final MongoDatabase db, final String collectionName) {
         final Set<Document> indexes = new HashSet<>();
-        for (Document index: db.getCollection(collectionName).listIndexes()) {
-            // In MongoDB 4.4, the listIndexes and the mongo shell helper method db.collection.getAndNormalizeIndexes()
+        for (final Document index: db.getCollection(collectionName).listIndexes()) {
+            // In MongoDB 4.4, the listIndexes and the mongo shell helper method db.collection.getIndexes()
             // no longer returns the namespace ns field in the index specification documents.
             index.remove("ns");
             // some versions of Mongo return ints, some longs. Convert all to longs.

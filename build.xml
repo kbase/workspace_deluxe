@@ -104,7 +104,6 @@
     <include name="apache_commons/commons-collections-3.2.1.jar"/>
     <include name="jsemver/java-semver-0.9.0.jar"/>
     <include name="equalsverifier/equalsverifier-3.1.10.jar"/>
-    <include name="kbase/auth2/kbase-auth2-test-fat-0.6.1.jar"/>
     <include name="arangodb/arangodb-java-driver-6.7.2.jar"/>
     <include name="arangodb/velocypack-2.4.0.jar"/>
     <!-- mockito and dependencies -->
@@ -112,6 +111,8 @@
     <include name="bytebuddy/byte-buddy-1.9.10.jar"/>
     <include name="bytebuddy/byte-buddy-agent-1.9.10.jar"/>
     <include name="objenesis/objenesis-2.6.jar"/>
+<!--    put auth2 fat jar in the last entry so that it would not shadow other jars-->
+    <include name="kbase/auth2/kbase-auth2-test-fat-0.6.1.jar"/>
   </fileset>
 
   <union id="applicationjars">
