@@ -4,7 +4,7 @@ COPY . /tmp/workspace_deluxe
 WORKDIR /tmp
 RUN apt-get update -y && \
     apt-get install -y ant git ca-certificates python3-sphinx && \
-    git clone -b dev-kbase_auth2test_0.6.1 https://github.com/kbase/jars && \
+    git clone https://github.com/kbase/jars && \
     cd workspace_deluxe && \
     make docker_deps
 

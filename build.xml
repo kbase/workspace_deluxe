@@ -104,7 +104,7 @@
     <include name="apache_commons/commons-collections-3.2.1.jar"/>
     <include name="jsemver/java-semver-0.9.0.jar"/>
     <include name="equalsverifier/equalsverifier-3.1.10.jar"/>
-    <include name="kbase/auth2/kbase-auth2testfat-0.6.1.jar"/>
+    <include name="kbase/auth2/kbase-auth2-test-fat-0.6.1.jar"/>
     <include name="arangodb/arangodb-java-driver-6.7.2.jar"/>
     <include name="arangodb/velocypack-2.4.0.jar"/>
     <!-- mockito and dependencies -->

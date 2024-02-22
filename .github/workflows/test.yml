@@ -91,7 +91,7 @@ jobs:
           cd ..
 
           # set up jars
-          git clone -b dev-kbase_auth2test_0.6.1 https://github.com/kbase/jars
+          git clone https://github.com/kbase/jars
           export JARSDIR=$(pwd)/jars/lib/jars/
 
           # set up arango
