@@ -3,6 +3,14 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.14.3 (Released 2/22/2024)
+------------------------------------
+
+UPDATES:
+
+* The MongoDB clients have been updated to the most recent version and the service tested against Mongo 7.
+
+
 VERSION: 0.14.2 (Released 11/9/2023)
 ------------------------------------
 

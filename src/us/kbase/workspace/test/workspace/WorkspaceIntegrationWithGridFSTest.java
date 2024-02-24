@@ -32,7 +32,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import ch.qos.logback.classic.Level;
@@ -114,7 +115,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 		System.out.println("Started test mongo instance at localhost: " + MONGO.getServerPort());
 
 		@SuppressWarnings("resource")
-		final MongoClient mcli = new MongoClient("localhost:" + MONGO.getServerPort());
+		final MongoClient mcli = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort());
 		WSDB = mcli.getDatabase(WSDB_NAME);
 		TYPEDB = mcli.getDatabase(TYPEDB_NAME);
 		TestCommon.destroyDB(WSDB);
@@ -145,8 +146,8 @@ public class WorkspaceIntegrationWithGridFSTest {
 
 	@Before
 	public void clearDB() throws Exception {
-		try (final MongoClient mongoClient = new MongoClient(
-				"localhost:" + MONGO.getServerPort())) {
+		try (final MongoClient mongoClient = MongoClients.create(
+				"mongodb://localhost:" + MONGO.getServerPort())) {
 			TestCommon.destroyDB(mongoClient.getDatabase(WSDB_NAME));
 		}
 	}

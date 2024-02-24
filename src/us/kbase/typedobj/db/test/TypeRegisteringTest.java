@@ -33,7 +33,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestCommon;
@@ -144,7 +145,7 @@ public class TypeRegisteringTest {
 					mongo.getTempDir());
 		}
 		@SuppressWarnings("resource")
-		final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
+		final MongoClient mcli = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 		final MongoDatabase mdb = mcli.getDatabase("TypeRegisteringTest");
 		TestCommon.destroyDB(mdb);
 		return mdb;

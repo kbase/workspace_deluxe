@@ -12,7 +12,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestCommon;
@@ -43,7 +44,7 @@ public class MongoTypeStorageTest {
 				MONGO.getServerPort());
 
 		@SuppressWarnings("resource")
-		final MongoClient mc = new MongoClient("localhost:" + MONGO.getServerPort());
+		final MongoClient mc = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort());
 		MONGO_DB = mc.getDatabase("test_" + MongoTypeStorageTest.class.getSimpleName());
 	}
 

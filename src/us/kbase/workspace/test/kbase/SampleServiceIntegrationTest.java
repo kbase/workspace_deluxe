@@ -30,7 +30,9 @@ import com.arangodb.entity.CollectionType;
 import com.arangodb.model.CollectionCreateOptions;
 import com.github.zafarkhaja.semver.Version;
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.MongoClient;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.auth.AuthToken;
@@ -123,7 +125,6 @@ public class SampleServiceIntegrationTest {
 		// set up auth
 		final String dbname = SampleServiceIntegrationTest.class.getSimpleName() + "Auth";
 		AUTH = new AuthController(
-				TestCommon.getJarsDir(),
 				"localhost:" + MONGO.getServerPort(),
 				dbname,
 				Paths.get(TestCommon.getTempDir()));
@@ -310,7 +311,7 @@ public class SampleServiceIntegrationTest {
 
 	@Before
 	public void clearDB() throws Exception {
-		try (final MongoClient cli = new MongoClient("localhost:" + MONGO.getServerPort())) {
+		try (final MongoClient cli = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort())) {
 			final MongoDatabase db = cli.getDatabase(WS_DB);
 			TestCommon.destroyDB(db);
 			db.getCollection("dyncfg").insertOne(

@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
 
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 import ch.qos.logback.classic.Level;

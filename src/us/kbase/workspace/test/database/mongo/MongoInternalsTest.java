@@ -85,7 +85,9 @@ import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.MongoClient;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -125,8 +127,7 @@ public class MongoInternalsTest {
 		System.out.println("Using mongo temp dir " +
 				mongo.getTempDir());
 		TestCommon.stfuLoggers();
-		String mongohost = "localhost:" + mongo.getServerPort();
-		mongoClient = new MongoClient(mongohost);
+		mongoClient = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 		db = mongoClient.getDatabase("MongoInternalsTest");
 		final MongoDatabase tdb = mongoClient.getDatabase("MongoInternalsTest_types");
 		TestCommon.destroyDB(db);

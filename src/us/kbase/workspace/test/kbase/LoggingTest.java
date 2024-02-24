@@ -52,7 +52,8 @@ import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.test.WorkspaceServerThread;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 /** Tests application logging only - not the standard logging that comes with
@@ -100,7 +101,6 @@ public class LoggingTest {
 		// set up auth
 		final String dbname = LoggingTest.class.getSimpleName() + "Auth";
 		authc = new AuthController(
-				TestCommon.getJarsDir(),
 				"localhost:" + mongo.getServerPort(),
 				dbname,
 				Paths.get(TestCommon.getTempDir()));
@@ -221,7 +221,7 @@ public class LoggingTest {
 	@Before
 	public void clearDB() throws Exception {
 		logout.reset();
-		try (final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort())) {
+		try (final MongoClient mcli = MongoClients.create("mongodb://localhost:" + mongo.getServerPort())) {
 			final MongoDatabase wsdb = mcli.getDatabase(DB_WS_NAME);
 			TestCommon.destroyDB(wsdb);
 			wsdb.getCollection("dyncfg").insertOne(

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
+import static us.kbase.workspace.test.WorkspaceMongoIndex.getAndNormalizeIndexes;
 
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -23,7 +24,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -72,7 +74,7 @@ public class SchemaUpdaterTest {
 		System.out.println("Started test mongo instance at localhost:" +
 				MONGO.getServerPort());
 
-		MC = new MongoClient("localhost:" + MONGO.getServerPort());
+		MC = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort());
 		setUpTestDB();
 	}
 
@@ -255,23 +257,18 @@ public class SchemaUpdaterTest {
 		 * MongoWorkspaceDB method is already thoroughly tested elsewhere we just check a single
 		 * index.
 		 */
-		final String ns = db.getName() + "." + COL_WS_VER;
 		final Document currentIndex = new Document("v", 2)
 				.append("key", new Document("tyname", 1)
 						.append("tymaj", 1).append("tymin", 1)
 						.append("ws", 1).append("id", 1).append("ver", -1))
-				.append("name", "tyname_1_tymaj_1_tymin_1_ws_1_id_1_ver_-1")
-				.append("ns", ns);
-		final Set<Document> indexes = new HashSet<>();
-		db.getCollection("workspaceObjVersions").listIndexes()
-				.forEach((Consumer<Document>) indexes::add);
+				.append("name", "tyname_1_tymaj_1_tymin_1_ws_1_id_1_ver_-1");
+		final Set<Document> indexes = getAndNormalizeIndexes(db, "workspaceObjVersions");
 		assertThat("incorrect current index", indexes.contains(currentIndex), is(true));
 
 		if (oldTypeIndex) {
 			final Document typeIndex = new Document("v", 2)
 					.append("key", new Document("type", 1).append("chksum", 1))
-					.append("name", "type_1_chksum_1")
-					.append("ns", ns);
+					.append("name", "type_1_chksum_1");
 			assertThat("incorrect old index", indexes.contains(typeIndex), is(true));
 		}
 	}

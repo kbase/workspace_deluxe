@@ -9,17 +9,14 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Scanner;
 import org.apache.commons.io.FileUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 
 import us.kbase.auth.AuthToken;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.common.test.controllers.shock.ShockController;
 
 
 /** Q&D Utility to run the Handle Service for the purposes of testing from Java.
@@ -136,37 +133,5 @@ public class HandleServiceController {
 		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
 		}
-	}
-
-	public static void main(String[] args) throws Exception {
-		MongoController monc = new MongoController(
-				"/kb/runtime/bin/mongod",
-				Paths.get("workspacetesttemp"), false);
-		ShockController sc = new ShockController(
-				"/kb/deployment/bin/shock-server",
-				"0.9.6",
-				Paths.get("workspacetesttemp"),
-				System.getProperty("test.user1"),
-				"localhost:" + monc.getServerPort(),
-				"shockdb", "foo", "foo", new URL("http://foo.com"));
-		HandleServiceController hsc = new HandleServiceController(
-				monc,
-				"http://localhost:" + sc.getServerPort(),
-				null, //this will break the hm, need a token
-				Paths.get("workspacetesttemp"),
-				new URL("http://foo.com"),
-				"KBASE_ADMIN",
-				"/kb/deployment/lib",
-				"handle_controller_test_handle_db");
-		System.out.println("handlesrv: " + hsc.getHandleServerPort());
-		System.out.println(hsc.getTempDir());
-		Scanner reader = new Scanner(System.in);
-		System.out.println("any char to shut down");
-		//get user input for a
-		reader.next();
-		hsc.destroy(false);
-		sc.destroy(false);
-		monc.destroy(false);
-		reader.close();
 	}
 }

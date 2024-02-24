@@ -146,7 +146,6 @@ public class HandleAndBytestreamIntegrationTest {
 		// set up auth
 		final String dbname = HandleAndBytestreamIntegrationTest.class.getSimpleName() + "Auth";
 		AUTH = new AuthController(
-				TestCommon.getJarsDir(),
 				"localhost:" + MONGO.getServerPort(),
 				dbname,
 				Paths.get(TestCommon.getTempDir()));

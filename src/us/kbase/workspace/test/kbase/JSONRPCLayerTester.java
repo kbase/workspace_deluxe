@@ -87,7 +87,9 @@ import us.kbase.workspace.test.WorkspaceServerThread;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.MongoClient;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 /*
@@ -186,7 +188,6 @@ public class JSONRPCLayerTester {
 		// set up auth
 		final String dbname = JSONRPCLayerTester.class.getSimpleName() + "Auth";
 		authc = new AuthController(
-				TestCommon.getJarsDir(),
 				"localhost:" + mongo.getServerPort(),
 				dbname,
 				Paths.get(TestCommon.getTempDir()));
@@ -538,7 +539,7 @@ public class JSONRPCLayerTester {
 
 	@Before
 	public void clearDB() throws Exception {
-		try (final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort())) {
+		try (final MongoClient mcli = MongoClients.create("mongodb://localhost:" + mongo.getServerPort())) {
 			for (final String name: list(DB_WS_NAME_1, DB_WS_NAME_2, DB_WS_NAME_AUTH2_ADMINS)) {
 				final MongoDatabase wsdb = mcli.getDatabase(name);
 				TestCommon.destroyDB(wsdb);
