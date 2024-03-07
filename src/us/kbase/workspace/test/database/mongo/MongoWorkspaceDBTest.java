@@ -117,7 +117,6 @@ public class MongoWorkspaceDBTest {
 		System.out.println("Started test mongo instance at localhost:" +
 				MONGO.getServerPort());
 
-		@SuppressWarnings("resource")
 		final MongoClient mc = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort());
 		MONGO_DB = mc.getDatabase("test_" + MongoWorkspaceDBTest.class.getSimpleName());
 
