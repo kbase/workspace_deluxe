@@ -33,6 +33,7 @@ jobs:
         run: |
           # set up python dependencies
           pip install pytest requests
+          echo foo
 
       - name: Run tests
         shell: bash
