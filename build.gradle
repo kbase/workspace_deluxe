@@ -199,8 +199,6 @@ dependencies {
 	implementation 'javax.servlet:servlet-api:2.5'
 	// joda-time is required for kbase-common and syslog4j
 	implementation 'joda-time:joda-time:2.2'
-	// needed for syslog4j
-	implementation 'net.java.dev.jna:jna:3.4.0'
 	// this is OOOOOOLD. But that probably means updating java_common
 	implementation 'org.eclipse.jetty.aggregate:jetty-all:7.0.0.v20091005'
 	
