@@ -19,7 +19,7 @@ on:
 jobs:
 
   workspace_container_tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
 
@@ -37,7 +37,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          sh scripts/run_tests.sh
+          sh test/run_tests.sh
 
   workspace_deluxe_tests:
     runs-on: ubuntu-latest

@@ -1,11 +1,13 @@
 FROM eclipse-temurin:11-jdk as build
 
-COPY . /tmp/workspace_deluxe
 WORKDIR /tmp
-RUN apt-get update -y && \
-    apt-get install -y ant git ca-certificates python3-sphinx && \
-    git clone https://github.com/kbase/jars && \
-    cd workspace_deluxe && \
+RUN apt update -y && \
+    apt install -y ant git ca-certificates python3-sphinx && \
+    git clone https://github.com/kbase/jars
+
+COPY . /tmp/workspace_deluxe
+
+RUN cd workspace_deluxe && \
     make docker_deps
 
 # updated/slimmed down version of what's in kbase/kb_jre
