@@ -19,5 +19,7 @@ current_dir="$( dirname -- "$( readlink -f -- "$0"; )"; )"
 PYTHONPATH="$current_dir":$PYTHONPATH python -m pytest test/workspace_container_test.py
 exit_code=$?
 
+docker logs workspace_deluxe-workspace-1
+
 docker compose down
 exit $exit_code
