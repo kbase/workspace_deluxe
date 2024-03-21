@@ -37,7 +37,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          sh scripts/run_tests.sh
+          sh test/run_tests.sh
 
   workspace_deluxe_tests:
     runs-on: ubuntu-latest
