@@ -20,7 +20,7 @@ import us.kbase.common.service.UObject;
  * compatibility.
  * UnspecifiedObject data - The object's data.
  * object_metadata metadata - Metadata for object retrieved/
- * @deprecated Workspaces.ObjectData
+ * @deprecated Workspace.ObjectData
  * </pre>
  * 
  */

@@ -15,7 +15,9 @@ plugins {
 	id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
-// TODO NOW test shadow jar works in groups - remove JNA - commit 2
+var buildDocsDir = "$buildDir/docs/otherdoc/"
+
+// TODO NOW test shadow jar works in groups - need test controller - commit 2
 // TODO NOW get docserver working in WAR and test in docker-compose <- edit to start test server - commit 3
 // TODO NOW client jar - commit 4
 // TODO NOW client jar javadoc - needs java_common source - commit 4
@@ -30,6 +32,54 @@ repositories {
 }
 compileJava {
 	options.release = 11
+}
+
+javadoc {
+	/* We don't actually need the full javadoc for anything, so just hijack this task for
+	 * building the client javadocs. If we ever need the full javadocs make a new task for the
+	 * client java docs
+	 */
+	/* TODO DOCS currently java-common and auth links don't work. ROI for fixing them is low.
+	 *           Ideally, in the future make github actions publish docs on release and ref them
+	 *           here.
+	 *           https://github.com/marketplace/actions/deploy-publish-javadoc
+	 *           https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry
+	 */
+	/* TODO DOCS the current sdk documenation looks like invalid html to javadoc
+	 *           need to go through and remove
+	 *           also some spots with < / > that need to be wrapped with {@code } in internal code
+	 */
+	failOnError = false
+	options {
+		links "https://docs.oracle.com/en/java/javase/11/docs/api/"
+		links "https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/2.9.9/"
+		links "https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/2.9.9/"
+	}
+	include "**/workspace/*.java"
+	exclude "**/workspace/WorkspaceServer.java"
+	include "**/common/service/Tuple*.java"
+}
+
+task buildDocs {
+	// ideally we'd add the inputs and outputs spec but that's too much work for too little gain
+	dependsOn javadoc
+	doLast {
+		// need to make sure we remove any docs that no longer exist in the source
+		delete "$buildDocsDir"
+		copy {
+			from "$rootDir/workspace.spec" into "$buildDocsDir"
+		}
+		copy {
+			from "$rootDir/docshtml/" into "$buildDocsDir" include "*"
+		}
+		exec {	
+			commandLine "pod2html", "--infile=$rootDir/lib/Bio/KBase/workspace/Client.pm", "--outfile=$buildDocsDir/workspace_perl.html"
+		}
+		exec {
+			commandLine "sphinx-build", "$rootDir/docsource/", "$buildDocsDir"
+		}
+		delete fileTree(".").matching { include "pod2htm*.tmp" }
+	}
 }
 
 tasks.withType(Test) {
@@ -114,14 +164,6 @@ sourceSets {
 	}
 }
 
-javadoc {
-	options {
-		links "https://docs.oracle.com/en/java/javase/11/docs/api/"
-		links "https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/2.9.9/"
-		links "https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/2.9.9/"
-	}
-}
-
 war {
 	webXml = file('war/web.xml')
 }
@@ -189,7 +231,7 @@ dependencies {
 		'kbase-common-0.2.0'
 	)
 	// Pull from jars repo vs a maven repository to avoid the JNA dependency
-	// Need to rework the java common logger to not use syslog4j at all since it's abandonware
+	// TODO DEPS Need to rework the java common logger to not use syslog4j at all since it's abandonware
 	// and has a ton of CVEs, even in the newer versions.
 	implementation fromURL(
 		'https://github.com/kbase/jars/raw/master/lib/jars/syslog4j/syslog4j-0.9.46.jar',

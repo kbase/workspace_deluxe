@@ -914,7 +914,7 @@ class Workspace(object):
            the "get_object" function. Provided for backwards compatibility.
            UnspecifiedObject data - The object's data. object_metadata
            metadata - Metadata for object retrieved/ @deprecated
-           Workspaces.ObjectData) -> structure: parameter "data" of
+           Workspace.ObjectData) -> structure: parameter "data" of
            unspecified object, parameter "metadata" of type "object_metadata"
            (Meta data associated with an object stored in a workspace.
            Provided for backwards compatibility. obj_name id - name of the
