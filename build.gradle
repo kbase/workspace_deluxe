@@ -80,6 +80,7 @@ task testQuick(type: Test) {
 }
 
 task jacocoTestQuickReport(type: JacocoReport, dependsOn: testQuick) {
+	sourceSets sourceSets.main
 	executionData(testQuick)
 }
 
