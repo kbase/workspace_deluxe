@@ -138,7 +138,6 @@ jobs:
           sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
           sed -i "s#^test.minio.exe.*#test.minio.exe=$MINIO#" test.cfg
           sed -i "s#^test.mongo.useWiredTiger.*#test.mongo.useWiredTiger=${{matrix.wired_tiger}}#" test.cfg
-          sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
           sed -i "s#^test.blobstore.exe.*#test.blobstore.exe=$BLOBEXE#" test.cfg
           sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
           sed -i "s#^test.sampleservice.dir.*#test.sampleservice.dir=$SAMPLE_DIR#" test.cfg
