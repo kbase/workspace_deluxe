@@ -1,8 +1,5 @@
 package us.kbase.typedobj.db;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -33,30 +30,6 @@ public class KidlUtil {
         	System.out.println("--------------------------------------------------------");
         	showDiff(parse1text, parse2text);
         	System.out.println();
-		}
-		return ok;
-	}
-
-	public static boolean compareJsonSchemas(Map<String, Map<String, String>> schemas1,
-			Map<String, Map<String, String>> schemas2, String header) throws IOException,
-			JsonParseException, JsonMappingException, JsonGenerationException,
-			Exception {
-		boolean ok = true;
-		assertThat(schemas1.keySet(), is(schemas2.keySet()));
-		for (String moduleName : schemas1.keySet()) {
-			assertThat(schemas1.get(moduleName).keySet(), is(schemas2.get(moduleName).keySet()));
-			for (Map.Entry<String, String> entry : schemas1.get(moduleName).entrySet()) {
-				String schema1 = rewriteJson(entry.getValue());
-				String schema2 = rewriteJson(schemas2.get(moduleName).get(entry.getKey()));
-				if (!schema1.equals(schema2)) {
-					ok = false;
-					System.out.println(header + " (" + moduleName + "." + entry.getKey() + "):");
-					System.out.println("--------------------------------------------------------");
-					showDiff(schema1, schema2);
-					System.out.println();
-					System.out.println("*");
-				}
-			}
 		}
 		return ok;
 	}

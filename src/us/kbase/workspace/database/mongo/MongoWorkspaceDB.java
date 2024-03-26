@@ -2734,8 +2734,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_REF_CNT = newHashSet(
 			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_VCNT, Fields.OBJ_REFCOUNTS);
 
-	/** @deprecated */
 	@Override
+	@Deprecated
 	public Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
 			final Set<ObjectIDResolvedWS> objects)
 			throws WorkspaceCommunicationException, NoSuchObjectException {

@@ -114,7 +114,6 @@ public class WorkspaceIntegrationWithGridFSTest {
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		System.out.println("Started test mongo instance at localhost: " + MONGO.getServerPort());
 
-		@SuppressWarnings("resource")
 		final MongoClient mcli = MongoClients.create("mongodb://localhost:" + MONGO.getServerPort());
 		WSDB = mcli.getDatabase(WSDB_NAME);
 		TYPEDB = mcli.getDatabase(TYPEDB_NAME);

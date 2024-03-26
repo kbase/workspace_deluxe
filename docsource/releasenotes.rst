@@ -8,7 +8,10 @@ VERSION: 0.14.3 (Released 2/22/2024)
 
 UPDATES:
 
-* The MongoDB clients have been updated to the most recent version and the service tested against Mongo 7.
+* The MongoDB clients have been updated to the most recent version and the service tested
+  against Mongo 7.
+* Gradle has replaced Ant as the build tool. As a consequence, all the built artifacts are now
+  located in the build directory, including the ``update_workspace_database_schema`` script.
 
 
 VERSION: 0.14.2 (Released 11/9/2023)

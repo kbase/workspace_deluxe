@@ -50,8 +50,6 @@ public class TestCommon {
 	public static final String ARANGOEXE = "test.arango.exe";
 	public static final String ARANGOJS = "test.arango.js";
 
-	public static final String JARS_PATH = "test.jars.dir";
-
 	public static final String TEST_TEMP_DIR = "test.temp.dir";
 	public static final String KEEP_TEMP_DIR = "test.temp.dir.keep";
 
@@ -165,10 +163,6 @@ public class TestCommon {
 
 	public static Path getSampleServiceDir() {
 		return Paths.get(getTestProperty(SAMPLE_SERVICE_DIR));
-	}
-
-	public static Path getJarsDir() {
-		return Paths.get(getTestProperty(JARS_PATH));
 	}
 
 	public static boolean getDeleteTempFiles() {

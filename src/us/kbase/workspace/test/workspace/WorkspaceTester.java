@@ -204,7 +204,6 @@ public class WorkspaceTester {
 					mongo.getServerPort());
 		}
 		if (!CONFIGS.containsKey(config)) {
-			@SuppressWarnings("resource")
 			final MongoClient mcli = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 			final MongoDatabase wsdb = mcli.getDatabase(DB_WS_NAME);
 			final MongoDatabase tdb = mcli.getDatabase(DB_TYPE_NAME);

@@ -59,7 +59,6 @@ public class GridFSBlobStoreTest {
 		System.out.println("Using Mongo temp dir " +
 				mongo.getTempDir());
 		TestCommon.stfuLoggers();
-		@SuppressWarnings("resource")
 		final MongoClient mongoClient = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 		final MongoDatabase db = mongoClient.getDatabase("GridFSBackendTest");
 		gfs = GridFSBuckets.create(db);

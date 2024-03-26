@@ -240,6 +240,7 @@ public class NullJsonGenerator extends JsonGenerator {
 	}
 
 	@Override
+	@Deprecated
 	public JsonGenerator setFeatureMask(int values) {
 		return null;
 	}
