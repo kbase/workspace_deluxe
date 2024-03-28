@@ -25,7 +25,6 @@ var BUILD_OTHER_DOC_DIR = "$BUILD_DOC_ROOT/otherdoc/"
 var IN_JAR_DOC_DIR = "/server_docs"
 var IN_JAR_JAVA_DOC_DIR = "$IN_JAR_DOC_DIR/javadoc"
 
-// TODO NOW client jar - commit 4
 // TODO NOW schema updater script - commit 5
 // TODO NOW sdk-compile all, java, and docs - commit 6 
 // TODO NOW handle the git commit the same way as auth does - commit 7
@@ -37,7 +36,10 @@ repositories {
 	mavenCentral()
 }
 compileJava {
-	options.release = 11
+	// build needs to be java 8 compatible so jars can be used in java 8 projects
+	// TODO BUILD remove when we no longer support java 8, use `options.release = 11` if needed
+	java.sourceCompatibility = JavaVersion.VERSION_1_8
+	java.targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 javadoc {
@@ -140,6 +142,15 @@ task jacocoTestQuickReport(type: JacocoReport, dependsOn: testQuick) {
 	executionData(testQuick)
 }
 
+jar {
+	// Much like javadoc, we hijack this task to build the client jar, since we don't need
+	// a service jar
+	include "us/kbase/workspace/*.class"
+	exclude "us/kbase/workspace/WorkspaceServer*.class"  // exclude anonymous classes
+	include "us/kbase/common/service/Tuple*.class"
+	archiveAppendix = 'client'
+}
+
 shadowJar {
 	// Be careful when updating jars - you may want to set the duplicates strategy to WARN
 	// to see if any of the jars are shadowing the others when building the fat jar, which
@@ -158,6 +169,13 @@ shadowJar {
 	
 	from(BUILD_JAVA_DOC_DIR) { into IN_JAR_JAVA_DOC_DIR }
 	from(BUILD_OTHER_DOC_DIR) { into IN_JAR_DOC_DIR }
+}
+
+war {
+	dependsOn buildDocs
+	webXml = file('war/web.xml')
+	from(BUILD_JAVA_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_JAVA_DOC_DIR" }
+	from(BUILD_OTHER_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_DOC_DIR" }
 }
 
 // Custom java project layout
@@ -188,13 +206,6 @@ sourceSets {
 			include '**/*.weirdsuffix'
 		}
 	}
-}
-
-war {
-	dependsOn buildDocs
-	webXml = file('war/web.xml')
-	from(BUILD_JAVA_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_JAVA_DOC_DIR" }
-	from(BUILD_OTHER_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_DOC_DIR" }
 }
 
 configurations {
