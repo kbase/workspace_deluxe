@@ -3,8 +3,12 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.14.3 (Released 2/22/2024)
+VERSION: 0.15.0 (Released TBD)
 ------------------------------------
+
+BACKWARDS INCOMPATIBILIES:
+
+* The Docserver now logs to standard out in the same way as the workspace server.
 
 UPDATES:
 

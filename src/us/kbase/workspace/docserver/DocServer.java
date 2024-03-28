@@ -15,6 +15,7 @@ import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.productivity.java.syslog4j.SyslogIF;
 
 import com.google.common.io.Files;
 
@@ -34,10 +35,11 @@ public class DocServer extends HttpServlet {
 	/** 
 	 * The name of the service that this document server is serving documents
 	 * for. This name will be used to find the appropriate section of the
-	 * KBase deploy.cfg configuration file if the name is not specified in the
-	 * environment.
+	 * KBase deploy.cfg configuration file.
 	 */
-	public static final String DEFAULT_COMPANION_SERVICE_NAME = "Workspace";
+	public static final String COMPANION_SERVICE_NAME = "Workspace";
+	// TODO CONFIG configure directly vs going through JsonSererServlet
+
 	/**
 	 * The name of this document server, used for logging purposes.
 	 */
@@ -56,10 +58,8 @@ public class DocServer extends HttpServlet {
 	
 	private static final FileNameMap FILE_NAME_MAP = URLConnection.getFileNameMap();
 	
-	private static final String DONT_TRUST_X_IP_HEADERS =
-			"dont_trust_x_ip_headers";
-	private static final String DONT_TRUST_X_IP_HEADERS2 =
-			"dont-trust-x-ip-headers";
+	private static final String DONT_TRUST_X_IP_HEADERS = "dont_trust_x_ip_headers";
+	private static final String DONT_TRUST_X_IP_HEADERS2 = "dont-trust-x-ip-headers";
 	private static final String STRING_TRUE = "true";
 	
 	private final String docsLoc;
@@ -83,18 +83,13 @@ public class DocServer extends HttpServlet {
 	public DocServer() {
 		//TODO JERSEY switch to a jersey endpoint when that's available, ditch logger, etc. Pretty big rewrite/simplification
 		super();
-		/* really should try and get the companion service name from the env
-		 * here, but not worth the effort
-		 */
-		JsonServerSyslog templogger = new JsonServerSyslog(
-				DEFAULT_COMPANION_SERVICE_NAME, JsonServerServlet.KB_DEP,
-				JsonServerSyslog.LOG_LEVEL_INFO, false);
-		if (sysLogOut != null) {
-			templogger.changeOutput(sysLogOut);
-		}
-		// getConfig() gets the service name from the env if it exists
+		JsonServerSyslog.setStaticUseSyslog(false);
+		final JsonServerSyslog templogger = getLogger(COMPANION_SERVICE_NAME, sysLogOut);
+
+		// getConfig() gets the service name from the env if it exists which is bad
+		// since the Workspace doesn't. Need to redo configuration handling at some point
 		final Map<String, String> config = JsonServerServlet.getConfig(
-				DEFAULT_COMPANION_SERVICE_NAME, templogger);
+				COMPANION_SERVICE_NAME, templogger);
 		
 		String serverName = config.get(CFG_SERVICE_NAME);
 		if (serverName == null || serverName.isEmpty()) {
@@ -110,14 +105,32 @@ public class DocServer extends HttpServlet {
 				docsLoc = dlog;
 			}
 		}
-		logger = new JsonServerSyslog(serverName, JsonServerServlet.KB_DEP,
-				JsonServerSyslog.LOG_LEVEL_INFO, false);
-		if (sysLogOut != null) {
-			logger.changeOutput(sysLogOut);
-		}
+		logger = getLogger(serverName, sysLogOut);
 		this.trustX_IPHeaders =
 				!STRING_TRUE.equals(config.get(DONT_TRUST_X_IP_HEADERS)) &&
 				!STRING_TRUE.equals(config.get(DONT_TRUST_X_IP_HEADERS2));
+	}
+	
+	private JsonServerSyslog getLogger(
+			final String serverName,
+			final SyslogOutput output) {
+		final JsonServerSyslog logger = new JsonServerSyslog(
+				serverName, JsonServerServlet.KB_DEP, JsonServerSyslog.LOG_LEVEL_INFO, false);
+		if (output == null) {
+			logger.changeOutput(new SyslogOutput() {
+				// this is manually tested
+				@Override
+				public void logToSystem(
+						final SyslogIF log,
+						final int level,
+						final String message) {
+					System.out.println(message);
+				}
+			});
+		} else {
+			logger.changeOutput(output);
+		}
+		return logger;
 	}
 	
 	@Override

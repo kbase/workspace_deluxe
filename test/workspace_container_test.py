@@ -17,7 +17,7 @@ sh scripts/run_tests.sh
 
 """
 
-WORKSPACE_VERSION = "0.14.3"
+WORKSPACE_VERSION = "0.15.0"
 
 AUTH_URL = "http://localhost:8080"
 WS_URL = "http://localhost:7058"
