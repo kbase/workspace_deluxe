@@ -68,7 +68,6 @@ public class S3BlobStoreIntegrationTest {
 		System.out.println("Using Mongo temp dir " + mongoCon.getTempDir());
 		System.out.println("Started mongo server at localhost:" + mongoCon.getServerPort());
 
-		@SuppressWarnings("resource")
 		MongoClient mongoClient = MongoClients.create("mongodb://localhost:" + mongoCon.getServerPort());
 		mongo = mongoClient.getDatabase("MinioBackendTest");
 

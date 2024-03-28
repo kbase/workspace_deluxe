@@ -442,7 +442,7 @@ public interface WorkspaceDatabase {
 					Set<ObjectIDResolvedWS> objs)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
-	/** @deprecated */
+	@Deprecated
 	Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
 			Set<ObjectIDResolvedWS> objects)
 			throws WorkspaceCommunicationException, NoSuchObjectException;

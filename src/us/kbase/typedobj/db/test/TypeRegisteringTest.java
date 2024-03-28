@@ -144,7 +144,6 @@ public class TypeRegisteringTest {
 			System.out.println("Using mongo temp dir " +
 					mongo.getTempDir());
 		}
-		@SuppressWarnings("resource")
 		final MongoClient mcli = MongoClients.create("mongodb://localhost:" + mongo.getServerPort());
 		final MongoDatabase mdb = mcli.getDatabase("TypeRegisteringTest");
 		TestCommon.destroyDB(mdb);
