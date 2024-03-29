@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
+import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 
 import java.io.File;
@@ -13,7 +14,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -338,11 +338,9 @@ public class SampleServiceIntegrationTest {
 		// only test the parts of the status that are relevant for the sample service
 		final Map<String, Object> status = CLIENT1.status();
 
-//		System.out.println(status);
-
-		assertThat("incorrect status keys", status.keySet(), is(new HashSet<>(Arrays.asList(
-				"state", "message", "dependencies", "version", "git_url", "freemem", "totalmem",
-				"maxmem"))));
+		assertThat("incorrect status keys", status.keySet(), is(set(
+				"state", "message", "dependencies", "version", "git_url", "git_commit",
+				"freemem", "totalmem", "maxmem")));
 
 		assertThat("incorrect state", status.get("state"), is("OK"));
 

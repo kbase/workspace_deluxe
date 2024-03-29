@@ -9,6 +9,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 import static us.kbase.common.test.TestCommon.list;
+import static us.kbase.common.test.TestCommon.set;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -111,35 +112,40 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	@Test
 	public void status() throws Exception {
 		final Map<String, Object> st = CLIENT1.status();
+		
+		assertThat("incorrect status keys", st.keySet(), is(set(
+				"state", "message", "dependencies", "version", "git_url", "git_commit",
+				"freemem", "totalmem", "maxmem")));
 
 		//top level items
-		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
-		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
+		assertThat("incorrect state", st.get("state"), is("OK"));
+		assertThat("incorrect message", st.get("message"), is("OK"));
 		assertThat("incorrect version", st.get("version"), is(VER));
 		assertThat("incorrect git url", st.get("git_url"),
-				is((Object) "https://github.com/kbase/workspace_deluxe"));
+				is("https://github.com/kbase/workspace_deluxe"));
+		final String gc = (String) st.get("git_commit");
+		if (gc.length() == 40) { // it's a git hash, probably running from gradle
+			assertThat("is SHA1 hash", gc.matches("^[a-fA-F0-9]{40}$"), is(true));
+		} else { // probably running from an IDE
+			assertThat("incorrect git commit", st.get("git_commit"),
+					is("Missing git commit file gitcommit, "
+							+ "should be in us.kbase.workspace.gitcommit"));
+		}
 		checkMem(st.get("freemem"), "freemem");
 		checkMem(st.get("totalmem"), "totalmem");
 		checkMem(st.get("maxmem"), "maxmem");
 
 		//deps
 		@SuppressWarnings("unchecked")
-		final List<Map<String, String>> deps =
-				(List<Map<String, String>>) st.get("dependencies");
+		final List<Map<String, String>> deps = (List<Map<String, String>>) st.get("dependencies");
 		assertThat("missing dependencies", deps.size(), is(2));
 
-		final List<String> exp = new ArrayList<String>();
-		exp.add("MongoDB");
-		exp.add("GridFS");
-		final Iterator<String> expiter = exp.iterator();
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
-		while (expiter.hasNext()) {
+		for (final String name:  list("MongoDB", "GridFS")) {
 			final Map<String, String> g = gotiter.next();
-			assertThat("incorrect name", (String) g.get("name"),
-					is(expiter.next()));
-			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
-			assertThat("incorrect message", g.get("message"),
-					is((Object) "OK"));
+			assertThat("incorrect name", g.get("name"), is(name));
+			assertThat("incorrect state", g.get("state"), is("OK"));
+			assertThat("incorrect message", g.get("message"), is("OK"));
 			Version.valueOf((String) g.get("version"));
 		}
 	}
