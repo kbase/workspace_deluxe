@@ -4,40 +4,21 @@ Build and initialize the workspace client
 =========================================
 
 This documentation describes how to build and initialize the workspace clients.
-It assumes the documentation build occurs on Ubuntu 12.04LTS,
-but things should work similarly on other distributions. It assumes that the
-``workspace_deluxe`` and ``jars`` repos have been cloned (see :ref:`getcode`)
-but does **not** assume that the KBase runtime or ``dev_container`` are
-installed.
+It assumes the build occurs on Ubuntu 18.04LTS. It assumes that the
+``workspace_deluxe`` repo has been cloned (see :ref:`getcode`).
 
 Python client
 -------------
 
-Currently the Python client only supports Python 2.7. The Python client checked
-into ``libs/biokbase/workspace/client.py`` does not
-require a build, but does require the ``requests`` (v 2+) 3rd party library, which,
-depending on the Python version, can be
-`tricky to install securely <http://stackoverflow.com/questions/29099404/ssl-insecureplatform-error-when-using-requests-package>`_.
-The following incantation worked for the author::
-
-    sudo apt-get install python-dev libffi-dev libssl-dev
-    curl https://bootstrap.pypa.io/get-pip.py > get-pip.py
-    sudo python get-pip.py
-    sudo pip install --upgrade requests
-    sudo pip install --upgrade requests[security]
-
-For python 2.7.9+ ``sudo pip install --upgrade requests`` should
-work.
+The Python client checked into ``libs/biokbase/workspace/client.py`` does not
+require a build, but does require the `requests <https://pypi.org/project/requests/>`_ library.
 
 Change the working directory to the lib directory::
 
    bareubuntu@bu:~/ws$ cd workspace_deluxe/lib/
    bareubuntu@bu:~/ws/workspace_deluxe/lib$
 
-Alternatively, add this directory to the ``PYTHONPATH``. If deploying with
-the ``dev_container``, the client will be copied to
-``/kb/deployment/lib/biokbase/workspace/client.py`` and the ``user-env`` script
-will set up the ``PYTHONPATH``.
+Alternatively, add this directory to the ``PYTHONPATH``.
 
 Here we use the iPython interpreter to demonstrate initializing the client,
 but the standard python interpreter will also work::
@@ -47,53 +28,41 @@ but the standard python interpreter will also work::
 .. code-block:: python
 
     In [1]: from biokbase.workspace.client import Workspace
-    In [2]: ws = Workspace('https://kbase.us/services/ws', user_id='kbasetest', password=[redacted])
+    In [2]: ws = Workspace('https://kbase.us/services/ws', token=[redacted])
     In [3]: ws.ver()
-    Out[3]: u'0.3.5'
+    Out[3]: u'0.14.2'
+
+Developer tokens are available from the Account page of the KBase Narrative for approved developers
+or can be created in the testmode API of the
+`KBase authentication server <https://github.com/kbase/auth2/>`_ if running a local workspace and
+auth server.
 
 Java client
 -----------
 
-The Java client build requires:
-
-Java JDK 6+ (`install instructions <https://www.digitalocean.com/community/tutorials/how-to-install-java-on-ubuntu-with-apt-get>`_)
-
-`Java ant <http://ant.apache.org/>`_::
-
-    sudo apt-get install ant
+The Java client build requires Java JDK 11+.
 
 Build the client::
 
-    bareubuntu@bu:~/ws/workspace_deluxe$ make compile-java-client
-    ant compile_client
-    Buildfile: /home/bareubuntu/ws/workspace_deluxe/build.xml
+    bareubuntu@bu:~/ws/workspace_deluxe$ ./gradlew jar
 
-    compile_client:
-        [mkdir] Created dir: /home/bareubuntu/ws/workspace_deluxe/client_classes
-        [javac] Compiling 48 source files to /home/bareubuntu/ws/workspace_deluxe/client_classes
-          [jar] Building jar: /home/bareubuntu/ws/workspace_deluxe/dist/client/WorkspaceClient.jar
-       [delete] Deleting directory /home/bareubuntu/ws/workspace_deluxe/client_classes
+The client jar is created in ``build/libs/workspace_deluxe-client.jar``.
 
-    BUILD SUCCESSFUL
-    Total time: 3 seconds
-
-The client jar is created in ``dist/client/WorkspaceClient.jar``.
-
-For simplicity, copy the required jars into a single directory::
+For simplicity, copy the required jars into a single directory. You will also need the
+`Jackson <https://github.com/FasterXML/jackson/>`_
+annotations, core, and databind jars, which can be downloaded from maven or added to your build
+tool::
 
     bareubuntu@bu:~/ws$ mkdir tryjavaclient
     bareubuntu@bu:~/ws$ cd tryjavaclient/
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../workspace_deluxe/dist/client/WorkspaceClient.jar .
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../jars/lib/jars/jackson/jackson-annotations-2.5.4.jar .
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../jars/lib/jars/jackson/jackson-core-2.5.4.jar .
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../jars/lib/jars/jackson/jackson-databind-2.5.4.jar .
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../jars/lib/jars/kbase/auth/kbase-auth-0.4.4.jar .
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../jars/lib/jars/kbase/common/kbase-common-0.0.24.jar .
+    bareubuntu@bu:~/ws/tryjavaclient$ cp ../workspace_deluxe/build/libs/workspace_deluxe-client.jar .
+    bareubuntu@bu:~/ws/tryjavaclient$ cp ../workspace_deluxe/build/download/kbase-auth-0.4.4.jar .
+    bareubuntu@bu:~/ws/tryjavaclient$ cp ../workspace_deluxe/build/download/kbase-common-0.2.0.jar .
     bareubuntu@bu:~/ws/tryjavaclient$ ls
 
-    jackson-annotations-2.5.4.jar        kbase-auth-0.4.4.jar
-    jackson-core-2.5.4.jar               kbase-common-0.0.24.jar
-    jackson-databind-2.5.4.jar           WorkspaceClient.jar
+    jackson-annotations-2.9.9.jar        kbase-auth-0.4.4.jar
+    jackson-core-2.9.9.jar               kbase-common-0.2.0.jar
+    jackson-databind-2.9.9.jar           workspace_deluxe-client.jar
 
 
 When creating an application using the WSS it's advisable to use a build tool
@@ -134,16 +103,9 @@ Compile and run::
 
     bareubuntu@bu:~/ws/tryjavaclient$ javac -cp "./*" TryWorkspaceClient.java
     bareubuntu@bu:~/ws/tryjavaclient$ java -cp "./:./*" TryWorkspaceClient
-    0.8.0
+    0.14.2
 
 For more client initialization and configuration options, see :ref:`apidocs`.
-
-Perl client
------------
-
-.. todo::
-   Build and initialization instructions for the Perl client. If this can
-   be done without the KBase runtime & dev_container that'd be ideal.
 
 Javascript client
 -----------------
