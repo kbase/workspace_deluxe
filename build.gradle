@@ -52,8 +52,6 @@ javadoc {
 	failOnError = false
 	options {
 		links "https://docs.oracle.com/en/java/javase/11/docs/api/"
-		links "https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/2.9.9/"
-		links "https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/2.9.9/"
 	}
 	include "**/workspace/*.java"
 	exclude "**/workspace/WorkspaceServer.java"
