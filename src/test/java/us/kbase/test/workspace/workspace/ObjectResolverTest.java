@@ -18,7 +18,7 @@ import org.mockito.invocation.Invocation;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.test.common.TestCommon;
-import us.kbase.common.test.TestException;
+import us.kbase.testutils.TestException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;

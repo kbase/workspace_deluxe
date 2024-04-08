@@ -17,7 +17,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.test.common.TestCommon;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.typedobj.db.ModuleInfo;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.OwnerInfo;

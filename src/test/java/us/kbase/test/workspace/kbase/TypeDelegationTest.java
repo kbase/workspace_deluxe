@@ -30,7 +30,7 @@ import com.mongodb.client.MongoDatabase;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.test.common.MapBuilder;
 import us.kbase.test.common.TestCommon;

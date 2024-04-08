@@ -30,7 +30,7 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.test.common.TestCommon;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.WorkspaceInformation;

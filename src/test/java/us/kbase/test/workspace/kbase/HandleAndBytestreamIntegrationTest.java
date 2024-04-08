@@ -39,11 +39,12 @@ import com.google.common.collect.ImmutableMap;
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.abstracthandle.Handle;
 import us.kbase.auth.AuthToken;
-import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
-import us.kbase.common.test.TestException;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.TestException;
+import us.kbase.testutils.controllers.blobstore.BlobstoreController;
+import us.kbase.testutils.controllers.minio.MinioController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockFileInformation;
@@ -53,9 +54,7 @@ import us.kbase.shock.client.ShockUserId;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.test.common.TestCommon;
 import us.kbase.test.workspace.WorkspaceServerThread;
-import us.kbase.test.workspace.controllers.blobstore.BlobstoreController;
 import us.kbase.test.workspace.controllers.handle.HandleServiceController;
-import us.kbase.test.workspace.controllers.minio.MinioController;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
@@ -295,7 +294,7 @@ public class HandleAndBytestreamIntegrationTest {
 			final String miniohost,
 			final String minioUser,
 			final String minioKey)
-			throws InvalidHostException, UnknownHostException, IOException,
+			throws UnknownHostException, IOException,
 				NoSuchFieldException, IllegalAccessException, Exception,
 				InterruptedException {
 
@@ -804,12 +803,10 @@ public class HandleAndBytestreamIntegrationTest {
 				is(set(n1.getId().getId(), n2.getId().getId())));
 
 		// check nodes have the same contents
-		// TODO BLOBSTORE update tests when https://github.com/kbase/shock_java_client/issues/26
-		// is fixed
 		checkNode(WS_OWNED_BLOB, n1.getId(), ImmutableMap.of("foo", "bar"),
-				"contents", "fname", null); // "text");
+				"contents", "fname", "text");
 		checkNode(WS_OWNED_BLOB, n2.getId(), ImmutableMap.of("foo", "bar2"),
-				"contents2", "fname2", null); //"text2");
+				"contents2", "fname2", "text2");
 
 		checkPublicRead(n1, false);
 		checkPublicRead(n2, false);
@@ -835,7 +832,7 @@ public class HandleAndBytestreamIntegrationTest {
 		final ShockNode sn = cli.getNode(id);
 		final ShockFileInformation fi = sn.getFileInformation();
 		assertThat("incorrect filename", fi.getName(), is(filename));
-		assertThat("incorrect format", fi.getFormat(), is(format));
+		assertThat("incorrect format", sn.getFormat(), is(format));
 		assertThat("incorrect file", IOUtils.toString(sn.getFile()), is(file));
 	}
 

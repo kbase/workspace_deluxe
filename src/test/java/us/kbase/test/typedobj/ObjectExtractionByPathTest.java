@@ -34,7 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import us.kbase.common.service.JsonTokenStream;
-import us.kbase.common.test.TestException;
+import us.kbase.testutils.TestException;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;

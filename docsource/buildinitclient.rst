@@ -48,22 +48,25 @@ Build the client::
 
 The client jar is created in ``build/libs/workspace_deluxe-client.jar``.
 
-For simplicity, copy the required jars into a single directory. You will also need the
-`Jackson <https://github.com/FasterXML/jackson/>`_
-annotations, core, and databind jars, which can be downloaded from maven or added to your build
-tool::
+For simplicity, copy the required jars into a single directory. You will also need the following
+jars, which can be downloaded from a maven repository or https://jitpack.io:
+
+* The `Jackson <https://github.com/FasterXML/jackson/>`_ annotations, core, and databind jars
+  (maven)
+* The javax annotation api jar (maven)
+* The `KBase auth client jar <https://github.com/kbase/auth2_client_java/>`_
+* The `KBase java_common jar <https://github.com/kbase/java_common/>`_
+
+::
 
     bareubuntu@bu:~/ws$ mkdir tryjavaclient
     bareubuntu@bu:~/ws$ cd tryjavaclient/
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../workspace_deluxe/build/libs/workspace_deluxe-client.jar .
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../workspace_deluxe/build/download/kbase-auth-0.4.4.jar .
-    bareubuntu@bu:~/ws/tryjavaclient$ cp ../workspace_deluxe/build/download/kbase-common-0.2.0.jar .
     bareubuntu@bu:~/ws/tryjavaclient$ ls
 
-    jackson-annotations-2.9.9.jar        kbase-auth-0.4.4.jar
-    jackson-core-2.9.9.jar               kbase-common-0.2.0.jar
-    jackson-databind-2.9.9.jar           workspace_deluxe-client.jar
-
+    auth2_client_java-0.5.0.jar    java_common-0.3.0.jar
+    jackson-annotations-2.9.9.jar  javax.annotation-api-1.3.2.jar
+    jackson-core-2.9.9.jar         workspace_deluxe-client.jar
+    jackson-databind-2.9.9.jar
 
 When creating an application using the WSS it's advisable to use a build tool
 like ``ant``, ``maven``, or ``gradle`` to organize the required jars.
@@ -74,26 +77,23 @@ This simple program initializes and calls a method on the WSS client::
 
 .. code-block:: java
 
+    import java.net.URI;
     import java.net.URL;
-    import us.kbase.auth.AuthConfig;
-    import us.kbase.workspace.WorkspaceClient;
-    import us.kbase.auth.ConfigurableAuthService;
     import us.kbase.auth.AuthToken;
+    import us.kbase.auth.client.AuthClient;
+    import us.kbase.workspace.WorkspaceClient;
 
     public class TryWorkspaceClient {
 
         public static void main(String[] args) throws Exception {
-            String authUrl =
-                "https://ci.kbase.us/services/auth/api/legacy/KBase/Sessions/Login/";
+            final String authUrl = "https://appdev.kbase.us/services/auth/";
+            final AuthClient authcli = AuthClient.from(new URI(authUrl));
 
-            ConfigurableAuthService authService = new ConfigurableAuthService(
-                    new AuthConfig().withKBaseAuthServerURL(new URL(authUrl));
+            final String tokenString = args[0];
+            final AuthToken token = authcli.validateToken(tokenString);
 
-            String tokenString = YOUR_AUTH_TOKEN_HERE;
-            AuthToken token = authService.validateToken(tokenString);
-
-            WorkspaceClient client = new WorkspaceClient(
-                    new URL("https://ci.kbase.us/services/ws/"),
+            final WorkspaceClient client = new WorkspaceClient(
+                    new URL("https://appdev.kbase.us/services/ws/"),
                     token);
             System.out.println(client.ver());
         }
@@ -102,7 +102,7 @@ This simple program initializes and calls a method on the WSS client::
 Compile and run::
 
     bareubuntu@bu:~/ws/tryjavaclient$ javac -cp "./*" TryWorkspaceClient.java
-    bareubuntu@bu:~/ws/tryjavaclient$ java -cp "./:./*" TryWorkspaceClient
+    bareubuntu@bu:~/ws/tryjavaclient$ java -cp "./:./*" TryWorkspaceClient $KBASE_TOKEN
     0.14.2
 
 For more client initialization and configuration options, see :ref:`apidocs`.

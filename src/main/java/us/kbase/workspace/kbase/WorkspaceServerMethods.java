@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.ConfigurableAuthService;
+import us.kbase.auth.client.AuthClient;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
@@ -102,13 +102,13 @@ public class WorkspaceServerMethods {
 	// TODO JAVADOC
 	
 	private final Workspace ws;
-	private final ConfigurableAuthService auth;
+	private final AuthClient auth;
 	private final IdReferenceHandlerSetFactoryBuilder idFacBuilder;
 	
 	public WorkspaceServerMethods(
 			final Workspace ws,
 			final IdReferenceHandlerSetFactoryBuilder idFacBuilder,
-			final ConfigurableAuthService auth) {
+			final AuthClient auth) {
 		this.ws = ws;
 		this.idFacBuilder = idFacBuilder;
 		this.auth = auth;
@@ -134,7 +134,7 @@ public class WorkspaceServerMethods {
 		return ret;
 	}
 	
-	public ConfigurableAuthService getAuth() {
+	public AuthClient getAuth() {
 		return auth;
 	}
 	
@@ -266,7 +266,7 @@ public class WorkspaceServerMethods {
 		final List<WorkspaceUser> wsusers = convertUsers(users);
 		final Map<String, Boolean> userok;
 		try {
-			userok = auth.isValidUserName(users, token);
+			userok = auth.isValidUserName(users, token.getToken());
 		} catch (UnknownHostException uhe) {
 			//message from UHE is only the host name
 			throw new AuthException(
