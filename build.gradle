@@ -19,7 +19,7 @@ var BUILD_DOC_ROOT = "$buildDir/docs/"
 var BUILD_JAVA_DOC_DIR = "$BUILD_DOC_ROOT/javadoc"
 var BUILD_OTHER_DOC_DIR = "$BUILD_DOC_ROOT/otherdoc/"
 // This is where the DocServer will look for docs, if it changes it needs to change
-// in deloy.cfg as well
+// in deploy.cfg as well
 // TODO DOCS just get rid of configuring this in the DocServer, make things hardcoded
 //           or pass in constructor when we subume into a Jersey style service
 var IN_JAR_DOCS_DIR = "/server_docs"
