@@ -1,6 +1,5 @@
 FROM eclipse-temurin:11-jdk as build
 
-WORKDIR /tmp
 RUN apt update -y && \
     apt install -y git ca-certificates python3-sphinx
 
