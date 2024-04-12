@@ -19,7 +19,7 @@ class Common {
 	private Common() {}
 
 	static String processString(final String input) {
-		return isNullOrWhitespace(input) ? null : input.strip();
+		return isNullOrWhitespace(input) ? null : input.trim();
 	}
 
 	static URL processURL(final String url, final String name) {
