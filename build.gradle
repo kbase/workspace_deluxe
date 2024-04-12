@@ -22,17 +22,16 @@ var BUILD_OTHER_DOC_DIR = "$BUILD_DOC_ROOT/otherdoc/"
 // in deploy.cfg as well
 // TODO DOCS just get rid of configuring this in the DocServer, make things hardcoded
 //           or pass in constructor when we subume into a Jersey style service
-var IN_JAR_DOCS_DIR = "/server_docs"
+var IN_JAR_DOC_DIR = "/server_docs"
+var IN_JAR_JAVA_DOC_DIR = "$IN_JAR_DOC_DIR/javadoc"
 
-// TODO NOW test shadow jar works in groups - need test controller - commit 2
-// TODO NOW get docserver working in WAR and test in docker-compose <- edit to start test server - commit 3
 // TODO NOW client jar - commit 4
-// TODO NOW client jar javadoc - needs java_common source - commit 4
 // TODO NOW schema updater script - commit 5
 // TODO NOW sdk-compile all, java, and docs - commit 6 
 // TODO NOW handle the git commit the same way as auth does - commit 7
-// TODO NOW delete build.xml, , and Makefile - commit 8
+// TODO NOW delete build.xml and Makefile - commit 8
 // TODO NOW run tests from Eclipse w/o specifying classpath manually & remove sourceSets & claspath - commit 9
+// TODO NOW update any ant refs in docs to gradle
 
 repositories {
 	mavenCentral()
@@ -70,18 +69,20 @@ task buildDocs {
 	dependsOn javadoc
 	doLast {
 		// need to make sure we remove any docs that no longer exist in the source
-		delete "$BUILD_OTHER_DOC_DIR"
+		delete BUILD_OTHER_DOC_DIR
+		// not needed locally, fails w/o it in docker build. *shrug*
+		mkdir BUILD_OTHER_DOC_DIR
 		copy {
-			from "$rootDir/workspace.spec" into "$BUILD_OTHER_DOC_DIR"
+			from "$rootDir/workspace.spec" into BUILD_OTHER_DOC_DIR
 		}
 		copy {
-			from "$rootDir/docshtml/" into "$BUILD_OTHER_DOC_DIR" include "*"
+			from "$rootDir/docshtml/" into BUILD_OTHER_DOC_DIR include "*"
 		}
 		exec {	
 			commandLine "pod2html", "--infile=$rootDir/lib/Bio/KBase/workspace/Client.pm", "--outfile=$BUILD_OTHER_DOC_DIR/workspace_perl.html"
 		}
 		exec {
-			commandLine "sphinx-build", "$rootDir/docsource/", "$BUILD_OTHER_DOC_DIR"
+			commandLine "sphinx-build", "$rootDir/docsource/", BUILD_OTHER_DOC_DIR
 		}
 		delete fileTree(".").matching { include "pod2htm*.tmp" }
 	}
@@ -155,8 +156,8 @@ shadowJar {
 	
 	mergeServiceFiles()
 	
-	from(BUILD_JAVA_DOC_DIR) { into "$IN_JAR_DOCS_DIR/javadoc" }
-	from(BUILD_OTHER_DOC_DIR) { into IN_JAR_DOCS_DIR }
+	from(BUILD_JAVA_DOC_DIR) { into IN_JAR_JAVA_DOC_DIR }
+	from(BUILD_OTHER_DOC_DIR) { into IN_JAR_DOC_DIR }
 }
 
 // Custom java project layout
@@ -190,7 +191,10 @@ sourceSets {
 }
 
 war {
+	dependsOn buildDocs
 	webXml = file('war/web.xml')
+	from(BUILD_JAVA_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_JAVA_DOC_DIR" }
+	from(BUILD_OTHER_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_DOC_DIR" }
 }
 
 configurations {
