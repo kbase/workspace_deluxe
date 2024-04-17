@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - java: '11'
+          - java: '8'  # needs to be compatible so jars can be used w/ java 8
             mongo: 'mongodb-linux-x86_64-ubuntu2204-7.0.4'
             minio: '2019-05-23T00-29-34Z'
             wired_tiger: 'true'
