@@ -25,12 +25,11 @@ var BUILD_OTHER_DOC_DIR = "$BUILD_DOC_ROOT/otherdoc/"
 var IN_JAR_DOC_DIR = "/server_docs"
 var IN_JAR_JAVA_DOC_DIR = "$IN_JAR_DOC_DIR/javadoc"
 
-// TODO NOW schema updater script - commit 5
 // TODO NOW sdk-compile all, java, and docs - commit 6 
 // TODO NOW handle the git commit the same way as auth does - commit 7
 // TODO NOW delete build.xml and Makefile - commit 8
 // TODO NOW run tests from Eclipse w/o specifying classpath manually & remove sourceSets & claspath - commit 9
-// TODO NOW update any ant refs in docs to gradle
+// TODO NOW update any ant refs in docs to gradle & the update schema script build & location
 
 repositories {
 	mavenCentral()
@@ -176,6 +175,27 @@ war {
 	webXml = file('war/web.xml')
 	from(BUILD_JAVA_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_JAVA_DOC_DIR" }
 	from(BUILD_OTHER_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_DOC_DIR" }
+}
+
+task generateUpdateSchemaScript {
+	dependsOn compileJava
+	doLast {
+		def dependencies = configurations.runtimeClasspath.collect { File file ->
+			file.absolutePath
+		}
+	
+		def classpath = dependencies.join(':')
+	
+		def scriptContent = """#!/bin/sh
+
+CLASSPATH=$classpath
+
+java -cp $buildDir/classes/java/main:\$CLASSPATH us.kbase.workspace.kbase.SchemaUpdaterCLI \$@
+"""
+		def outfile = "$buildDir/update_workspace_database_schema"
+		file(outfile).text = scriptContent
+		file(outfile).setExecutable(true)
+	}
 }
 
 // Custom java project layout
