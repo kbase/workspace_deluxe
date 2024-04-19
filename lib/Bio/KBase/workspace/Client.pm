@@ -48,7 +48,7 @@ sub new
     
     if (!defined($url))
     {
-	$url = 'https://kbase.us/services/ws/';
+	$url = 'https://ci.kbase.us/services/ws';
     }
 
     my $self = {

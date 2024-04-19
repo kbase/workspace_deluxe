@@ -15,6 +15,8 @@ plugins {
 	id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
+var DEFAULT_URL = "https://ci.kbase.us/services/ws"
+
 var BUILD_DOC_ROOT = "$buildDir/docs/"
 var BUILD_JAVA_DOC_DIR = "$BUILD_DOC_ROOT/javadoc"
 var BUILD_OTHER_DOC_DIR = "$BUILD_DOC_ROOT/otherdoc/"
@@ -25,7 +27,9 @@ var BUILD_OTHER_DOC_DIR = "$BUILD_DOC_ROOT/otherdoc/"
 var IN_JAR_DOC_DIR = "/server_docs"
 var IN_JAR_JAVA_DOC_DIR = "$IN_JAR_DOC_DIR/javadoc"
 
-// TODO NOW sdk-compile all, java, and docs - commit 6 
+var LOC_WS_SPEC = "$rootDir/workspace.spec"
+var LOC_DOC_HTML = "$rootDir/docshtml"
+
 // TODO NOW handle the git commit the same way as auth does - commit 7
 // TODO NOW delete build.xml and Makefile - commit 8
 // TODO NOW run tests from Eclipse w/o specifying classpath manually & remove sourceSets & claspath - commit 9
@@ -74,10 +78,10 @@ task buildDocs {
 		// not needed locally, fails w/o it in docker build. *shrug*
 		mkdir BUILD_OTHER_DOC_DIR
 		copy {
-			from "$rootDir/workspace.spec" into BUILD_OTHER_DOC_DIR
+			from LOC_WS_SPEC into BUILD_OTHER_DOC_DIR
 		}
 		copy {
-			from "$rootDir/docshtml/" into BUILD_OTHER_DOC_DIR include "*"
+			from LOC_DOC_HTML into BUILD_OTHER_DOC_DIR include "*"
 		}
 		exec {	
 			commandLine "pod2html", "--infile=$rootDir/lib/Bio/KBase/workspace/Client.pm", "--outfile=$BUILD_OTHER_DOC_DIR/workspace_perl.html"
@@ -175,6 +179,77 @@ war {
 	webXml = file('war/web.xml')
 	from(BUILD_JAVA_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_JAVA_DOC_DIR" }
 	from(BUILD_OTHER_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_DOC_DIR" }
+}
+
+/* SDK compile notes:
+ * kb-sdk starts a docker container in interactive mode. Gradle's commandLine doesn't allocate
+ * a tty so the command fails.
+ * I tried using a ProcessBuilder and
+ * https://docs.oracle.com/en%2Fjava%2Fjavase%2F11%2Fdocs%2Fapi%2F%2F/java.base/java/lang/ProcessBuilder.html#inheritIO()
+ * but that failed also with no useful output.
+ * 
+ * The current solution is to precede the kb-sdk call with a script call, which either
+ * allocates a tty or fools kb-sdk into thinking there is one - not quite sure.
+ * https://man7.org/linux/man-pages/man1/script.1.html
+ * I tried to redirect the script log file  to /dev/null with -O and --log-out but script didn't
+ * recognize either option, hence the delete.
+ *
+ * This is, generally speaking, a janky mess and if someone can find a better way to do this
+ * that'd be fantastic.
+ */
+ 
+ var LOC_SCRIPT_TYPESCRIPT = "$rootDir/typescript"
+
+// TODO GRADLE is there some way to DRY these 3 compile tasks up? Not a huge deal
+task sdkCompileHTML {
+	// We want to check in the HTML so we don't put it in the build dir
+	var cmd = "kb-sdk compile --html --out $LOC_DOC_HTML $LOC_WS_SPEC"
+	doLast {
+		exec {
+			commandLine "script", "-qefc", cmd
+		}
+		delete LOC_SCRIPT_TYPESCRIPT
+	}
+}
+
+task sdkCompileLibs {
+	var cmd = "kb-sdk compile " +
+				"--out lib " +
+				"--jsclname javascript/workspace/Client " +
+				"--plclname Bio::KBase::workspace::Client " +
+				"--pyclname biokbase.workspace.client " +
+				"--url $DEFAULT_URL " + 
+				LOC_WS_SPEC
+	doLast {
+		exec {
+			commandLine "script", "-qefc", cmd
+		}
+		delete LOC_SCRIPT_TYPESCRIPT
+		delete "$rootDir/lib/biokbase/workspace/authclient.py"
+	}
+}
+
+task sdkCompileJava {
+	// TODO GRADLE is there a variable for src/main/java when we move the code locations?
+	var cmd = "kb-sdk compile " +
+				"--java " +
+				"--javasrc $rootDir/src " +
+				"--javasrv " +
+				"--out . " +
+				"--url $DEFAULT_URL " + 
+				LOC_WS_SPEC
+	doLast {
+		exec {
+			commandLine "script", "-qefc", cmd
+		}
+		delete LOC_SCRIPT_TYPESCRIPT
+	}
+}
+
+task sdkCompile {
+	dependsOn sdkCompileHTML
+	dependsOn sdkCompileJava
+	dependsOn sdkCompileLibs
 }
 
 task generateUpdateSchemaScript {
