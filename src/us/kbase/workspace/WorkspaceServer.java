@@ -70,6 +70,7 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.gitcommit.GitCommit;
 import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
@@ -1766,6 +1767,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal.put("dependencies", dstate);
 		returnVal.put("version", VERSION);
 		returnVal.put("git_url", GIT);
+		returnVal.put("git_commit", GitCommit.COMMIT);
 		returnVal.put("freemem", Runtime.getRuntime().freeMemory());
 		returnVal.put("totalmem", Runtime.getRuntime().totalMemory());
 		returnVal.put("maxmem", Runtime.getRuntime().maxMemory());

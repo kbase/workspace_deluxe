@@ -20,6 +20,8 @@ COPY docsource /tmp/workspace/docsource/
 COPY lib /tmp/workspace/lib/
 COPY src /tmp/workspace/src/
 COPY war /tmp/workspace/war/
+# for the git commit
+COPY .git /tmp/workspace/.git/
 RUN ./gradlew war
 
 FROM ubuntu:18.04

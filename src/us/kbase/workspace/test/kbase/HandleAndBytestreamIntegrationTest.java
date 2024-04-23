@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.list;
 import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 
@@ -370,46 +371,29 @@ public class HandleAndBytestreamIntegrationTest {
 
 	@Test
 	public void status() throws Exception {
+		// only test the parts of the status that are relevant for the handle & blobstore services
 		final Map<String, Object> st = CLIENT1.status();
 
 		//top level items
-		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
-		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
-		// should throw an error if not a valid semver
-		Version.valueOf((String) st.get("version"));
-		assertThat("incorrect git url", st.get("git_url"),
-				is((Object) "https://github.com/kbase/workspace_deluxe"));
-		checkMem(st.get("freemem"), "freemem");
-		checkMem(st.get("totalmem"), "totalmem");
-		checkMem(st.get("maxmem"), "maxmem");
+		assertThat("incorrect state", st.get("state"), is("OK"));
 
 		//deps
 		@SuppressWarnings("unchecked")
-		final List<Map<String, String>> deps =
-				(List<Map<String, String>>) st.get("dependencies");
+		final List<Map<String, String>> deps = (List<Map<String, String>>) st.get("dependencies");
 		assertThat("missing dependencies", deps.size(), is(4));
 
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
-		for (final String name: Arrays.asList(
+		for (final String name: list(
 				"MongoDB", "S3", "Linked Shock for IDs", "Handle service")) {
 			final Map<String, String> g = gotiter.next();
-			assertThat("incorrect name", (String) g.get("name"), is(name));
-			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
-			assertThat("incorrect message", g.get("message"), is((Object) "OK"));
+			assertThat("incorrect name", g.get("name"), is(name));
+			assertThat("incorrect state", g.get("state"), is("OK"));
+			assertThat("incorrect message", g.get("message"), is("OK"));
 			if (name.equals("S3")) {
 				assertThat("incorrect version", g.get("version"), is("Unknown"));
 			} else {
 				Version.valueOf((String) g.get("version"));
 			}
-		}
-	}
-
-	private void checkMem(final Object num, final String name)
-			throws Exception {
-		if (num instanceof Integer) {
-			assertThat("bad " + name, (Integer) num > 0, is(true));
-		} else {
-			assertThat("bad " + name, (Long) num > 0, is(true));
 		}
 	}
 
