@@ -30,8 +30,6 @@ var IN_JAR_JAVA_DOC_DIR = "$IN_JAR_DOC_DIR/javadoc"
 var LOC_WS_SPEC = "$rootDir/workspace.spec"
 var LOC_DOC_HTML = "$rootDir/docshtml"
 
-// TODO NOW delete build.xml and Makefile - commit 8
-// TODO NOW run tests from Eclipse w/o specifying classpath manually & remove sourceSets & claspath - commit 9
 // TODO NOW update any ant refs in docs to gradle & the update schema script build & location
 
 repositories {
@@ -239,10 +237,10 @@ task sdkCompileLibs {
 }
 
 task sdkCompileJava {
-	// TODO GRADLE is there a variable for src/main/java when we move the code locations?
+	// TODO GRADLE is there a variable for src/main/java?
 	var cmd = "kb-sdk compile " +
 				"--java " +
-				"--javasrc $rootDir/src " +
+				"--javasrc $rootDir/src/main/java/ " +
 				"--javasrv " +
 				"--out . " +
 				"--url $DEFAULT_URL " + 
@@ -279,36 +277,6 @@ java -cp $buildDir/classes/java/main:\$CLASSPATH us.kbase.workspace.kbase.Schema
 		def outfile = "$buildDir/update_workspace_database_schema"
 		file(outfile).text = scriptContent
 		file(outfile).setExecutable(true)
-	}
-}
-
-// Custom java project layout
-sourceSets {
-	main {
-		java {
-			srcDirs = ["src"]
-			exclude '**/test/**'
-		}
-	}
-	test {
-		java {
-			srcDirs = ["src"]
-			include '**/test/**'
-		}
-		resources {
-			srcDirs = ["src"]
-			include "**/*.properties"
-			include '**/*.spec'
-			include '**/*instance.*'
-			include '**/*.instance*'
-			include '**/*.html'
-			include '**/*.css'
-			include '**/*.gif'
-			include '**/*.js'
-			include '**/*.png'
-			include '**/*.txt'
-			include '**/*.weirdsuffix'
-		}
 	}
 }
 
