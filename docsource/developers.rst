@@ -28,7 +28,9 @@ Note that:
 
 * The `kb-sdk <https://github.com/kbase/kb_sdk>`_ executable must be in the system path.
 * The WorkspaceServer class compiled in constructor has been commented out in order to use
-  a custom constructor. That must be reversed for the compile to work.
+  a custom constructor. In order for the compile to succeed, the custom constructor must be
+  commented out and the compiled in constructor uncommented. When the compile is complete the
+  constructors must be switched back.
 
 Release checklist
 -----------------

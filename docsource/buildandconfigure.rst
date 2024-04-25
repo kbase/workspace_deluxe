@@ -8,14 +8,13 @@ Build the workspace service
 
 Get the code::
 
-    ~$ mkdir kb
-    ~$ cd kb
-    ~/kb$ git clone https://github.com/kbase/workspace_deluxe
+
+    ~$ git clone https://github.com/kbase/workspace_deluxe
 
 Build::
 
-    ~/kb$ cd workspace_deluxe/
-    ~/kb/workspace_deluxe$ ./gradlew buildAll
+    ~$ cd workspace_deluxe/
+    ~/workspace_deluxe$ ./gradlew buildAll
     *snip*
 
 ``buildAll`` will build 3 jars in ``build/libs``:
@@ -25,7 +24,7 @@ Build::
 * A workspace shadow jar containing all test code. This is useful for starting a workpace server
   from other processes without needing a docker container, but should **only** be used for testing.
 
-It will also build the ``build\update_workspace_database_schema`` script which is used to
+It will also build the ``build/update_workspace_database_schema`` script which is used to
 update the workspace schema if it changes from one version to another.
 
 .. _servicedeps:
