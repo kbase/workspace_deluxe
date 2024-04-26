@@ -8,7 +8,7 @@ WORKDIR /tmp/workspace
 # dependencies take a while to D/L, so D/L & cache before the build so code changes don't cause
 # a new D/L
 # can't glob *gradle because of the .gradle dir
-COPY build.gradle gradlew settings.gradle /tmp/workspace/
+COPY gradlew settings.gradle /tmp/workspace/
 COPY gradle/ /tmp/workspace/gradle/
 RUN ./gradlew dependencies
 
@@ -18,8 +18,7 @@ COPY deployment/ /tmp/workspace/deployment/
 COPY docshtml /tmp/workspace/docshtml/
 COPY docsource /tmp/workspace/docsource/
 COPY lib /tmp/workspace/lib/
-COPY src /tmp/workspace/src/
-COPY war /tmp/workspace/war/
+COPY service /tmp/workspace/service
 # for the git commit
 COPY .git /tmp/workspace/.git/
 RUN ./gradlew war
@@ -56,7 +55,7 @@ COPY --from=build /tmp/workspace/deployment/ /kb/deployment/
 
 RUN /usr/bin/${TOMCAT_VERSION}-instance-create /kb/deployment/services/workspace/tomcat && \
     rm -rf /kb/deployment/services/workspace/tomcat/webapps/ROOT
-COPY --from=build /tmp/workspace/build/libs/workspace_deluxe.war /kb/deployment/services/workspace/tomcat/webapps/ROOT.war
+COPY --from=build /tmp/workspace/service/build/libs/service.war /kb/deployment/services/workspace/tomcat/webapps/ROOT.war
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
 # the end
