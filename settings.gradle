@@ -10,3 +10,4 @@
 
 rootProject.name = 'workspace_deluxe'
 include 'service'
+include 'client'
