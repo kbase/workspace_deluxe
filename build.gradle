@@ -72,7 +72,7 @@ javadoc {
 	 * building the client javadocs. If we ever need the full javadocs make a new task for the
 	 * client java docs
 	 */
-	/* TODO DOCS the current sdk documenation looks like invalid html to javadoc
+	/* TODO DOCS the current sdk documentation looks like invalid html to javadoc
 	 *           need to go through and remove
 	 *           also some spots with < / > that need to be wrapped with {@code } in internal code
 	 */

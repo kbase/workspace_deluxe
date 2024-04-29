@@ -16,7 +16,10 @@ UPDATES:
   against Mongo 7.
 * Gradle has replaced Ant as the build tool. As a consequence, all the built artifacts are now
   located in the build directory, including the ``update_workspace_database_schema`` script.
-* A shadow jar is published on jitpack.io for supporting tests in other repos.
+* A shadow jar has been published on jitpack.io for supporting tests in other repos.
+  This allows for starting the workspace service from a single jar in other applications.
+  All dependencies are included in the jar in shadow namespaces so they don't conflict with
+  different versions of the dependencies in the application under test.
 
 
 VERSION: 0.14.2 (Released 11/9/2023)
