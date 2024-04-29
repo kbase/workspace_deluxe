@@ -30,8 +30,6 @@ var IN_JAR_JAVA_DOC_DIR = "$IN_JAR_DOC_DIR/javadoc"
 var LOC_WS_SPEC = "$rootDir/workspace.spec"
 var LOC_DOC_HTML = "$rootDir/docshtml"
 
-// TODO NOW update any ant refs in docs to gradle & the update schema script build & location
-
 repositories {
 	mavenCentral()
 }
@@ -278,6 +276,14 @@ java -cp $buildDir/classes/java/main:\$CLASSPATH us.kbase.workspace.kbase.Schema
 		file(outfile).text = scriptContent
 		file(outfile).setExecutable(true)
 	}
+}
+
+task buildAll {
+	dependsOn buildDocs
+	dependsOn jar
+	dependsOn war
+	dependsOn shadowJar
+	dependsOn generateUpdateSchemaScript
 }
 
 configurations {

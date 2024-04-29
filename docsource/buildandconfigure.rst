@@ -3,79 +3,29 @@
 Build, configure, and deploy
 ============================
 
-These instructions assume the reader is familiar with the process of deploying
-a KBase module, including the `runtime <https://github.com/kbase/bootstrap>`_
-and `dev_container <https://github.com/kbase/dev_container>`_, and has access to
-a system with the KBase runtime installed. These instructions are based on the
-``kbase-image-v26`` runtime image.
-
-Unlike many modules the WSS can be built and tested outside the
-``dev_container``, but the ``dev_container`` is required to build and test the
-scripts. These instructions are for deploying the server and so do not
-address the scripts. Building outside the ``dev_container`` means the Makefile
-uses several default values for deployment - if you wish to use other values
-deploy from the ``dev_container`` as usual.
-
 Build the workspace service
 ---------------------------
 
-First checkout the ``dev_container``::
+Get the code::
 
-    /kb$ sudo git clone https://github.com/kbase/dev_container
-    Cloning into 'dev_container'...
-    remote: Counting objects: 1097, done.
-    remote: Total 1097 (delta 0), reused 0 (delta 0), pack-reused 1097
-    Receiving objects: 100% (1097/1097), 138.81 KiB, done.
-    Resolving deltas: 100% (661/661), done.
 
-.. note::
-   In the v26 image, ``/kb`` is owned by ``root``. As an alternative to
-   repetitive ``sudo`` s, ``chown`` ``/kb`` to the user.
+    ~$ git clone https://github.com/kbase/workspace_deluxe
 
-Bootstrap and source the user environment file, which sets up Java and Perl
-paths which the WSS build needs::
+Build::
 
-    /kb$ cd dev_container/
-    /kb/dev_container$ sudo ./bootstrap /kb/runtime/
-    /kb/dev_container$ source user-env.sh
-
-Now the WSS may be built. If building inside the ``dev_container`` all the
-dependencies from the ``DEPENDENCIES`` file are required, but to build outside
-the ``dev_container``, only the ``jars`` and ``workspace_deluxe`` repos are
-necessary::
-
-    ~$ mkdir kb
-    ~$ cd kb
-    ~/kb$ git clone https://github.com/kbase/workspace_deluxe
-    Cloning into 'workspace_deluxe'...
-    remote: Counting objects: 21961, done.
-    remote: Compressing objects: 100% (40/40), done.
-    remote: Total 21961 (delta 20), reused 0 (delta 0), pack-reused 21921
-    Receiving objects: 100% (21961/21961), 21.42 MiB | 16.27 MiB/s, done.
-    Resolving deltas: 100% (13979/13979), done.
-
-    ~/kb$ git clone https://github.com/kbase/jars
-    Cloning into 'jars'...
-    remote: Counting objects: 1466, done.
-    remote: Total 1466 (delta 0), reused 0 (delta 0), pack-reused 1466
-    Receiving objects: 100% (1466/1466), 59.43 MiB | 21.49 MiB/s, done.
-    Resolving deltas: 100% (626/626), done.
-
-    ~/kb$ cd workspace_deluxe/
-    ~/kb/workspace_deluxe$ make
+    ~$ cd workspace_deluxe/
+    ~/workspace_deluxe$ ./gradlew buildAll
     *snip*
 
-``make`` will build:
+``buildAll`` will build 3 jars in ``build/libs``:
 
-* A workspace client jar in ``/dist/client``
-* A workspace server jar in ``/dist``
-* This documentation in ``/docs``
+* A workspace client jar
+* A workspace server WAR file
+* A workspace shadow jar containing all test code. This is useful for starting a workpace server
+  from other processes without needing a docker container, but should **only** be used for testing.
 
-.. note::
-   If the build fails due to a sphinx error, sphinx may require an upgrade to
-   >= 1.3::
-
-       $ sudo pip install sphinx --upgrade
+It will also build the ``build/update_workspace_database_schema`` script which is used to
+update the workspace schema if it changes from one version to another.
 
 .. _servicedeps:
 
@@ -133,10 +83,7 @@ to create the file.
    It is especially important to protect the credentials that the WSS uses
    to talk to S3 (``backend-token``) as they can be used to delete
    or corrupt the workspace data. At minimum, only the user that runs the WSS (which
-   should **not** be ``root``) should have read access to ``deploy.cfg``. Also be
-   aware that the ``deploy.cfg`` contents are copied to, by default,
-   ``/kb/deployment/deployment.cfg`` when the workspace is deployed from the
-   ``dev_container``.
+   should **not** be ``root``) should have read access to ``deploy.cfg``.
 
 .. _configurationparameters:
 
@@ -338,9 +285,6 @@ is checked against ``bytestream-user``, and if the names differ, the server will
 .. warning:: Once any data containing Shock node IDs has been saved by the workspace, changing the
    shock user will result in unspecified behavior, including data corruption.
 
-.. note:: It is strongly encouraged to use different accounts for the backend shock user and
-   the linking shock user so that core workspace data can be distinguished from linked data.
-
 bytestream-token
 """"""""""""""""
 **Required**: If linking WSS objects to Shock nodes is desired.
@@ -407,6 +351,17 @@ for a request, in order of precedence, is 1) the first address in
 
 Deploy and start the server
 ---------------------------
+
+.. todo::
+   This section needs an entire rewrite from scratch with Tomcat as the application server and
+   a clean, easy install instruction set or a script to set things up correctly (e.g.
+   the port and memory settings in the ``deploy.cfg`` file are currently ignored).
+   Currently, the easiest way to run the service locally is via ``docker compose up -d --build``
+   which will start a KBase auth server in testmode and the workspace. If deploying outside
+   a docker container is required, the best option for now is to inspect the Dockerfile and
+   attempt to follow the steps there.
+
+   Also, the developer and administrator server startup documentation should be unified.
 
 To avoid various issues when deploying, ``chown`` the deployment directory
 to the user. Alternatively, chown ``/kb/`` to the user, or deploy as root.

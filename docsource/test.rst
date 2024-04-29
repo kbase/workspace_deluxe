@@ -8,6 +8,10 @@ In order to run tests:
 
   * A Linux Shock binary is provided in ``shock_builds``.
 
+.. todo::
+   Update these instructions for the `Blobstore <https://github.com/kbase/blobstore>`_,
+   which has replaced Shock.
+
 * Minio must be installed, but not necessarily running.
 
   * Minio version must be greater than 2019-05-23T00-29-34Z.
@@ -15,11 +19,12 @@ In order to run tests:
 * The Handle Service must be installed, but not necessarily running. See ``test.cfg.example``
   for setup instructions.
   
-* The KBase Jars repo must be cloned into the parent directory of the workspace repo directory,
-  e.g::
+* The Sample Service must be installed, but not necessarily running. See ``test.cfg.example``
+  for setup instructions.
 
-    ls 
-    jars  workspace_deluxe
+* `ArangoDB <https://arangodb.com/>`_ must be installed but not necessarily running as it is a
+  requirement of the Sample Service.
+
 
 See :ref:`servicedeps` for more information about these test dependencies.
 
@@ -30,7 +35,9 @@ Then::
     cd python_dependencies/
     pipenv shell
     cd ..
-    make test
+    ./gradlew test
 
-The tests currently take 20-30 minutes to run on spinning disks, or 8-10 minutes on SSDs.
+The ``testQuick`` target is substantially faster but does not run all tests.
 
+.. todo::
+   Move to developer documentation vs. server administrator documenation.

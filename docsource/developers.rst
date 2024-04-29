@@ -22,9 +22,15 @@ Branches:
 
 Recompiling the generated code
 ------------------------------
-To compile, simply run ``make compile``. The
-`kb-sdk <https://github.com/kbase/kb_sdk>`_ executable must be in the system
-path.
+To compile, run ``./gradlew compile``.
+
+Note that:
+
+* The `kb-sdk <https://github.com/kbase/kb_sdk>`_ executable must be in the system path.
+* The WorkspaceServer class compiled in constructor has been commented out in order to use
+  a custom constructor. In order for the compile to succeed, the custom constructor must be
+  commented out and the compiled in constructor uncommented. When the compile is complete the
+  constructors must be switched back.
 
 Release checklist
 -----------------
@@ -52,6 +58,16 @@ Release checklist
 
 Deploying the Workspace Service locally
 ----------------------------------------
+
+.. todo::
+   This section needs an entire rewrite from scratch with Tomcat as the application server.
+   Currently, the easiest way to run the service locally is via ``docker compose up -d --build``
+   which will start a KBase auth server in testmode and the workspace. If deploying outside
+   a docker container is required, the best option for now is to inspect the Dockerfile and
+   attempt to follow the steps there.
+
+   Also, the developer and administrator server startup documentation should be unified.
+
 These instructions are known to work on Ubuntu 16.04 LTS.
 
 1. Install the dependencies `Java8 <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_, `Apache Ant <https://ant.apache.org/bindownload.cgi>`_, pymongo v2.8, `GlassFish v3.1.2.2 <http://www.oracle.com/technetwork/middleware/glassfish/downloads/ogs-3-1-1-downloads-439803.html>`_ , `mongodb >=v2.6.* <https://www.mongodb.com/download-center#atlas>`_, `kb-sdk <https://github.com/kbase/kb_sdk>`_ and the `KBase Jars <https://github.com/kbase/jars>`_ directory.
