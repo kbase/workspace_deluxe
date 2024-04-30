@@ -1,7 +1,7 @@
 package us.kbase.test.workspace.controllers.handle;
 
-import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
-import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
+import static us.kbase.testutils.controllers.ControllerCommon.findFreePort;
+import static us.kbase.testutils.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -16,7 +16,7 @@ import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 
 import us.kbase.auth.AuthToken;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 
 
 /** Q&D Utility to run the Handle Service for the purposes of testing from Java.

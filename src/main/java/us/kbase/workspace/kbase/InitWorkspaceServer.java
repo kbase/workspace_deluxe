@@ -33,7 +33,7 @@ import com.mongodb.client.MongoDatabase;
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.ConfigurableAuthService;
+import us.kbase.auth.client.AuthClient;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.sampleservice.SampleServiceClient;
@@ -142,7 +142,7 @@ public class InitWorkspaceServer {
 	
 	public static WorkspaceInitResults initWorkspaceServer(
 			final KBaseWorkspaceConfig cfg,
-			final ConfigurableAuthService auth,
+			final AuthClient auth,
 			final InitReporter rep) {
 		final TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(), rep);
 		
@@ -220,7 +220,7 @@ public class InitWorkspaceServer {
 
 	private static WorkspaceInitResults buildWorkspace(
 			final KBaseWorkspaceConfig cfg,
-			final ConfigurableAuthService auth,
+			final AuthClient auth,
 			final AbstractHandleClient hsc,
 			final TempFilesManager tfm,
 			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
@@ -349,7 +349,7 @@ public class InitWorkspaceServer {
 
 	private static BytestreamIdHandlerFactory getShockIdHandlerFactory(
 			final KBaseWorkspaceConfig cfg,
-			final ConfigurableAuthService auth)
+			final AuthClient auth)
 			throws WorkspaceInitException {
 		if (cfg.getBytestreamURL() == null) {
 			return new BytestreamIdHandlerFactory(null, null);
@@ -376,7 +376,7 @@ public class InitWorkspaceServer {
 	
 	private static SampleIdHandlerFactory getSampleIdHandlerFactory(
 			final KBaseWorkspaceConfig cfg,
-			final ConfigurableAuthService auth,
+			final AuthClient auth,
 			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
 			throws WorkspaceInitException {
 		if (cfg.getSampleServiceURL() == null) {
@@ -479,7 +479,7 @@ public class InitWorkspaceServer {
 			final String user,
 			final String token,
 			final String source,
-			final ConfigurableAuthService auth)
+			final AuthClient auth)
 			throws WorkspaceInitException {
 		final AuthToken t = getToken(token, auth, source);
 		if (!t.getUserName().equals(user)) {
@@ -493,7 +493,7 @@ public class InitWorkspaceServer {
 	
 	private static AuthToken getToken(
 			final String token,
-			final ConfigurableAuthService auth,
+			final AuthClient auth,
 			final String source)
 			throws WorkspaceInitException {
 		if (token == null) {
@@ -568,7 +568,7 @@ public class InitWorkspaceServer {
 	private static AuthToken getHandleToken(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep,
-			final ConfigurableAuthService auth) {
+			final AuthClient auth) {
 		try {
 			return auth.validateToken(cfg.getHandleServiceToken());
 		} catch (AuthException e) {

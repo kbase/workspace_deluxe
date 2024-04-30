@@ -1,8 +1,8 @@
 package us.kbase.test.workspace.controllers.arango;
 
-import static us.kbase.common.test.controllers.ControllerCommon.checkExe;
-import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
-import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
+import static us.kbase.testutils.controllers.ControllerCommon.checkExe;
+import static us.kbase.testutils.controllers.ControllerCommon.findFreePort;
+import static us.kbase.testutils.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.IOException;
 import java.nio.file.Files;

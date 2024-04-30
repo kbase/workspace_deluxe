@@ -16,9 +16,9 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 
 //BEGIN_HEADER
-import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
-import us.kbase.auth.ConfigurableAuthService;
+import us.kbase.auth.client.AuthClient;
+
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
@@ -35,9 +35,7 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifie
 import static us.kbase.workspace.version.WorkspaceVersion.VERSION;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -143,7 +141,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private static ThreadLocal<JsonServerSyslog> _tempSyslog = new ThreadLocal<>();
 	private static ThreadLocal<KBaseWorkspaceConfig> _tempConfig = new ThreadLocal<>();
 	private static ThreadLocal<Boolean> _tempStartupFailed = new ThreadLocal<>();
-	private static ThreadLocal<ConfigurableAuthService> _tempAuth = new ThreadLocal<>();
+	private static ThreadLocal<AuthClient> _tempAuth = new ThreadLocal<>();
 	
 	public WorkspaceServer() {
 		// This deliberately replaces the constructor compiled by kb-sdk. If you recompile the
@@ -197,29 +195,17 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (cfg == null) {
 			return t -> {throw new AuthException("failed to set up auth");};
 		}
-		final AuthConfig c = new AuthConfig();
-		if (cfg.getAuth2URL().getProtocol().equals("http")) {
-			c.withAllowInsecureURLs(true);
-			sysLogger.logInfo("Warning - the Auth Service MKII url uses insecure http. " +
-					"https is recommended.");
-		}
 		try {
-			final URL globusURL = cfg.getAuth2URL().toURI().resolve("api/legacy/globus").toURL();
-			final URL kbaseURL = cfg.getAuth2URL().toURI()
-					.resolve("api/legacy/KBase/Sessions/Login").toURL();
-			c.withGlobusAuthURL(globusURL).withKBaseAuthServerURL(kbaseURL);
-		} catch (URISyntaxException | MalformedURLException e) {
+			final AuthClient cli = AuthClient.from(cfg.getAuth2URL().toURI());
+			_tempAuth.set(cli);
+			return token -> cli.validateToken(token);
+		} catch (URISyntaxException e) {
 			sysLogger.logErr("Invalid Auth Service url: " + cfg.getAuth2URL());
 			_tempStartupFailed.set(true);
 			return t -> {throw new AuthException("failed to set up auth");};
-		}
-		try {
-			final ConfigurableAuthService cas = new ConfigurableAuthService(c);
-			_tempAuth.set(cas);
-			return token -> cas.validateToken(token);
-		} catch (IOException e) {
+		} catch (AuthException | IOException e) {
 			sysLogger.logErr("Couldn't connect to authorization service at " +
-					c.getAuthServerURL() + " : " + e.getLocalizedMessage());
+					cfg.getAuth2URL() + " : " + e.getLocalizedMessage());
 			sysLogger.logErr(e);
 			_tempStartupFailed.set(true);
 			return t -> {throw new AuthException("failed to set up auth");};
@@ -308,7 +294,7 @@ public class WorkspaceServer extends JsonServerServlet {
 
 	private WorkspaceInitResults initWorkspace(
 			final KBaseWorkspaceConfig cfg,
-			final ConfigurableAuthService auth,
+			final AuthClient auth,
 			final JsonServerSyslog logger) {
 		setUpLogger();
 		setMaxRPCPackageSize(MAX_RPC_PACKAGE_SIZE);

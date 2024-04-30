@@ -44,7 +44,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.service.UObject;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.test.common.TestCommon;
 import us.kbase.test.typedobj.DummyValidatedTypedObject;

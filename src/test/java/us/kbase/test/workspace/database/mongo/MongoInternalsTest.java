@@ -38,7 +38,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import us.kbase.common.service.UObject;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.test.common.TestCommon;
 import us.kbase.test.typedobj.DummyValidatedTypedObject;

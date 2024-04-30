@@ -37,7 +37,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.AppenderBase;
-import us.kbase.common.test.TestException;
+import us.kbase.testutils.TestException;
 import us.kbase.typedobj.core.TempFilesManager;
 
 public class TestCommon {

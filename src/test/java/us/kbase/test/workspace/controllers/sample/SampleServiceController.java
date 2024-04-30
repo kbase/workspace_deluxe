@@ -1,7 +1,7 @@
 package us.kbase.test.workspace.controllers.sample;
 
-import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
-import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
+import static us.kbase.testutils.controllers.ControllerCommon.findFreePort;
+import static us.kbase.testutils.controllers.ControllerCommon.makeTempDirs;
 import static us.kbase.workspace.database.Util.checkString;
 
 import java.io.BufferedReader;

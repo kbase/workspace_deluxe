@@ -38,7 +38,7 @@ import com.mongodb.client.MongoDatabase;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.test.common.TestCommon;
 import us.kbase.test.workspace.WorkspaceTestCommon;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;

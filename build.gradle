@@ -11,9 +11,18 @@ plugins {
 	id 'java'
 	id 'war'
 	id 'jacoco'
+	id 'maven-publish'
 	id 'org.ajoberstar.grgit' version '4.1.1'
 	id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
+
+group = 'com.github.kbase'
+
+var VER_JAVA_COMMON = "0.3.0"
+var VER_AUTH2_CLIENT = "0.5.0"
+var VER_AUTH2_SHADOW = "0.7.1"
+var VER_JACKSON = "2.9.9"
+
 
 var DEFAULT_URL = "https://ci.kbase.us/services/ws"
 
@@ -32,6 +41,14 @@ var LOC_DOC_HTML = "$rootDir/docshtml"
 
 repositories {
 	mavenCentral()
+	maven {
+		name = "Jitpack"
+		url = 'https://jitpack.io'
+	}
+	maven {
+		name = "Clojars"
+		url = "https://repo.clojars.org/"
+	}
 }
 
 task buildGitCommitFile {
@@ -55,19 +72,15 @@ javadoc {
 	 * building the client javadocs. If we ever need the full javadocs make a new task for the
 	 * client java docs
 	 */
-	/* TODO DOCS currently java-common and auth links don't work. ROI for fixing them is low.
-	 *           Ideally, in the future make github actions publish docs on release and ref them
-	 *           here.
-	 *           https://github.com/marketplace/actions/deploy-publish-javadoc
-	 *           https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry
-	 */
-	/* TODO DOCS the current sdk documenation looks like invalid html to javadoc
+	/* TODO DOCS the current sdk documentation looks like invalid html to javadoc
 	 *           need to go through and remove
 	 *           also some spots with < / > that need to be wrapped with {@code } in internal code
 	 */
 	failOnError = false
 	options {
 		links "https://docs.oracle.com/en/java/javase/11/docs/api/"
+		links "https://javadoc.jitpack.io/com/github/kbase/auth2_client_java/$VER_AUTH2_CLIENT/javadoc/"
+		links "https://javadoc.jitpack.io/com/github/kbase/java_common/$VER_JAVA_COMMON/javadoc/"
 	}
 	include "**/workspace/*.java"
 	exclude "**/workspace/WorkspaceServer.java"
@@ -163,12 +176,16 @@ shadowJar {
 	// Be careful when updating jars - you may want to set the duplicates strategy to WARN
 	// to see if any of the jars are shadowing the others when building the fat jar, which
 	// has been the case in the past
-	dependsOn buildDocs
+	// Can't include the full documentation as jitpack doesn't have sphinx installed
+	dependsOn javadoc
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	archiveAppendix = 'test-shadow'
 	from sourceSets.test.output
-	// we don't want to package the auth shadow jar, so no test runtime classpath
-	configurations = [project.configurations.runtimeClasspath]
+	
+	// don't shadow the shadow jar, don't need it and it's big
+	dependencies {
+		exclude(dependency("com.github.kbase:auth2:$VER_AUTH2_SHADOW"))
+	}
 
 	enableRelocation true
 	relocationPrefix 'us.kbase.workspace.shadow'
@@ -184,6 +201,19 @@ war {
 	webXml = file('war/web.xml')
 	from(BUILD_JAVA_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_JAVA_DOC_DIR" }
 	from(BUILD_OTHER_DOC_DIR) { into "/WEB-INF/classes/$IN_JAR_DOC_DIR" }
+}
+
+// This is a filthy hack to get jitpack.io to not try to build the war file.
+// Since the war depends on buildDocs which depends on sphinx, the build will fail
+// It'd be better if it didn't call assemble and just publishToMavenLocal,
+// but no such luck
+gradle.taskGraph.whenReady { taskGraph ->
+    def tasks = taskGraph.getAllTasks()
+    if (tasks.find {it.name == 'assemble'}) {
+        tasks.findAll {it.name == 'war' || it.name == "buildDocs"}.each { task ->
+            task.enabled = false
+        }
+    }
 }
 
 /* SDK compile notes:
@@ -291,49 +321,38 @@ configurations {
 	testimpl.extendsFrom testImplementation
 }
 
-def fromURL = { url, name ->
-	File file = new File("$buildDir/download/${name}.jar")
-	file.parentFile.mkdirs()
-	if (!file.exists()) {
-		new URL(url).withInputStream { downloadStream ->
-			file.withOutputStream { fileOut ->
-				fileOut << downloadStream
-			}
+publishing {
+	publications {
+		shadow(MavenPublication) { publication ->
+			project.shadow.component(publication)
+			artifactId = "workspace_deluxe-test-shadow-all"
 		}
 	}
-	files(file.absolutePath)
 }
 
 dependencies {
 
 	// ### General application dependencies ###
 	
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/handle/AbstractHandleClient-1.0.0.jar',
-		'AbstractHandleClient-1.0.0'
-	)
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth/kbase-auth-0.4.4.jar',
-		'kbase-auth-0.4.4'
-	)
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar',
-		'kbase-kidl-parser-1409261812-7863aef'
-	)
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/sample/SampleServiceClient-0.1.1.jar',
-		'SampleServiceClient-0.1.1'
-	)
 	implementation 'ch.qos.logback:logback-classic:1.1.2'
-	implementation 'com.google.guava:guava:14.0.1'
 	implementation 'com.github.ben-manes.caffeine:caffeine:2.9.3'
+	implementation "com.github.kbase:auth2_client_java:$VER_AUTH2_CLIENT"
+	implementation("com.github.kbase:handle_service2:1.0.6") {
+		exclude group: 'net.java.dev.jna' // breaks shadow jar
+	}
+	implementation "com.github.kbase:java_kidl:0.1.0"
+	implementation("com.github.kbase:sample_service:0.2.6") {
+		exclude group: 'net.java.dev.jna' // breaks shadow jar
+	}
+	implementation "com.github.kbase:shock_java_client:0.2.0"
+	implementation 'com.google.guava:guava:14.0.1'
 	implementation 'commons-codec:commons-codec:1.8'
 	implementation 'commons-io:commons-io:2.4'
-	implementation 'com.fasterxml.jackson.core:jackson-annotations:2.9.9'
-	implementation 'com.fasterxml.jackson.core:jackson-core:2.9.9'
-	implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.9'
+	implementation "com.fasterxml.jackson.core:jackson-annotations:$VER_JACKSON"
+	implementation "com.fasterxml.jackson.core:jackson-databind:$VER_JACKSON"
 	implementation 'info.picocli:picocli:4.6.1'
 	implementation 'org.apache.commons:commons-lang3:3.1'
+	implementation 'org.apache.httpcomponents:httpclient:4.5.9'
 	implementation 'org.apache.kafka:kafka-clients:2.1.0'
 	implementation 'org.ini4j:ini4j:0.5.2'
 	implementation 'org.mongodb:bson:4.11.1'
@@ -342,34 +361,18 @@ dependencies {
 	implementation 'org.mongodb:mongodb-driver-sync:4.11.1'
 	implementation 'org.slf4j:slf4j-api:1.7.30'
 	
-	// ### Server dependencies, specifically for java_common JsonServerServlet ###
+	// ### Server dependencies for java_common JsonServerServlet & WorkspaceServer ###
 	
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/common/kbase-common-0.2.0.jar',
-		'kbase-common-0.2.0'
-	)
-	// Pull from jars repo vs a maven repository to avoid the JNA dependency
-	// TODO DEPS Need to rework the java common logger to not use syslog4j at all since it's abandonware
-	// and has a ton of CVEs, even in the newer versions.
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/syslog4j/syslog4j-0.9.46.jar',
-		'syslog4j-0.9.46'
-	)
+	implementation("com.github.kbase:java_common:$VER_JAVA_COMMON") {
+		exclude group: 'net.java.dev.jna' // breaks shadow jar
+	}
+	// TODO DEPS Need to rework the java common logger to not use syslog4j at all since it's
+	// abandonware and has a ton of CVEs, even in the newer versions.
+	implementation "org.syslog4j:syslog4j:0.9.46"
 	implementation 'javax.annotation:javax.annotation-api:1.3.2'
 	implementation 'javax.servlet:servlet-api:2.5'
-	// joda-time is required for kbase-common and syslog4j
-	implementation 'joda-time:joda-time:2.2'
 	// this is OOOOOOLD. But that probably means updating java_common
 	implementation 'org.eclipse.jetty.aggregate:jetty-all:7.0.0.v20091005'
-	
-	// ### Blobstore / Shock client and dependencies ###
-	
-	implementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/shock/shock-client-0.1.0.jar',
-		'shock-client-0.1.0'
-	)
-	implementation 'org.apache.httpcomponents:httpclient:4.5.9'
-	implementation 'org.apache.httpcomponents:httpmime:4.5.8'
 
 	// ### Amazon S3 ###
 	
@@ -381,17 +384,13 @@ dependencies {
 	
 	// ### Test ###
 	
-	testImplementation fromURL(
-		'https://github.com/kbase/jars/raw/master/lib/jars/kbase/auth2/kbase-auth2-test-shadow-all-0.7.0.jar',
-		'kbase-auth2-test-shadow-all-0.7.0'
-	)
 	testImplementation 'com.arangodb:arangodb-java-driver:6.7.2'
+	testImplementation 'com.github.kbase:java_test_utilities:0.1.0'
+	testImplementation "com.github.kbase:auth2:$VER_AUTH2_SHADOW"
 	testImplementation 'com.github.zafarkhaja:java-semver:0.9.0'
 	testImplementation 'junit:junit:4.12'
 	testImplementation 'nl.jqno.equalsverifier:equalsverifier:3.1.10'
-	testImplementation 'org.hamcrest:hamcrest-core:1.3'
 	testImplementation 'org.mockito:mockito-core:3.0.0'
-	
 }
 
 task showTestClassPath {
@@ -399,4 +398,3 @@ task showTestClassPath {
 		configurations.testimpl.each { println it }
 	}
 }
-

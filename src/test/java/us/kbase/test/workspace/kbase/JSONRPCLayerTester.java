@@ -38,16 +38,13 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.AuthUser;
-import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.test.common.TestCommon;
 import us.kbase.test.workspace.JsonTokenStreamOCStat;
@@ -116,9 +113,10 @@ public class JSONRPCLayerTester {
 	protected static final String USER1 = "user1";
 	protected static final String USER2 = "user2";
 	protected static final String USER3 = "user3";
+	protected static String TOKEN1;
+	protected static String TOKEN2;
+	protected static String TOKEN3;
 	protected static final String STARUSER = "*";
-	protected static AuthUser AUTH_USER1 = null;
-	protected static AuthUser AUTH_USER2 = null;
 	protected static WorkspaceServer SERVER2 = null;
 	protected static WorkspaceClient CLIENT_FOR_SRV2 = null;  // This client connects to SERVER2
 	protected static WorkspaceClient CLIENT_NO_AUTH = null;
@@ -194,14 +192,14 @@ public class JSONRPCLayerTester {
 		final URL authURL = new URL("http://localhost:" + authc.getServerPort() + "/testmode");
 		System.out.println("started auth server at " + authURL);
 		TestCommon.createAuthUser(authURL, USER1, "display1");
-		final String token1 = TestCommon.createLoginToken(authURL, USER1);
+		TOKEN1 = TestCommon.createLoginToken(authURL, USER1);
 		TestCommon.createAuthUser(authURL, USER2, "display2");
-		final String token2 = TestCommon.createLoginToken(authURL, USER2);
+		TOKEN2 = TestCommon.createLoginToken(authURL, USER2);
 		TestCommon.createAuthUser(authURL, USER3, "display3");
-		final String token3 = TestCommon.createLoginToken(authURL, USER3);
-		final AuthToken t1 = new AuthToken(token1, USER1);
-		final AuthToken t2 = new AuthToken(token2, USER2);
-		final AuthToken t3 = new AuthToken(token3, USER3);
+		TOKEN3 = TestCommon.createLoginToken(authURL, USER3);
+		final AuthToken t1 = new AuthToken(TOKEN1, USER1);
+		final AuthToken t2 = new AuthToken(TOKEN2, USER2);
+		final AuthToken t3 = new AuthToken(TOKEN3, USER3);
 		TestCommon.createCustomRole(authURL, AUTH_ROLE_READ1, "read 1");
 		TestCommon.createCustomRole(authURL, AUTH_ROLE_READ2, "read 2");
 		TestCommon.createCustomRole(authURL, AUTH_ROLE_FULL, "full");
@@ -221,12 +219,6 @@ public class JSONRPCLayerTester {
 		CLIENT3.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT_NO_AUTH = new WorkspaceClient(wsurl);
 		CLIENT_NO_AUTH.setIsInsecureHttpConnectionAllowed(true);
-		final ConfigurableAuthService auth = new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(new URL("http://localhost:" +
-						authc.getServerPort() + "/testmode/api/legacy/KBase"))
-				.withAllowInsecureURLs(true));
-		AUTH_USER1 = auth.getUserFromToken(t1);
-		AUTH_USER2 = auth.getUserFromToken(t2);
 
 		SERVER_AUTH_ADMINS = startupWorkspaceServer(
 				mongohost, DB_WS_NAME_AUTH2_ADMINS, DB_TYPE_NAME_AUTH2_ADMINS, true);

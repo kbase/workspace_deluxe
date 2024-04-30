@@ -44,12 +44,12 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
-import us.kbase.common.test.TestException;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.TestException;
+import us.kbase.testutils.controllers.minio.MinioController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.test.common.TestCommon;
 import us.kbase.test.workspace.JsonTokenStreamOCStat;
 import us.kbase.test.workspace.WorkspaceTestCommon;
-import us.kbase.test.workspace.controllers.minio.MinioController;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;

@@ -31,7 +31,7 @@ import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
 import us.kbase.common.service.Tuple11;
-import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.testutils.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.test.common.TestCommon;
 import us.kbase.test.workspace.WorkspaceServerThread;

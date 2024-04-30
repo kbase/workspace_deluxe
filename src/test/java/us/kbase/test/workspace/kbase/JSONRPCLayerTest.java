@@ -34,7 +34,6 @@ import java.util.stream.LongStream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
 
-import us.kbase.auth.AuthUser;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
@@ -1444,7 +1443,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withId(wsid),
 				"depsave", USER1, wsinfo.getE4(), 0, "a", "n", wsid);
 		checkDepWSMeta(new us.kbase.workspace.GetWorkspacemetaParams()
-				.withWorkspace("depsave").withAuth(AUTH_USER2.getTokenString()),
+				.withWorkspace("depsave").withAuth(TOKEN2),
 				"depsave", USER1, wsinfo.getE4(), 0, "w", "n", wsid);
 
 		Tuple7<String, String, String, Long, String, String, Long> wsmeta =
@@ -1486,7 +1485,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String, String>, Long> obj3 =
 				CLIENT1.saveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
-				.withData(new UObject(data)).withAuth(AUTH_USER2.getTokenString()));
+				.withData(new UObject(data)).withAuth(TOKEN2));
 
 		checkDeprecatedSaveInfo(obj1, 1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4", meta);
 		checkDeprecatedSaveInfo(obj2, 2, "obj2", anotherType, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840", meta2);
@@ -1495,33 +1494,27 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj1"),
 				new ObjectIdentity().withWsid(wsid).withObjid(1L),
 				1, "obj1", SAFE_TYPE, 1, USER1, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
-				23, meta, data, AUTH_USER2);
+				23, meta, data, TOKEN2);
 		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj2"),
 				new ObjectIdentity().withWsid(wsid).withObjid(2L),
 				2, "obj2", anotherType, 1, USER1, wsid, "depsave", "3c59f762140806c36ab48a152f28e840",
-				24, meta2, data2, AUTH_USER2);
+				24, meta2, data2, TOKEN2);
 		checkSavedObjectDep(new ObjectIdentity().withWorkspace("depsave").withName("obj3"),
 				new ObjectIdentity().withWsid(wsid).withObjid(3L),
 				3, "obj3", SAFE_TYPE, 1, USER2, wsid, "depsave", "36c4f68f2c98971b9736839232eb08f4",
-				23, meta2, data, AUTH_USER2);
+				23, meta2, data, TOKEN2);
 
 		checkListObjectsDep("depsave", null, null, null, Arrays.asList(obj1, obj2, obj3));
 		checkListObjectsDep("depsave", anotherType, null, null, Arrays.asList(obj2));
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withName("obj2").withWorkspace("depsave")));
 		checkListObjectsDep("depsave", null, 0L, null, Arrays.asList(obj1, obj3));
 		checkListObjectsDep("depsave", null, 1L, null, Arrays.asList(obj1, obj2, obj3));
-		checkListObjectsDep("depsave", null, null, AUTH_USER2.getTokenString(), Arrays.asList(obj1, obj3));
+		checkListObjectsDep("depsave", null, null, TOKEN2, Arrays.asList(obj1, obj3));
 
-		String invalidToken = AUTH_USER2.getTokenString() + "a";
+		String invalidToken = TOKEN2 + "a";
 		String badFormatToken = "borkborkbork";
-		// old auth service
-//		String invalidTokenExp =
-//				"Login failed! Server responded with code 401 UNAUTHORIZED";
-//		String badFormatTokenExp = "Login failed! Invalid token";
-		// new auth service
 		String invalidTokenExp =
-				"Login failed! Server responded with code 401 Unauthorized";
-		String badFormatTokenExp = invalidTokenExp;
+				"Auth service returned an error: 10020 Invalid token";
 
 
 		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
@@ -1529,12 +1522,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				invalidTokenExp);
 		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
 				.withWorkspace("depsave").withAuth(badFormatToken),
-				badFormatTokenExp);
+				invalidTokenExp);
 
 		failDepListWs(new us.kbase.workspace.ListWorkspacesParams()
 				.withAuth(invalidToken), invalidTokenExp);
 		failDepListWs(new us.kbase.workspace.ListWorkspacesParams()
-				.withAuth(badFormatToken), badFormatTokenExp);
+				.withAuth(badFormatToken), invalidTokenExp);
 
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
@@ -1543,21 +1536,21 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failDepSaveObject(new us.kbase.workspace.SaveObjectParams().withId("obj3")
 				.withMetadata(meta2).withType(SAFE_TYPE).withWorkspace("depsave")
 				.withData(new UObject(data)).withAuth(badFormatToken),
-				badFormatTokenExp);
+				invalidTokenExp);
 
 		failDepGetObject(new us.kbase.workspace.GetObjectParams()
 				.withWorkspace("depsave").withId("obj3").withAuth(invalidToken),
 				invalidTokenExp);
 		failDepGetObject(new us.kbase.workspace.GetObjectParams()
 				.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
-				badFormatTokenExp);
+				invalidTokenExp);
 
 		failDepGetObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
 				.withWorkspace("depsave").withId("obj3").withAuth(invalidToken),
 				invalidTokenExp);
 		failDepGetObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
 				.withWorkspace("depsave").withId("obj3").withAuth(badFormatToken),
-				badFormatTokenExp);
+				invalidTokenExp);
 
 		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
 				.withWorkspace("depsave").withType("thisisabadtype"),
@@ -1567,7 +1560,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				invalidTokenExp);
 		failDepListObjects(new us.kbase.workspace.ListWorkspaceObjectsParams()
 				.withWorkspace("depsave").withAuth(badFormatToken),
-				badFormatTokenExp);
+				invalidTokenExp);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -1750,10 +1743,18 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	@SuppressWarnings("deprecation")
 	private void checkSavedObjectDep(ObjectIdentity objnames, ObjectIdentity objids,
-			long id,
-			String name, String type, int ver, String user, long wsid,
-			String wsname, String chksum, int size, Map<String, String> meta,
-			Map<String, Object> data, AuthUser auth)
+			final long id,
+			final String name,
+			final String type,
+			final int ver,
+			final String user,
+			final long wsid,
+			final String wsname,
+			final String chksum,
+			final int size,
+			final Map<String, String> meta,
+			final Map<String, Object> data,
+			final String token)
 			throws Exception {
 		us.kbase.workspace.GetObjectOutput goo = CLIENT1.getObject(new us.kbase.workspace.GetObjectParams()
 				.withId(objnames.getName()).withWorkspace(objnames.getWorkspace())
@@ -1765,7 +1766,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		goo = CLIENT1.getObject(new us.kbase.workspace.GetObjectParams()
 				.withId(objnames.getName()).withWorkspace(objnames.getWorkspace())
 				.withInstance(objnames.getVer())
-				.withAuth(auth.getTokenString()));
+				.withAuth(token));
 		checkDeprecatedSaveInfo(goo.getMetadata(), id, name, type, ver, user,
 				wsid, wsname, chksum, meta);
 		assertThat("object data is correct", goo.getData().asClassInstance(Object.class),
@@ -1781,7 +1782,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				CLIENT1.getObjectmeta(new us.kbase.workspace.GetObjectmetaParams()
 				.withWorkspace(objnames.getWorkspace())
 				.withId(objnames.getName()).withInstance(objnames.getVer())
-				.withAuth(AUTH_USER2.getTokenString()));
+				.withAuth(TOKEN2));
 		checkDeprecatedSaveInfo(objmeta, id, name, type, ver, user,
 				wsid, wsname, chksum, meta);
 
@@ -4686,7 +4687,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("registered typespec to module with no perms");
 		} catch (ServerException ex) {
 			assertThat("got correct exception message", ex.getMessage(),
-					is("User " + AUTH_USER1.getUserId() + " is not in list of owners of module TestModule2"));
+					is("User " + USER1 + " is not in list of owners of module TestModule2"));
 		}
 
 		CLIENT2.administer(new UObject(createData(
@@ -4709,7 +4710,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("registered typespec to module with no perms");
 		} catch (ServerException ex) {
 			assertThat("got correct exception message", ex.getMessage(),
-					is("User " + AUTH_USER1.getUserId() + " is not in list of owners of module TestModule2"));
+					is("User " + USER1 + " is not in list of owners of module TestModule2"));
 		}
 	}
 
