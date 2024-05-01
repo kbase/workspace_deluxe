@@ -124,7 +124,7 @@ tasks.withType(Test) {
 	  * Set up GHA to run the non-mongo tests with a single version of mongo and run the
 	  * mongo tests with matrixed mongo versions. Combine coverage at the end somehow
 	*/
-	systemProperty "test.cfg", "./test.cfg"
+	systemProperty "test.cfg", "$rootDir/test.cfg"
 	maxHeapSize = "3G"
 	testLogging {
 		exceptionFormat = 'full'
@@ -164,6 +164,7 @@ task jacocoTestQuickReport(type: JacocoReport, dependsOn: testQuick) {
 }
 
 jar {
+// TODO NOW remove
 	// Much like javadoc, we hijack this task to build the client jar, since we don't need
 	// a service jar
 	include "us/kbase/workspace/*.class"
@@ -233,7 +234,7 @@ gradle.taskGraph.whenReady { taskGraph ->
  * that'd be fantastic.
  */
  
- var LOC_SCRIPT_TYPESCRIPT = "$rootDir/typescript"
+ var LOC_SCRIPT_TYPESCRIPT = "./typescript"
 
 // TODO GRADLE is there some way to DRY these 3 compile tasks up? Not a huge deal
 task sdkCompileHTML {
@@ -249,7 +250,7 @@ task sdkCompileHTML {
 
 task sdkCompileLibs {
 	var cmd = "kb-sdk compile " +
-				"--out lib " +
+				"--out $rootDir/lib " +
 				"--jsclname javascript/workspace/Client " +
 				"--plclname Bio::KBase::workspace::Client " +
 				"--pyclname biokbase.workspace.client " +
@@ -268,7 +269,7 @@ task sdkCompileJava {
 	// TODO GRADLE is there a variable for src/main/java?
 	var cmd = "kb-sdk compile " +
 				"--java " +
-				"--javasrc $rootDir/src/main/java/ " +
+				"--javasrc ${project.projectDir}/src/main/java/ " +
 				"--javasrv " +
 				"--out . " +
 				"--url $DEFAULT_URL " + 
