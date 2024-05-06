@@ -55,7 +55,7 @@ Build the documentation:
     bareubuntu@bu:~/ws$ cd workspace_deluxe/
     bareubuntu@bu:~/ws/workspace_deluxe$ ./gradlew buildDocs
 
-The build directory is `build/docs`.
+The build directory is `service/build/docs`.
 
 ### Notes on GitHub Actions automated tests
 

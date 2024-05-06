@@ -40,13 +40,18 @@ auth server.
 Java client
 -----------
 
+The easiest way to use the client is with a build tool like Gradle or Maven, fetching the client
+via https://jitpack.io/#kbase/workspace_deluxe.
+
+If you want to build the client manually read on.
+
 The Java client build requires Java JDK 11+.
 
 Build the client::
 
     bareubuntu@bu:~/ws/workspace_deluxe$ ./gradlew jar
 
-The client jar is created in ``build/libs/workspace_deluxe-client.jar``.
+The client jar is created in ``client/build/libs/client.jar``.
 
 For simplicity, copy the required jars into a single directory. You will also need the following
 jars, which can be downloaded from a maven repository or https://jitpack.io:
@@ -65,11 +70,8 @@ jars, which can be downloaded from a maven repository or https://jitpack.io:
 
     auth2_client_java-0.5.0.jar    java_common-0.3.0.jar
     jackson-annotations-2.9.9.jar  javax.annotation-api-1.3.2.jar
-    jackson-core-2.9.9.jar         workspace_deluxe-client.jar
+    jackson-core-2.9.9.jar         client.jar
     jackson-databind-2.9.9.jar
-
-When creating an application using the WSS it's advisable to use a build tool
-like ``ant``, ``maven``, or ``gradle`` to organize the required jars.
 
 This simple program initializes and calls a method on the WSS client::
 

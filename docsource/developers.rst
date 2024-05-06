@@ -22,7 +22,7 @@ Branches:
 
 Recompiling the generated code
 ------------------------------
-To compile the Workspace generated code from ``workspace.spec``, run ``./gradlew compile``.
+To compile the Workspace generated code from ``workspace.spec``, run ``./gradlew sdkCompile``.
 
 Note that:
 

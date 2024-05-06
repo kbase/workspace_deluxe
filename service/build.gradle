@@ -163,16 +163,6 @@ task jacocoTestQuickReport(type: JacocoReport, dependsOn: testQuick) {
 	executionData(testQuick)
 }
 
-jar {
-// TODO NOW remove
-	// Much like javadoc, we hijack this task to build the client jar, since we don't need
-	// a service jar
-	include "us/kbase/workspace/*.class"
-	exclude "us/kbase/workspace/WorkspaceServer*.class"  // exclude anonymous classes
-	include "us/kbase/common/service/Tuple*.class"
-	archiveAppendix = 'client'
-}
-
 shadowJar {
 	// Be careful when updating jars - you may want to set the duplicates strategy to WARN
 	// to see if any of the jars are shadowing the others when building the fat jar, which

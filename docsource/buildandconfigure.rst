@@ -17,14 +17,15 @@ Build::
     ~/workspace_deluxe$ ./gradlew buildAll
     *snip*
 
-``buildAll`` will build 3 jars in ``build/libs``:
+``buildAll`` will build several artifacts:
 
-* A workspace client jar
-* A workspace server WAR file
-* A workspace shadow jar containing all test code. This is useful for starting a workpace server
+* A workspace client jar at ``client/build/libs/client.jar``
+* A workspace server WAR file at ``service/build/libs/service.war``
+* A workspace shadow jar containing all test code at
+  ``service/build/libs/service-test-shadow-all.jar``. This is useful for starting a workpace server
   from other processes without needing a docker container, but should **only** be used for testing.
 
-It will also build the ``build/update_workspace_database_schema`` script which is used to
+It will also build the ``service/build/update_workspace_database_schema`` script which is used to
 update the workspace schema if it changes from one version to another.
 
 .. _servicedeps:

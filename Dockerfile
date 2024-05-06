@@ -19,6 +19,7 @@ COPY docshtml /tmp/workspace/docshtml/
 COPY docsource /tmp/workspace/docsource/
 COPY lib /tmp/workspace/lib/
 COPY service /tmp/workspace/service
+COPY client /tmp/workspace/client
 # for the git commit
 COPY .git /tmp/workspace/.git/
 RUN ./gradlew war
