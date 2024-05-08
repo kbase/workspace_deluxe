@@ -3,8 +3,8 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.15.0 (Released TBD)
-------------------------------------
+VERSION: 0.15.0 (Released 05/08/2024)
+-------------------------------------
 
 BACKWARDS INCOMPATIBILIES:
 
