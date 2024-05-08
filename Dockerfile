@@ -1,14 +1,29 @@
 FROM eclipse-temurin:11-jdk as build
 
-COPY . /tmp/workspace_deluxe
-WORKDIR /tmp
-RUN apt-get update -y && \
-    apt-get install -y ant git ca-certificates python3-sphinx && \
-    git clone https://github.com/kbase/jars && \
-    cd workspace_deluxe && \
-    make docker_deps
+RUN apt update -y && \
+    apt install -y git ca-certificates python3-sphinx
 
-# updated/slimmed down version of what's in kbase/kb_jre
+WORKDIR /tmp/workspace
+
+# dependencies take a while to D/L, so D/L & cache before the build so code changes don't cause
+# a new D/L
+# can't glob *gradle because of the .gradle dir
+COPY gradlew settings.gradle /tmp/workspace/
+COPY gradle/ /tmp/workspace/gradle/
+RUN ./gradlew dependencies
+
+# Now build the code
+COPY workspace.spec /tmp/workspace/workspace.spec
+COPY deployment/ /tmp/workspace/deployment/
+COPY docshtml /tmp/workspace/docshtml/
+COPY docsource /tmp/workspace/docsource/
+COPY lib /tmp/workspace/lib/
+COPY service /tmp/workspace/service
+COPY client /tmp/workspace/client
+# for the git commit
+COPY .git /tmp/workspace/.git/
+RUN ./gradlew war
+
 FROM ubuntu:18.04
 
 # These ARGs values are passed in via the docker build command
@@ -37,11 +52,11 @@ RUN mkdir -p /var/lib/apt/lists/partial && \
     tar xvzf dockerize-${DOCKERIZE_VERSION}.tar.gz && \
     rm dockerize-${DOCKERIZE_VERSION}.tar.gz
 
-COPY --from=build /tmp/workspace_deluxe/deployment/ /kb/deployment/
+COPY --from=build /tmp/workspace/deployment/ /kb/deployment/
 
 RUN /usr/bin/${TOMCAT_VERSION}-instance-create /kb/deployment/services/workspace/tomcat && \
-    mv /kb/deployment/services/workspace/WorkspaceService.war /kb/deployment/services/workspace/tomcat/webapps/ROOT.war && \
     rm -rf /kb/deployment/services/workspace/tomcat/webapps/ROOT
+COPY --from=build /tmp/workspace/service/build/libs/service.war /kb/deployment/services/workspace/tomcat/webapps/ROOT.war
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
 # the end
@@ -51,6 +66,9 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.schema-version="1.0.0-rc1" \
       us.kbase.vcs-branch=$BRANCH \
       maintainer="KBase developers engage@kbase.us"
+
+# TODO BUILD update to no longer use dockerize and take env vars (e.g. like Collections).
+# TODO BUILD Use subsections in the ini file / switch to TOML
 
 EXPOSE 7058
 ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]

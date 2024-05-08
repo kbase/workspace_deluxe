@@ -3,6 +3,25 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.15.0 (Released 05/08/2024)
+-------------------------------------
+
+BACKWARDS INCOMPATIBILIES:
+
+* The Docserver now logs to standard out in the same way as the workspace server.
+
+UPDATES:
+
+* The MongoDB clients have been updated to the most recent version and the service tested
+  against Mongo 7.
+* Gradle has replaced Ant as the build tool. As a consequence, all the built artifacts are now
+  located in Gradle build directories, including the ``update_workspace_database_schema`` script.
+* Client and test shadow jars have been published on jitpack.io.
+  * The shadow jar is intended for supporting tests in other repos.
+    This allows for starting the workspace service from a single jar in other applications.
+    All dependencies are included in the jar in shadow namespaces so they don't conflict with
+    different versions of the dependencies in the application under test.
+
 VERSION: 0.14.2 (Released 11/9/2023)
 ------------------------------------
 

@@ -48,7 +48,7 @@ sub new
     
     if (!defined($url))
     {
-	$url = 'https://kbase.us/services/ws/';
+	$url = 'https://ci.kbase.us/services/ws';
     }
 
     my $self = {
@@ -10783,7 +10783,7 @@ compatibility.
 UnspecifiedObject data - The object's data.
 object_metadata metadata - Metadata for object retrieved/
 
-@deprecated Workspaces.ObjectData
+@deprecated Workspace.ObjectData
 
 
 =item Definition
