@@ -45,17 +45,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - java: '11'
+          - java: '8'  # needs to be compatible so jars can be used w/ java 8
             mongo: 'mongodb-linux-x86_64-ubuntu2204-7.0.4'
             minio: '2019-05-23T00-29-34Z'
             wired_tiger: 'true'
-            ant_test: 'test_quick_coverage'
+            gradle_test: 'testQuick'
           # the current production setup
           - java: '11'
             mongo: 'mongodb-linux-x86_64-3.6.13'
             minio: '2019-05-23T00-29-34Z'
             wired_tiger: 'false'
-            ant_test: 'test_quick_coverage'
+            gradle_test: 'testQuick'
     steps:
       - uses: actions/checkout@v3
 
@@ -83,10 +83,6 @@ jobs:
 
           # move to parent dir of homedir to install binaries etc
           cd ..
-
-          # set up jars
-          git clone https://github.com/kbase/jars
-          export JARSDIR=$(pwd)/jars/lib/jars/
 
           # set up arango
           export ARANGODB_VER=3.9.1
@@ -142,7 +138,6 @@ jobs:
           sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
           sed -i "s#^test.minio.exe.*#test.minio.exe=$MINIO#" test.cfg
           sed -i "s#^test.mongo.useWiredTiger.*#test.mongo.useWiredTiger=${{matrix.wired_tiger}}#" test.cfg
-          sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
           sed -i "s#^test.blobstore.exe.*#test.blobstore.exe=$BLOBEXE#" test.cfg
           sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
           sed -i "s#^test.sampleservice.dir.*#test.sampleservice.dir=$SAMPLE_DIR#" test.cfg
@@ -153,10 +148,10 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          ant javadoc
-          ant ${{matrix.ant_test}}
+          ./gradlew ${{matrix.gradle_test}}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
