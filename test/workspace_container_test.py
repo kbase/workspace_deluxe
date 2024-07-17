@@ -35,28 +35,48 @@ def ready():
 
 def wait_for_auth():
     print("waiting for auth service...")
-    for t in WAIT_TIMES:
+
+    attempt = 1
+    max_attempts = len(WAIT_TIMES) + 1
+    while attempt <= max_attempts:
+        print(f"Attempt {attempt} of {max_attempts}")
         try: 
             res = requests.get(AUTH_URL)
             res.raise_for_status()
             return
         except Exception as e:
-            print(f"Failed to connect to auth, waiting {t} sec and trying again:\n\t{e}")
-        time.sleep(t)
-    raise Exception(f"Couldn't connect to the auth after {len(WAIT_TIMES)} attempts")
+            if attempt < max_attempts:
+                t = WAIT_TIMES[attempt - 1]
+                print(
+                    f"Failed to connect to auth, waiting {t} sec "
+                    f"and trying again:\n\t{e}"
+                )
+                time.sleep(t)
+            attempt += 1
+    raise Exception(f"Couldn't connect to the auth after {max_attempts} attempts")
 
 
 def wait_for_ws():
     print("waiting for workspace service...")
+
+    attempt = 1
+    max_attempts = len(WAIT_TIMES) + 1
     ws = Workspace(WS_URL)
-    for t in WAIT_TIMES:
+    while attempt <= max_attempts:
+        print(f"Attempt {attempt} of {max_attempts}")
         try:
             ws.ver()
             return
         except Exception as e:
-            print(f"Failed to connect to workspace, waiting {t} sec and trying again:\n\t{e}")
-        time.sleep(t)
-    raise Exception(f"Couldn't connect to the workspace after {len(WAIT_TIMES)} attempts")
+            if attempt < max_attempts:
+                t = WAIT_TIMES[attempt - 1]
+                print(
+                    f"Failed to connect to workspace, waiting {t} sec "
+                    f"and trying again:\n\t{e}"
+                )
+                time.sleep(t)
+            attempt += 1
+    raise Exception(f"Couldn't connect to the workspace after {max_attempts} attempts")
 
 
 def test_create_user_create_workspace(ready):
