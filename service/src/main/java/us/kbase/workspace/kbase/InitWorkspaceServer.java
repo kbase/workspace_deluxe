@@ -577,7 +577,7 @@ private static BlobStore setupBlobStore(
 		
 		// Add logs before initializing S3BlobStore
 		rep.reportInfo("Initializing S3BlobStore with:");
-		rep.reportInfo(" - Collection: " + collection.getNamespace());
+
 		rep.reportInfo(" - Backend Container: " + cfg.getBackendContainer());
 		
 		try {
