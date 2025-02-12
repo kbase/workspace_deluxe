@@ -573,9 +573,7 @@ private static BlobStore setupBlobStore(
 
             rep.reportInfo("S3 client created successfully.");
 
-		rep.reportInfo("Fetching collection: " + COL_S3_OBJECTS);
-		MongoCollection<Document> collection = db.getCollection(COL_S3_OBJECTS);
-		rep.reportInfo("Successfully retrieved MongoDB collection: " + COL_S3_OBJECTS);
+
 		
 		// Add logs before initializing S3BlobStore
 		rep.reportInfo("Initializing S3BlobStore with:");
@@ -583,7 +581,7 @@ private static BlobStore setupBlobStore(
 		rep.reportInfo(" - Backend Container: " + cfg.getBackendContainer());
 		
 		try {
-		    BlobStore store = new S3BlobStore(collection, cli, cfg.getBackendContainer());
+		    BlobStore store = new S3BlobStore(db.getCollection(COL_S3_OBJECTS), cli, cfg.getBackendContainer());
 		    rep.reportInfo("S3BlobStore initialized successfully.");
 		    return store;
 		} catch (Exception e) {
