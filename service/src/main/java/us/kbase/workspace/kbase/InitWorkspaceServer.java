@@ -540,29 +540,26 @@ private static WorkspaceInitResults buildWorkspace(
 private static BlobStore setupBlobStore(
         final MongoDatabase db,
         final KBaseWorkspaceConfig cfg,
-        final InitReporter rep) // Added rep to track progress
+        final InitReporter rep) 
         throws WorkspaceInitException {
     
     rep.reportInfo("Entering setupBlobStore...");
-
-    // Check what backend type is being used
     rep.reportInfo("Backend type: " + cfg.getBackendType().name());
 
     if (cfg.getBackendType().equals(BackendType.GridFS)) {
         rep.reportInfo("Initializing GridFSBlobStore...");
-        BlobStore store = new GridFSBlobStore(db);
-        rep.reportInfo("GridFSBlobStore initialized successfully.");
-        return store;
+        return new GridFSBlobStore(db);
     }
 
     if (cfg.getBackendType().equals(BackendType.S3)) {
         rep.reportInfo("Initializing S3BlobStore...");
+
         try {
             rep.reportInfo("Creating S3 client with the following parameters:");
-            rep.reportInfo("Backend URL: " + cfg.getBackendURL());
-            rep.reportInfo("Backend User: " + cfg.getBackendUser());
-            rep.reportInfo("Backend Region: " + cfg.getBackendRegion());
-            rep.reportInfo("Trust All Certs: " + cfg.getBackendTrustAllCerts());
+            rep.reportInfo(" - Backend URL: " + cfg.getBackendURL());
+            rep.reportInfo(" - Backend User: " + cfg.getBackendUser());
+            rep.reportInfo(" - Backend Region: " + cfg.getBackendRegion());
+            rep.reportInfo(" - Trust All Certs: " + cfg.getBackendTrustAllCerts());
 
             final S3ClientWithPresign cli = new S3ClientWithPresign(
                     cfg.getBackendURL(),
@@ -572,36 +569,21 @@ private static BlobStore setupBlobStore(
                     cfg.getBackendTrustAllCerts());
 
             rep.reportInfo("S3 client created successfully.");
+            
+            rep.reportInfo("Initializing S3BlobStore with Backend Container: " + cfg.getBackendContainer());
 
-
-		
-		// Add logs before initializing S3BlobStore
-		rep.reportInfo("Initializing S3BlobStore with:");
-
-		rep.reportInfo(" - Backend Container: " + cfg.getBackendContainer());
-		
-		try {
-		    BlobStore store = new S3BlobStore(db.getCollection(COL_S3_OBJECTS), cli, cfg.getBackendContainer());
-		    rep.reportInfo("S3BlobStore initialized successfully.");
-		    return store;
-		} catch (Exception e) {
-		    rep.reportInfo("Error initializing S3BlobStore: " + e.getMessage());
-		    throw new WorkspaceInitException("Failed to initialize S3BlobStore: " + e.getMessage(), e);
-		}
+            return new S3BlobStore(db.getCollection(COL_S3_OBJECTS), cli, cfg.getBackendContainer());
 
         } catch (URISyntaxException e) {
-            rep.reportInfo("Error: Invalid S3 URL: " + e.getMessage());
-            throw new WorkspaceInitException("S3 url is not a valid URI: " + e.getMessage(), e);
-        } catch (BlobStoreCommunicationException e) {
-            rep.reportInfo("Error: BlobStore communication issue: " + e.getMessage());
-            throw new WorkspaceInitException("Error communicating with the blob store: " + e.getMessage(), e);
+            throw new WorkspaceInitException("S3 URL is not a valid URI: " + e.getMessage(), e);
         } catch (IllegalArgumentException e) {
-            rep.reportInfo("Error: Illegal S3 bucket name: " + e.getMessage());
             throw new WorkspaceInitException("Illegal S3 bucket name: " + e.getMessage(), e);
+        } catch (Exception e) {  
+            // Catch any unexpected errors in S3BlobStore initialization
+            throw new WorkspaceInitException("Failed to initialize S3BlobStore: " + e.getMessage(), e);
         }
     }
 
-    rep.reportInfo("Error: Unknown backend type: " + cfg.getBackendType().name());
     throw new WorkspaceInitException("Unknown backend type: " + cfg.getBackendType().name());
 }
 
