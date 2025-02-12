@@ -574,7 +574,7 @@ private static BlobStore setupBlobStore(
             rep.reportInfo("S3 client created successfully.");
 
 		rep.reportInfo("Fetching collection: " + COL_S3_OBJECTS);
-		var collection = db.getCollection(COL_S3_OBJECTS);
+		MongoCollection<Document> collection = db.getCollection(COL_S3_OBJECTS);
 		rep.reportInfo("Successfully retrieved MongoDB collection: " + COL_S3_OBJECTS);
 		
 		// Add logs before initializing S3BlobStore
