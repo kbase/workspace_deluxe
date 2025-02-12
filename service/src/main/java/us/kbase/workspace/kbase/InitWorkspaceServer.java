@@ -589,9 +589,6 @@ private static BlobStore setupBlobStore(
 		    throw new WorkspaceInitException("Failed to initialize S3BlobStore: " + e.getMessage(), e);
 		}
 
-
-            rep.reportInfo("S3BlobStore initialized successfully.");
-            return store;
         } catch (URISyntaxException e) {
             rep.reportInfo("Error: Invalid S3 URL: " + e.getMessage());
             throw new WorkspaceInitException("S3 url is not a valid URI: " + e.getMessage(), e);
