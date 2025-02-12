@@ -217,79 +217,104 @@ public class InitWorkspaceServer {
 			}
 		}
 	}
+private static WorkspaceInitResults buildWorkspace(
+        final KBaseWorkspaceConfig cfg,
+        final AuthClient auth,
+        final AbstractHandleClient hsc,
+        final TempFilesManager tfm,
+        final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
+        throws WorkspaceInitException {
+    
+    rep.reportInfo("Starting buildWorkspace...");
 
-	private static WorkspaceInitResults buildWorkspace(
-			final KBaseWorkspaceConfig cfg,
-			final AuthClient auth,
-			final AbstractHandleClient hsc,
-			final TempFilesManager tfm,
-			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
-			throws WorkspaceInitException {
-		// this method is a bit long but it's more or less trivial what's going on here
-		
-		final MongoDatabase db = buildMongo(cfg, cfg.getDBname()).getDatabase(cfg.getDBname());
-		
-		final BlobStore bs = setupBlobStore(db, cfg);
-		
-		final Optional<TypeDelegation> typeDelegator = getTypeDelegator(cfg, rep);
-		final TypeProvider typeProvider;
-		final TypeServerMethods types;
-		if (typeDelegator.isPresent()) {
-			types = typeDelegator.get().delegator;
-			typeProvider = typeDelegator.get().typeProvider;
-		} else {
-			// see https://jira.mongodb.org/browse/JAVA-2656
-			final MongoDatabase mongoTypes = buildMongo(cfg, cfg.getTypeDBName())
-					.getDatabase(cfg.getTypeDBName());
-			final TypeDefinitionDB typeDB;
-			try {
-				typeDB = new TypeDefinitionDB(new MongoTypeStorage(mongoTypes));
-				// TODO CODE Mongo exceptions should be wrapped and not exposed
-			} catch (TypeStorageException | MongoException e) {
-				throw new WorkspaceInitException("Couldn't set up the type database: "
-						+ e.getLocalizedMessage(), e);
-			}
-			// merge these 2 classes?
-			types = new LocalTypeServerMethods(new Types(typeDB));
-			typeProvider = new LocalTypeProvider(typeDB);
-		}
-		final MongoWorkspaceDB mongoWS;
-		try {
-			mongoWS = new MongoWorkspaceDB(db, bs);
-		} catch (WorkspaceDBException wde) {
-			throw new WorkspaceInitException(
-					"Error initializing the workspace database: " +
-					wde.getLocalizedMessage(), wde);
-		}
-		final Workspace ws;
-		try {
-			ws = new Workspace(
-					mongoWS,
-					new ResourceUsageConfigurationBuilder().build(),
-					new TypedObjectValidator(typeProvider),
-					tfm,
-					loadListeners(cfg));
-		} catch (WorkspaceCommunicationException e) { // this is really hard to test
-			throw new WorkspaceInitException(e.getMessage(), e);
-		}
-		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
-				.getBuilder(maxUniqueIdCountPerCall)
-				.withFactory(new HandleIdHandlerFactory(hsc))
-				.withFactory(getShockIdHandlerFactory(cfg, auth))
-				.withFactory(getSampleIdHandlerFactory(cfg, auth, rep))
-				.build();
-		final WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, builder, auth);
-		final WorkspaceAdministration.Builder adminbuilder = WorkspaceAdministration.getBuilder(
-				getAdminHandler(cfg, ws), (user, token) -> wsmeth.validateUser(user, token));
-		if (typeDelegator.isPresent()) {
-			AdministrationCommandSetInstaller.install(
-					adminbuilder, wsmeth, typeDelegator.get().delegator);
-		} else {
-			AdministrationCommandSetInstaller.install(
-					adminbuilder, wsmeth, (LocalTypeServerMethods) types);
-		}
-		return new WorkspaceInitResults(wsmeth, adminbuilder.build(), types);
-	}
+    rep.reportInfo("Initializing MongoDB...");
+    final MongoDatabase db = buildMongo(cfg, cfg.getDBname()).getDatabase(cfg.getDBname());
+    rep.reportInfo("MongoDB initialized.");
+
+    rep.reportInfo("Setting up BlobStore...");
+    final BlobStore bs = setupBlobStore(db, cfg);
+    rep.reportInfo("BlobStore setup complete.");
+
+    rep.reportInfo("Checking TypeDelegation...");
+    final Optional<TypeDelegation> typeDelegator = getTypeDelegator(cfg, rep);
+    final TypeProvider typeProvider;
+    final TypeServerMethods types;
+
+    if (typeDelegator.isPresent()) {
+        rep.reportInfo("Using TypeDelegation...");
+        types = typeDelegator.get().delegator;
+        typeProvider = typeDelegator.get().typeProvider;
+    } else {
+        rep.reportInfo("TypeDelegation not found. Setting up local type provider...");
+        final MongoDatabase mongoTypes = buildMongo(cfg, cfg.getTypeDBName()).getDatabase(cfg.getTypeDBName());
+        final TypeDefinitionDB typeDB;
+        try {
+            typeDB = new TypeDefinitionDB(new MongoTypeStorage(mongoTypes));
+            rep.reportInfo("Local TypeProvider setup complete.");
+        } catch (TypeStorageException | MongoException e) {
+            rep.reportInfo("Error setting up TypeDefinitionDB: " + e.getMessage());
+            throw new WorkspaceInitException("Couldn't set up the type database: " + e.getLocalizedMessage(), e);
+        }
+        types = new LocalTypeServerMethods(new Types(typeDB));
+        typeProvider = new LocalTypeProvider(typeDB);
+    }
+
+    rep.reportInfo("Initializing MongoWorkspaceDB...");
+    final MongoWorkspaceDB mongoWS;
+    try {
+        mongoWS = new MongoWorkspaceDB(db, bs);
+        rep.reportInfo("MongoWorkspaceDB initialized.");
+    } catch (WorkspaceDBException wde) {
+        rep.reportInfo("Error initializing MongoWorkspaceDB: " + wde.getMessage());
+        throw new WorkspaceInitException("Error initializing the workspace database: " + wde.getLocalizedMessage(), wde);
+    }
+
+    rep.reportInfo("Creating Workspace instance...");
+    final Workspace ws;
+    try {
+        ws = new Workspace(
+                mongoWS,
+                new ResourceUsageConfigurationBuilder().build(),
+                new TypedObjectValidator(typeProvider),
+                tfm,
+                loadListeners(cfg));
+        rep.reportInfo("Workspace instance created.");
+    } catch (WorkspaceCommunicationException e) {
+        rep.reportInfo("Error creating Workspace: " + e.getMessage());
+        throw new WorkspaceInitException(e.getMessage(), e);
+    }
+
+    rep.reportInfo("Setting up IdReferenceHandlerSetFactoryBuilder...");
+    final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
+            .getBuilder(maxUniqueIdCountPerCall)
+            .withFactory(new HandleIdHandlerFactory(hsc))
+            .withFactory(getShockIdHandlerFactory(cfg, auth))
+            .withFactory(getSampleIdHandlerFactory(cfg, auth, rep))
+            .build();
+    rep.reportInfo("IdReferenceHandlerSetFactoryBuilder setup complete.");
+
+    rep.reportInfo("Initializing WorkspaceServerMethods...");
+    final WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, builder, auth);
+    rep.reportInfo("WorkspaceServerMethods initialized.");
+
+    rep.reportInfo("Building WorkspaceAdministration...");
+    final WorkspaceAdministration.Builder adminbuilder = WorkspaceAdministration.getBuilder(
+            getAdminHandler(cfg, ws), (user, token) -> wsmeth.validateUser(user, token));
+
+    if (typeDelegator.isPresent()) {
+        rep.reportInfo("Installing administration commands with TypeDelegation...");
+        AdministrationCommandSetInstaller.install(adminbuilder, wsmeth, typeDelegator.get().delegator);
+    } else {
+        rep.reportInfo("Installing administration commands with LocalTypeServerMethods...");
+        AdministrationCommandSetInstaller.install(adminbuilder, wsmeth, (LocalTypeServerMethods) types);
+    }
+    rep.reportInfo("Administration commands installed.");
+
+    rep.reportInfo("buildWorkspace complete.");
+    return new WorkspaceInitResults(wsmeth, adminbuilder.build(), types);
+}
+
+	
 	
 	private static class TypeDelegation {
 		private final TypeProvider typeProvider;
