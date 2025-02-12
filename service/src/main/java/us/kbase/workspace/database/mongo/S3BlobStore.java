@@ -85,26 +85,45 @@ public class S3BlobStore implements BlobStore {
 	 * {@link #S3BlobStore(MongoCollection, S3ClientWithPresign, String)}.
 	 */
 	public S3BlobStore(
-			final MongoCollection<Document> mongoCollection,
-			final S3ClientWithPresign s3,
-			final String bucket,
-			final UUIDGen uuidGen)
-			throws BlobStoreCommunicationException, IllegalArgumentException {
-		this.uuidGen = uuidGen;
-		this.col = requireNonNull(mongoCollection, "mongoCollection");
-		this.s3 = requireNonNull(s3, "s3");
-		this.bucket = checkBucketName(bucket);
-		this.col.createIndex(new Document(Fields.S3_CHKSUM, 1), new IndexOptions().unique(true));
-		try {
-			s3.getClient().createBucket(CreateBucketRequest.builder().bucket(this.bucket).build());
-		} catch (BucketAlreadyOwnedByYouException e) {
-			// do nothing, we're groovy
-		} catch (SdkException e) {
-			throw new BlobStoreCommunicationException("Failed to initialize S3 bucket: " +
-					e.getMessage(), e);
-		}
-		//TODO DBCONSIST check that a few files exist to ensure we're pointing at the right S3 instance
+	        final MongoCollection<Document> mongoCollection,
+	        final S3ClientWithPresign s3,
+	        final String bucket,
+	        final UUIDGen uuidGen)
+	        throws BlobStoreCommunicationException, IllegalArgumentException {
+	    
+	    System.out.println("Entering S3BlobStore constructor...");
+	    
+	    this.uuidGen = uuidGen;
+	    this.col = requireNonNull(mongoCollection, "mongoCollection");
+	    this.s3 = requireNonNull(s3, "s3");
+	    this.bucket = checkBucketName(bucket);
+	
+	    // Debug MongoDB collection
+	    System.out.println("MongoDB Collection Namespace: " + col.getNamespace());
+	
+	    try {
+	        System.out.println("Creating MongoDB index...");
+	        this.col.createIndex(new Document(Fields.S3_CHKSUM, 1), new IndexOptions().unique(true));
+	        System.out.println("MongoDB index created successfully.");
+	    } catch (MongoException e) {
+	        System.out.println("MongoDB index creation failed: " + e.getMessage());
+	        throw new BlobStoreCommunicationException("MongoDB index creation failed", e);
+	    }
+	
+	    try {
+	        System.out.println("Attempting to create S3 bucket: " + this.bucket);
+	        s3.getClient().createBucket(CreateBucketRequest.builder().bucket(this.bucket).build());
+	        System.out.println("S3 bucket created or already exists.");
+	    } catch (BucketAlreadyOwnedByYouException e) {
+	        System.out.println("S3 bucket already exists.");
+	    } catch (SdkException e) {
+	        System.out.println("Failed to initialize S3 bucket: " + e.getMessage());
+	        throw new BlobStoreCommunicationException("Failed to initialize S3 bucket", e);
+	    }
+	
+	    System.out.println("S3BlobStore initialization complete.");
 	}
+
 	
 	private String checkBucketName(String bucket) throws IllegalArgumentException {
 		bucket = checkString(bucket, "bucket");
