@@ -19,12 +19,12 @@ on:
 jobs:
 
   workspace_container_tests:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -57,18 +57,18 @@ jobs:
             wired_tiger: 'false'
             gradle_test: 'testQuick'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{matrix.java}}
 
-      - name: Set up Python 3.7  # sample service is on 3.7, handle service is on sdkbase2.latest
-        uses: actions/setup-python@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.7"
+          python-version: "3.9.19"
 
       - name: Install dependencies and set up test config
         shell: bash
@@ -151,7 +151,7 @@ jobs:
           ./gradlew ${{matrix.gradle_test}}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
