@@ -199,6 +199,8 @@ public class SampleServiceIntegrationTest {
 		SAMPLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 		Thread.sleep(3000);
 		System.out.println("--------------------");
+		System.out.println("sampleServicePort: " + sampleServicePort);
+		System.out.println("URL is : " + "http://localhost:" + SAMPLE.getPort());
 		System.out.println(SAMPLE_CLIENT.getServiceVersion());
 		System.out.println(SAMPLE_CLIENT.status());
 		System.out.println(SAMPLE_CLIENT.status().get("version"));
