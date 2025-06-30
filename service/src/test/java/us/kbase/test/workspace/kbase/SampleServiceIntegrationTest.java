@@ -10,6 +10,8 @@ import static us.kbase.test.workspace.kbase.JSONRPCLayerTester.administerCommand
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -201,7 +203,11 @@ public class SampleServiceIntegrationTest {
 		System.out.println("--------------------");
 		System.out.println("sampleServicePort: " + sampleServicePort);
 		System.out.println("URL is : " + "http://localhost:" + SAMPLE.getPort());
-		System.out.println(SAMPLE_CLIENT.getServiceVersion());
+
+		Path logfile = SAMPLE.getLogfile();
+		List<String> logLines = Files.readAllLines(logfile);
+		logLines.forEach(System.out::println);
+
 		System.out.println(SAMPLE_CLIENT.status());
 		System.out.println(SAMPLE_CLIENT.status().get("version"));
 		System.out.println("--------------------");
