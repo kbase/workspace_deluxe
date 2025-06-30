@@ -79,6 +79,7 @@ jobs:
           cd python_dependencies
           pip install pipenv
           pipenv sync --system
+          pip install "setuptools<81"
           cd ..
 
           # move to parent dir of homedir to install binaries etc
