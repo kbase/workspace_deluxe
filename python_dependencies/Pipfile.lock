@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "58339e28cf4b1d1795b19e6e40a95cea8cf1dcfe77f5a3d03caad36dc2b37605"
+            "sha256": "30e470bc5da8996aaa81d4194064cd5b87ccc0cce7842e743adb19a8b5f8e860"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -18,11 +18,12 @@
     "default": {
         "apscheduler": {
             "hashes": [
-                "sha256:3bb5229eed6fbbdafc13ce962712ae66e175aa214c69bed35a06bffcf0c5e244",
-                "sha256:e8b1ecdb4c7cb2818913f766d5898183c7cb8936680710a4d3a966e02262e526"
+                "sha256:4c622d250b0955a65d5d0eb91c33e6d43fd879834bf541e0a18661ae60460133",
+                "sha256:fc134ca32e50f5eadcc4938e3a4545ab19131435e851abb40b34d63d5141c6da"
             ],
             "index": "pypi",
-            "version": "==3.6.3"
+            "markers": "python_version >= '3.8'",
+            "version": "==3.11.0"
         },
         "attrs": {
             "hashes": [
@@ -458,14 +459,6 @@
             "index": "pypi",
             "markers": "python_version >= '3.6'",
             "version": "==0.1.3"
-        },
-        "pytz": {
-            "hashes": [
-                "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3",
-                "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00"
-            ],
-            "index": "pypi",
-            "version": "==2025.2"
         },
         "pyyaml": {
             "hashes": [
