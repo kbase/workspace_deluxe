@@ -92,8 +92,9 @@ jobs:
           export ARANGO_EXE=$(pwd)/arangodb3-linux-$ARANGODB_VER/bin/arangod
           export ARANGO_JS=$(pwd)/arangodb3-linux-$ARANGODB_VER/usr/share/arangodb3/js/
 
-           # set up handle service
-          export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
+          # set up handle service
+          # HS_COMMIT corresponds to Handle Service2 tag v1.0.7
+          export HS_COMMIT=335020d26f3663da456be5afee3cb4b8ed8622f4
           export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
           git clone https://github.com/kbase/handle_service2.git
           cd handle_service2/
@@ -108,7 +109,8 @@ jobs:
           cd ../..
 
           # set up sample service
-          export SAMPLE_COMMIT=cb8129dded67ceca57cc175a1c7c357c56e466b3
+          # SAMPLE_COMMIT corresponds to Sample Service tag v0.2.1
+          export SAMPLE_COMMIT=aa0303c4d5d4aa1e3cf0c9ecb36366fb1127f93e
           git clone https://github.com/kbase/sample_service.git
           cd sample_service
           git checkout $SAMPLE_COMMIT
