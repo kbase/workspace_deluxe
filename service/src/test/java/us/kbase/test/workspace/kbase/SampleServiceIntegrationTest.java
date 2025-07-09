@@ -10,8 +10,6 @@ import static us.kbase.test.workspace.kbase.JSONRPCLayerTester.administerCommand
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -199,15 +197,6 @@ public class SampleServiceIntegrationTest {
 		SAMPLE_CLIENT = new SampleServiceClient(
 				new URL("http://localhost:" + SAMPLE.getPort()), t1);
 		SAMPLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
-
-		System.out.println("--------------------");
-		System.out.println("sampleServicePort: " + sampleServicePort);
-		System.out.println("URL is : " + "http://localhost:" + SAMPLE.getPort());
-
-		Path logfile = SAMPLE.getLogfile();
-		List<String> logLines = Files.readAllLines(logfile);
-		logLines.forEach(System.out::println);
-
 		System.out.println(String.format("Running sample service v %s at http://localhost:%s",
 				SAMPLE_CLIENT.status().get("version"), SAMPLE.getPort()));
 	}

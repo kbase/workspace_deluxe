@@ -165,10 +165,6 @@ public class SampleServiceController {
 		Thread.sleep(1000); //let the service start up
 	}
 
-	public Path getLogfile() {
-		return logfile;
-	}
-
 	private File createSampleServiceDeployCfg(
 			final ArangoController arango,
 			final URL authURL,
