@@ -95,16 +95,10 @@ jobs:
           # set up handle service
           # HS_COMMIT corresponds to Handle Service2 tag v1.0.7
           export HS_COMMIT=335020d26f3663da456be5afee3cb4b8ed8622f4
-          export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
           git clone https://github.com/kbase/handle_service2.git
           cd handle_service2/
           git checkout $HS_COMMIT
-          sudo chmod -R 777 .
           cd lib/
-          mkdir biokbase
-          cd biokbase/
-          wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
-          cd ..
           export HSDIR=`pwd`
           cd ../..
 
