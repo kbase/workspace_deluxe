@@ -6,6 +6,12 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+
+# The following dependencies are now aligned as closely as possible with
+# Sample Service v0.2.1 and Handle Service v1.0.7 in production.
+# For any deviations specific to the Sample Service, refer to the discussion below for justification:
+# https://github.com/kbase/workspace_deluxe/pull/751#discussion_r2196106305
+
 # joint dependencies
 jsonrpcbase = "==0.2.0"
 requests = "==2.22.0"
