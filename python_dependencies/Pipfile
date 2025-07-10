@@ -6,12 +6,6 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-
-# The following dependencies are now aligned as closely as possible with
-# Sample Service v0.2.1 and Handle Service v1.0.7 in production.
-# For any deviations specific to the Sample Service, refer to the discussion below for justification:
-# https://github.com/kbase/workspace_deluxe/pull/751#discussion_r2196106305
-
 # joint dependencies
 jsonrpcbase = "==0.2.0"
 requests = "==2.22.0"
@@ -23,18 +17,23 @@ uwsgi = "==2.0.22"
 
 # sample service dependencies
 python-arango = "==5.0.0"
+# Upgraded to fix timezone TypeError; supports zoneinfo in Python 3.9+
 apscheduler = "==3.9.1"
 maps = "==5.1.1"
 cacheout = "==0.11.2"
+# Downgraded from 5.4 to resolve Pipfile.lock generation issues
 pyyaml = "==5.3"
 jsonschema = "==3.2.0"
+# Fixed import error with pkg_resources.extern on Python 3.9
 pint = "==0.17"
 python-ranges = "==0.1.3"
 pygtrie = "==2.3.2"
 jinja2 = "==2.11.3"
+# Updated to support Python 3.9.19
 gevent = "==24.11.1"
 gunicorn = "==20.0.4"
 kafka-python = "==2.0.1"
+# Compatible with gevent and Python 3.9
 greenlet = "==3.1.1"
 typing-extensions = "*"
 types-pyyaml = "*"
