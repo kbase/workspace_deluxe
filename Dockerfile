@@ -24,7 +24,7 @@ COPY client /tmp/workspace/client
 COPY .git /tmp/workspace/.git/
 RUN ./gradlew war
 
-FROM ubuntu:18.04
+FROM ubuntu:24.04
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
