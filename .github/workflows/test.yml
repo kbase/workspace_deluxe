@@ -19,12 +19,12 @@ on:
 jobs:
 
   workspace_container_tests:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -40,7 +40,7 @@ jobs:
           sh test/run_tests.sh
 
   workspace_deluxe_tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -57,18 +57,18 @@ jobs:
             wired_tiger: 'false'
             gradle_test: 'testQuick'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{matrix.java}}
 
-      - name: Set up Python 3.7  # sample service is on 3.7, handle service is on sdkbase2.latest
-        uses: actions/setup-python@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.7"
+          python-version: "3.9.19"
 
       - name: Install dependencies and set up test config
         shell: bash
@@ -92,23 +92,19 @@ jobs:
           export ARANGO_EXE=$(pwd)/arangodb3-linux-$ARANGODB_VER/bin/arangod
           export ARANGO_JS=$(pwd)/arangodb3-linux-$ARANGODB_VER/usr/share/arangodb3/js/
 
-           # set up handle service
-          export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
-          export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
+          # set up handle service
+          # HS_COMMIT corresponds to Handle Service2 tag v1.0.7
+          export HS_COMMIT=335020d26f3663da456be5afee3cb4b8ed8622f4
           git clone https://github.com/kbase/handle_service2.git
           cd handle_service2/
           git checkout $HS_COMMIT
-          sudo chmod -R 777 .
           cd lib/
-          mkdir biokbase
-          cd biokbase/
-          wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
-          cd ..
           export HSDIR=`pwd`
           cd ../..
 
           # set up sample service
-          export SAMPLE_COMMIT=6813fb148e95db2b11db6eea04f4d1d45cbb7119
+          # SAMPLE_COMMIT corresponds to Sample Service tag v0.2.1
+          export SAMPLE_COMMIT=aa0303c4d5d4aa1e3cf0c9ecb36366fb1127f93e
           git clone https://github.com/kbase/sample_service.git
           cd sample_service
           git checkout $SAMPLE_COMMIT
@@ -151,7 +147,7 @@ jobs:
           ./gradlew ${{matrix.gradle_test}}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
