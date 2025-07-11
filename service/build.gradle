@@ -336,7 +336,7 @@ dependencies {
 		exclude group: 'net.java.dev.jna' // breaks shadow jar
 	}
 	implementation "com.github.kbase:shock_java_client:0.2.0"
-	implementation 'com.google.guava:guava:14.0.1'
+	implementation 'com.google.guava:guava:23.0'
 	implementation 'commons-codec:commons-codec:1.8'
 	implementation 'commons-io:commons-io:2.4'
 	implementation "com.fasterxml.jackson.core:jackson-annotations:$VER_JACKSON"
