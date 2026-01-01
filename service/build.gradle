@@ -381,7 +381,7 @@ dependencies {
 	testImplementation 'com.github.zafarkhaja:java-semver:0.9.0'
 	testImplementation 'junit:junit:4.12'
 	testImplementation 'nl.jqno.equalsverifier:equalsverifier:3.1.10'
-	testImplementation 'org.mockito:mockito-core:3.0.0'
+	testImplementation 'org.mockito:mockito-core:5.21.0'
 }
 
 task showTestClassPath {
