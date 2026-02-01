@@ -325,7 +325,7 @@ dependencies {
 
 	// ### General application dependencies ###
 	
-	implementation 'ch.qos.logback:logback-classic:1.1.2'
+	implementation 'ch.qos.logback:logback-classic:1.5.27'
 	implementation 'com.github.ben-manes.caffeine:caffeine:2.9.3'
 	implementation "com.github.kbase:auth2_client_java:$VER_AUTH2_CLIENT"
 	implementation("com.github.kbase:handle_service2:1.0.6") {
